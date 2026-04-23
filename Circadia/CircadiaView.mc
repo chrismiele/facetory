@@ -2,7 +2,6 @@ using Toybox.Activity;
 using Toybox.ActivityMonitor;
 using Toybox.Graphics;
 using Toybox.Math;
-using Toybox.Position;
 using Toybox.SensorHistory;
 using Toybox.System;
 using Toybox.Time;
@@ -43,16 +42,15 @@ class CircadiaView extends WatchUi.WatchFace {
     const SECOND_TICK_LENGTH_FRAC = 0.0449438202;
     const SECOND_TICK_HALF_WIDTH_FRAC = 0.0084269663;
 
-    const FIELD_TEMPERATURE = 0;
+    const FIELD_DATE = 0;
     const FIELD_BODY_BATTERY = 1;
-    const FIELD_HEART_RATE = 2;
-    const FIELD_STEPS = 3;
+    const FIELD_TEMPERATURE = 2;
+    const FIELD_HEART_RATE = 3;
+    const FIELD_STEPS = 4;
 
-    const LEFT_FIELD_KIND = FIELD_TEMPERATURE;
-    const RIGHT_FIELD_KIND = FIELD_BODY_BATTERY;
-
-    const FIELD_CLIP_W = 60;
-    const FIELD_CLIP_H = 20;
+    const TOP_FIELD_KIND = FIELD_DATE;
+    const LEFT_FIELD_KIND = FIELD_HEART_RATE;
+    const RIGHT_FIELD_KIND = FIELD_STEPS;
 
     var LAT_DEG = 49.28;
     var LON_DEG = 123.12;
@@ -78,6 +76,7 @@ class CircadiaView extends WatchUi.WatchFace {
     var _cachedDateText = "--";
     var _cachedWeatherText = "--";
 
+    var _topFieldText = "--";
     var _leftFieldText = "--";
     var _rightFieldText = "--";
     var _cachedStepsText = "--";
@@ -176,7 +175,7 @@ class CircadiaView extends WatchUi.WatchFace {
             _cacheMin = t.min;
         }
 
-        refreshLiveBottomFields();
+        refreshLiveFields();
 
         var sun = _cachedSunAltAz;
         var sp = Solar.projectAltAz(sun[0], sun[1], cx, cy, R);
@@ -243,7 +242,7 @@ class CircadiaView extends WatchUi.WatchFace {
                 drawSecondTicks(dc, cx, cy, R, t.sec);
             }
 
-            drawTopDate(dc, cx, cy, R);
+            drawTopField(dc, cx, cy, R);
             drawDigitalClock(dc, cx, cy, R, t.hour, t.min, _cachedSunsetAccent);
         }
     }
@@ -253,11 +252,15 @@ class CircadiaView extends WatchUi.WatchFace {
             return;
         }
 
-        if (!fieldNeedsFastRefresh(LEFT_FIELD_KIND) && !fieldNeedsFastRefresh(RIGHT_FIELD_KIND)) {
+        var topFast = fieldNeedsFastRefresh(TOP_FIELD_KIND);
+        var leftFast = fieldNeedsFastRefresh(LEFT_FIELD_KIND);
+        var rightFast = fieldNeedsFastRefresh(RIGHT_FIELD_KIND);
+
+        if (!topFast && !leftFast && !rightFast) {
             return;
         }
 
-        refreshLiveBottomFields();
+        refreshLiveFields();
 
         var w = dc.getWidth().toFloat();
         var h = dc.getHeight().toFloat();
@@ -265,32 +268,43 @@ class CircadiaView extends WatchUi.WatchFace {
         var cy = h/2.0;
         var R = ((w < h) ? w : h)/2.0 - 2.0;
 
-        if (fieldNeedsFastRefresh(LEFT_FIELD_KIND)) {
-            drawOneBottomField(dc, cx, cy, R, BOTTOM_LEFT_FIELD_AZ_DEG, _leftFieldText);
+        if (topFast) {
+            drawOneFieldClipped(dc, cx, cy, R, TOP_FIELD_RADIUS_FRAC, TOP_FIELD_AZ_DEG, _topFieldText);
         }
 
-        if (fieldNeedsFastRefresh(RIGHT_FIELD_KIND)) {
-            drawOneBottomField(dc, cx, cy, R, BOTTOM_RIGHT_FIELD_AZ_DEG, _rightFieldText);
+        if (leftFast) {
+            drawOneFieldClipped(dc, cx, cy, R, BOTTOM_FIELD_RADIUS_FRAC, BOTTOM_LEFT_FIELD_AZ_DEG, _leftFieldText);
+        }
+
+        if (rightFast) {
+            drawOneFieldClipped(dc, cx, cy, R, BOTTOM_FIELD_RADIUS_FRAC, BOTTOM_RIGHT_FIELD_AZ_DEG, _rightFieldText);
         }
     }
 
-    function drawOneBottomField(dc, cx, cy, R, azDeg, text) {
-        var p = polarPoint(cx, cy, R, BOTTOM_FIELD_RADIUS_FRAC, azDeg);
+    function drawOneFieldClipped(dc, cx, cy, R, rhoFrac, azDeg, text) {
+        var p = polarPoint(cx, cy, R, rhoFrac, azDeg);
         var x = p[0].toNumber();
         var y = p[1].toNumber();
 
-        var clipX = x - FIELD_CLIP_W/2;
-        var clipY = y - FIELD_CLIP_H/2;
+        var font = Graphics.FONT_SYSTEM_TINY;
+        var w = dc.getTextWidthInPixels(text, font);
+        var h = dc.getFontHeight(font);
 
-        dc.setClip(clipX, clipY, FIELD_CLIP_W, FIELD_CLIP_H);
-        dc.setColor(BLACK, BLACK);
-        dc.fillRectangle(clipX, clipY, FIELD_CLIP_W, FIELD_CLIP_H);
+        var padX = 2;
+        var padY = 1;
+
+        var clipX = x - w/2 - padX;
+        var clipY = y - h/2 - padY;
+        var clipW = w + 2*padX;
+        var clipH = h + 2*padY;
+
+        dc.setClip(clipX, clipY, clipW, clipH);
 
         dc.setColor(WHITE, Graphics.COLOR_TRANSPARENT);
         dc.drawText(
             x,
             y,
-            Graphics.FONT_SYSTEM_TINY,
+            font,
             text,
             Graphics.TEXT_JUSTIFY_CENTER
         );
@@ -343,17 +357,22 @@ class CircadiaView extends WatchUi.WatchFace {
         _cachedWeatherText = getWeatherTempText();
         _bodyBatteryText = getBodyBatteryDisplay();
 
-        _leftFieldText = getBottomFieldText(LEFT_FIELD_KIND);
-        _rightFieldText = getBottomFieldText(RIGHT_FIELD_KIND);
+        _topFieldText = getFieldText(TOP_FIELD_KIND);
+        _leftFieldText = getFieldText(LEFT_FIELD_KIND);
+        _rightFieldText = getFieldText(RIGHT_FIELD_KIND);
     }
 
-    function refreshLiveBottomFields() {
+    function refreshLiveFields() {
+        if (fieldNeedsFastRefresh(TOP_FIELD_KIND)) {
+            _topFieldText = getFieldText(TOP_FIELD_KIND);
+        }
+
         if (fieldNeedsFastRefresh(LEFT_FIELD_KIND)) {
-            _leftFieldText = getBottomFieldText(LEFT_FIELD_KIND);
+            _leftFieldText = getFieldText(LEFT_FIELD_KIND);
         }
 
         if (fieldNeedsFastRefresh(RIGHT_FIELD_KIND)) {
-            _rightFieldText = getBottomFieldText(RIGHT_FIELD_KIND);
+            _rightFieldText = getFieldText(RIGHT_FIELD_KIND);
         }
     }
 
@@ -361,7 +380,11 @@ class CircadiaView extends WatchUi.WatchFace {
         return kind == FIELD_HEART_RATE || kind == FIELD_STEPS;
     }
 
-    function getBottomFieldText(kind) {
+    function getFieldText(kind) {
+        if (kind == FIELD_DATE) {
+            return _cachedDateText;
+        }
+
         if (kind == FIELD_TEMPERATURE) {
             return _cachedWeatherText;
         }
@@ -435,7 +458,7 @@ class CircadiaView extends WatchUi.WatchFace {
         }
     }
 
-    function drawTopDate(dc, cx, cy, R) {
+    function drawTopField(dc, cx, cy, R) {
         var p = polarPoint(cx, cy, R, TOP_FIELD_RADIUS_FRAC, TOP_FIELD_AZ_DEG);
 
         dc.setColor(WHITE, Graphics.COLOR_TRANSPARENT);
@@ -443,7 +466,7 @@ class CircadiaView extends WatchUi.WatchFace {
             p[0].toNumber(),
             p[1].toNumber(),
             Graphics.FONT_SYSTEM_TINY,
-            _cachedDateText,
+            _topFieldText,
             Graphics.TEXT_JUSTIFY_CENTER
         );
     }
@@ -554,21 +577,9 @@ class CircadiaView extends WatchUi.WatchFace {
     function getStepsDisplay() {
         var info = ActivityMonitor.getInfo();
         if (info != null && info.steps != null) {
-            _cachedStepsText = formatSteps(info.steps.toNumber());
+            _cachedStepsText = oneDecimalString(info.steps.toNumber()/1000.0) + "k";
         }
         return _cachedStepsText;
-    }
-
-    function formatSteps(steps) {
-        if (steps < 1000) {
-            return steps.toString();
-        }
-
-        if (steps < 100000) {
-            return oneDecimalString(steps/1000.0) + "k";
-        }
-
-        return Math.floor(steps/1000.0).toNumber().toString() + "k";
     }
 
     function oneDecimalString(x) {
