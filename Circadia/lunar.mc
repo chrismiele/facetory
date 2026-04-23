@@ -19,7 +19,6 @@ module Lunar {
     const BLACK = 0x000000;
     const NEW_MOON_GREY = 0x0A142B;
 
-    const MOON_GLOW_STEPS = 22;
     const MOON_GLOW_DEG = 45.0;
     const SUN_GLOW_CUTOFF_DEG = 18.0;
     const MAX_MOON_GLOW_BRIGHTNESS = 1.0;
@@ -290,12 +289,17 @@ module Lunar {
         }
 
         var glowBrightness = MAX_MOON_GLOW_BRIGHTNESS*nightScale*fullMoonScale;
-        drawOffsetMoonGlowCircle(dc, xi, yi, outerR, litColor, glowBrightness);
+        var glowSteps = roundNearest(1.0*MOON_GLOW_DEG*fullMoonScale);
+        if (glowSteps < 1) {
+            glowSteps = 1;
+        }
+
+        drawOffsetMoonGlowCircle(dc, xi, yi, outerR, litColor, glowBrightness, glowSteps);
     }
 
-    function drawOffsetMoonGlowCircle(dc, xg, yg, outerR, litColor, brightnessScale) {
-        for (var i = MOON_GLOW_STEPS; i >= 1; i -= 1) {
-            var f = i.toFloat()/MOON_GLOW_STEPS.toFloat();
+    function drawOffsetMoonGlowCircle(dc, xg, yg, outerR, litColor, brightnessScale, glowSteps) {
+        for (var i = glowSteps; i >= 1; i -= 1) {
+            var f = i.toFloat()/glowSteps.toFloat();
             var rr = outerR*f;
             var c = blendColor(BLACK, litColor, brightnessScale*(1.0 - f));
 

@@ -11,6 +11,7 @@ module Solar {
     const WHITE = 0xFFFFFF;
 
     const COLOR_SATURATION = 1.0;
+    const OUTER_GLOW_SCALE = 0.1;
 
     const SUNSET_ACCENT_COLOR = 0xFF8A00;
     const SUNSET_ACCENT_ALT_DEG = 1.5;
@@ -137,6 +138,8 @@ module Solar {
         var dy = yi - cy.toNumber();
         var d = Math.sqrt(dx*dx + dy*dy);
 
+        var outerGlowColor = scaleColor(sunColor, OUTER_GLOW_SCALE);
+
         for (var i = glowSteps; i >= 1; i -= 1) {
             var f = i.toFloat()*invSteps;
             var ri = (glowPx*f).toNumber();
@@ -145,7 +148,7 @@ module Solar {
                 continue;
             }
 
-            dc.setColor(blendColor(BLACK, sunColor, 1.0 - f), BLACK);
+            dc.setColor(blendColor(outerGlowColor, sunColor, 1.0 - f), BLACK);
             dc.fillCircle(xi, yi, ri);
         }
     }
@@ -301,6 +304,16 @@ module Solar {
         var r = (r0 + (r1 - r0)*t).toNumber();
         var g = (g0 + (g1 - g0)*t).toNumber();
         var b = (b0 + (b1 - b0)*t).toNumber();
+
+        return r*65536 + g*256 + b;
+    }
+
+    function scaleColor(color, s) {
+        s = clamp(s, 0.0, 1.0);
+
+        var r = (((color/65536) % 256)*s).toNumber();
+        var g = (((color/256) % 256)*s).toNumber();
+        var b = ((color % 256)*s).toNumber();
 
         return r*65536 + g*256 + b;
     }
