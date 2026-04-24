@@ -49,11 +49,11 @@ class CircadiaView extends WatchUi.WatchFace {
     const FIELD_STEPS = 4;
 
     const TOP_FIELD_KIND = FIELD_DATE;
-    const LEFT_FIELD_KIND = FIELD_HEART_RATE;
-    const RIGHT_FIELD_KIND = FIELD_STEPS;
+    const LEFT_FIELD_KIND = FIELD_TEMPERATURE;
+    const RIGHT_FIELD_KIND = FIELD_BODY_BATTERY;
 
-    var LAT_DEG = 49.28;
-    var LON_DEG = 123.12;
+    var LAT_DEG = 52.09;
+    var LON_DEG = 5.12;
 
     var _sunColor = WHITE;
     var _bodyBatteryText = "--";
@@ -212,6 +212,8 @@ class CircadiaView extends WatchUi.WatchFace {
                 t.sec,
                 LAT_DEG,
                 sun[0],
+                sp[0],
+                sp[1],
                 mp[0],
                 mp[1],
                 moonRadius

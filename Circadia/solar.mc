@@ -76,6 +76,7 @@ module Solar {
 
         var alt = Math.asin(sinAlt);
         var altDeg = rad2deg(alt);
+        altDeg += refractionDeg(altDeg);
 
         if (90.0 - altDeg < 0.1) {
             return [altDeg, 0.0];
@@ -95,6 +96,14 @@ module Solar {
         }
 
         return [altDeg, rad2deg(az)];
+    }
+
+    function refractionDeg(altDeg) {
+        if (altDeg < -4.0) {
+            return 0.0;
+        }
+
+        return 1.02/(60.0*Math.tan(deg2rad(altDeg + 10.3/(altDeg + 5.11))));
     }
 
     function projectAltAz(altDeg, azDeg, cx, cy, R) {

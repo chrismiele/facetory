@@ -5,161 +5,232 @@ module Stellar {
 
     const BLACK = 0x000000;
 
-    const STAR_COUNT = 200;
+    const STAR_COUNT = 300;
     const STAR_SEED = 26.0;
 
     const NIGHT_START_ALT_DEG = 0.0;
     const FULL_NIGHT_ALT_DEG = -18.0;
+
+    const SOLAR_HALO_RADIUS_DEG = 18.0;
 
     const STAR_SMALL = 0;
     const STAR_MEDIUM = 1;
     const STAR_LARGE = 2;
     const STAR_XL = 3;
 
-    // Adjustable size mix
     const SMALL_FRAC = 0.7;
     const MEDIUM_FRAC = 0.25;
     const LARGE_FRAC = 0.03;
     const XL_FRAC = 0.02;
 
-    const STAR_FADE_COLORS = [
-        0x000000,
-        0x201E1B,
-        0x3F3C36,
-        0x5E5A50,
-        0x7D7769,
-        0x9C9482,
-        0xC6BDA8,
-        0xFDEBD2
+    const STAR_YELLOW = 0;
+    const STAR_SOFT_YELLOW = 1;
+    const STAR_RED = 2;
+    const STAR_BLUE = 3;
+    const STAR_WHITE = 4;
+
+    const STAR_COLOR_VALUES = [
+        0xFDEBD2,
+        0xFFF6D8,
+        0xFFB08A,
+        0xC9D8FF,
+        0xF4F4FF
     ];
 
-    const POLE_OFFSET_SCALE = 0.8;
-    const STAR_BUDGET_FALLOFF = 0.55;
-    const MIN_STAR_BUDGET = 120;
+    const STAR_YELLOW_FRAC = 0.55;
+    const STAR_SOFT_YELLOW_FRAC = 0.20;
+    const STAR_RED_FRAC = 0.12;
+    const STAR_BLUE_FRAC = 0.08;
+    const STAR_WHITE_FRAC = 0.05;
 
     var _starCatalog = null;
-    var _catalogFieldRadiusPx = -1.0;
     var _catalogSkyRadiusPx = -1.0;
     var _catalogLatDeg = 999.0;
 
-    function drawStars(dc, cx, cy, skyRadiusPx, year, month, day, hour, min, sec, latDeg, sunAltDeg, moonX, moonY, moonRadiusPx) {
+    function drawStars(dc, cx, cy, skyRadiusPx, year, month, day, hour, min, sec, latDeg, sunAltDeg, sunX, sunY, moonX, moonY, moonRadiusPx) {
         var nightScale = starNightScale(sunAltDeg);
         if (nightScale <= 0.0) {
             return;
         }
 
-        var fadeIndex = Math.floor(nightScale*7.999).toNumber();
-        dc.setColor(STAR_FADE_COLORS[fadeIndex], BLACK);
+        ensureStarCatalog(skyRadiusPx, latDeg);
+
+        var fadedColors = fadedStarColors(nightScale);
 
         var pole = polePoint(cx, cy, skyRadiusPx, latDeg);
         var px = pole[0];
         var py = pole[1];
 
-        var spin = siderealAngleDeg(year, month, day, hour, min);
-        var ang = deg2rad(spin);
-        var cs = Math.cos(ang);
-        var sn = Math.sin(ang);
-
+        var spin = deg2rad(siderealAngleDeg(year, month, day, hour, min));
         if (latDeg < 0.0) {
-            sn = -sn;
+            spin = -spin;
         }
 
         var skyR2 = skyRadiusPx*skyRadiusPx;
         var moonR2 = moonRadiusPx*moonRadiusPx;
-
-        var fieldRadiusPx = starFieldRadiusPx(skyRadiusPx, latDeg);
-        ensureStarCatalog(fieldRadiusPx, skyRadiusPx, latDeg);
-
+        var solarHaloRadiusPx = skyRadiusPx*(SOLAR_HALO_RADIUS_DEG/90.0);
+        var solarHaloR2 = solarHaloRadiusPx*solarHaloRadiusPx;
         var activeCount = activeStarCount(nightScale, _starCatalog.size());
-
-        drawPolaris(dc, px, py, nightScale, moonX, moonY, moonR2);
 
         for (var i = 0; i < activeCount; i += 1) {
             var s = _starCatalog[i];
 
-            var x0 = s[0];
-            var y0 = s[1];
-            var starSize = s[2];
+            var pathRadius = s[0];
+            var arcStart = s[1];
+            var arcLength = s[2];
+            var phase0 = s[3];
 
-            var x = px + x0*cs - y0*sn;
-            var y = py + x0*sn + y0*cs;
+            var phase = frac(phase0 + spin/arcLength);
+            var a = arcStart + phase*arcLength;
 
-            var dxSky = x - cx;
-            var dySky = y - cy;
-            if (dxSky*dxSky + dySky*dySky > skyR2) {
-                continue;
-            }
-
-            if (moonRadiusPx > 0.0) {
-                var dxMoon = x - moonX;
-                var dyMoon = y - moonY;
-                if (dxMoon*dxMoon + dyMoon*dyMoon <= moonR2) {
-                    continue;
-                }
-            }
-
-            var xi = roundNearest(x);
-            var yi = roundNearest(y);
-
-            if (starSize == STAR_XL) {
-                dc.fillRectangle(xi - 2, yi - 2, 4, 4);
-            } else if (starSize == STAR_LARGE) {
-                dc.fillRectangle(xi - 1, yi - 1, 3, 3);
-            } else if (starSize == STAR_MEDIUM) {
-                dc.fillRectangle(xi - 1, yi - 1, 2, 2);
-            } else {
-                dc.drawPoint(xi, yi);
-            }
+            drawStarIfVisible(
+                dc,
+                px + pathRadius*Math.cos(a),
+                py + pathRadius*Math.sin(a),
+                cx,
+                cy,
+                skyR2,
+                sunX,
+                sunY,
+                solarHaloR2,
+                moonX,
+                moonY,
+                moonRadiusPx,
+                moonR2,
+                s[4],
+                fadedColors[s[5]]
+            );
         }
     }
 
-    function activeStarCount(nightScale, totalCount) {
-        var n = Math.floor(nightScale*totalCount + 0.999).toNumber();
-        if (n < 0) {
-            return 0;
-        }
-        if (n > totalCount) {
-            return totalCount;
-        }
-        return n;
-    }
-
-    function ensureStarCatalog(fieldRadiusPx, skyRadiusPx, latDeg) {
+    function ensureStarCatalog(skyRadiusPx, latDeg) {
         if (_starCatalog == null
-            || abs(fieldRadiusPx - _catalogFieldRadiusPx) > 0.5
             || abs(skyRadiusPx - _catalogSkyRadiusPx) > 0.5
             || abs(latDeg - _catalogLatDeg) > 0.25) {
 
-            _starCatalog = buildStarCatalog(fieldRadiusPx, skyRadiusPx, latDeg);
-            _catalogFieldRadiusPx = fieldRadiusPx;
+            _starCatalog = buildStarCatalog(skyRadiusPx, latDeg);
             _catalogSkyRadiusPx = skyRadiusPx;
             _catalogLatDeg = latDeg;
         }
     }
 
-    function buildStarCatalog(fieldRadiusPx, skyRadiusPx, latDeg) {
+    function buildStarCatalog(skyRadiusPx, latDeg) {
         var stars = [];
 
-        var altDeg = abs(latDeg);
-        if (altDeg > 90.0) {
-            altDeg = 90.0;
-        }
+        var pole = polePoint(0.0, 0.0, skyRadiusPx, latDeg);
+        var px = pole[0];
+        var py = pole[1];
 
-        var poleOffsetPx = skyRadiusPx*(1.0 - altDeg/90.0);
-        var poleFrac = poleOffsetPx/skyRadiusPx;
+        var poleDist = Math.sqrt(px*px + py*py);
+        var centerAngle = Math.atan2(-py, -px);
 
-        var starBudget = (STAR_COUNT*(1.0 - STAR_BUDGET_FALLOFF*poleFrac*poleFrac) + 0.999).toNumber();
-        if (starBudget < MIN_STAR_BUDGET) {
-            starBudget = MIN_STAR_BUDGET;
-        }
+        for (var i = 0; i < STAR_COUNT; i += 1) {
+            var r = skyRadiusPx*Math.sqrt(rand01(i, 0));
+            var a = 2.0*Math.PI*rand01(i, 1);
 
-        var candidateCount = (starBudget*(fieldRadiusPx*fieldRadiusPx)/(skyRadiusPx*skyRadiusPx) + 0.999).toNumber();
+            var x = r*Math.cos(a);
+            var y = r*Math.sin(a);
 
-        for (var i = 0; i < candidateCount; i += 1) {
-            stars.add(starSample(i, fieldRadiusPx));
+            var dx = x - px;
+            var dy = y - py;
+
+            var pathRadius = Math.sqrt(dx*dx + dy*dy);
+            var starAngle = Math.atan2(dy, dx);
+            var path = visiblePath(pathRadius, starAngle, poleDist, centerAngle, skyRadiusPx);
+
+            stars.add([
+                pathRadius,
+                path[0],
+                path[1],
+                path[2],
+                starSize(i),
+                starColorBin(i)
+            ]);
         }
 
         return stars;
+    }
+
+    function visiblePath(pathRadius, starAngle, poleDist, centerAngle, skyRadiusPx) {
+        if (pathRadius <= 0.001 || poleDist <= 0.001 || pathRadius + poleDist <= skyRadiusPx) {
+            return [
+                0.0,
+                2.0*Math.PI,
+                frac(starAngle/(2.0*Math.PI))
+            ];
+        }
+
+        var c = (pathRadius*pathRadius + poleDist*poleDist - skyRadiusPx*skyRadiusPx)/(2.0*pathRadius*poleDist);
+
+        if (c <= -1.0) {
+            return [
+                0.0,
+                2.0*Math.PI,
+                frac(starAngle/(2.0*Math.PI))
+            ];
+        }
+
+        if (c > 1.0) {
+            c = 1.0;
+        }
+
+        var halfArc = Math.acos(c);
+        var arcStart = centerAngle - halfArc;
+        var arcLength = 2.0*halfArc;
+
+        if (arcLength < 0.001) {
+            arcLength = 0.001;
+        }
+
+        return [
+            arcStart,
+            arcLength,
+            frac((starAngle - arcStart)/arcLength)
+        ];
+    }
+
+    function drawStarIfVisible(dc, x, y, cx, cy, skyR2, sunX, sunY, solarHaloR2, moonX, moonY, moonRadiusPx, moonR2, starSize, starColor) {
+        var dxSky = x - cx;
+        var dySky = y - cy;
+        if (dxSky*dxSky + dySky*dySky > skyR2) {
+            return;
+        }
+
+        var dxSun = x - sunX;
+        var dySun = y - sunY;
+        if (dxSun*dxSun + dySun*dySun <= solarHaloR2) {
+            return;
+        }
+
+        if (moonRadiusPx > 0.0) {
+            var dxMoon = x - moonX;
+            var dyMoon = y - moonY;
+            if (dxMoon*dxMoon + dyMoon*dyMoon <= moonR2) {
+                return;
+            }
+        }
+
+        var xi = roundNearest(x);
+        var yi = roundNearest(y);
+
+        dc.setColor(starColor, BLACK);
+
+        if (starSize == STAR_XL) {
+            dc.fillRectangle(xi - 2, yi - 2, 4, 4);
+        } else if (starSize == STAR_LARGE) {
+            dc.fillRectangle(xi - 1, yi - 1, 3, 3);
+        } else if (starSize == STAR_MEDIUM) {
+            dc.fillRectangle(xi - 1, yi - 1, 2, 2);
+        } else {
+            dc.drawPoint(xi, yi);
+        }
+    }
+
+    function activeStarCount(nightScale, totalCount) {
+        var n = Math.floor(nightScale*totalCount + 0.999).toNumber();
+        if (n < 0) { return 0; }
+        if (n > totalCount) { return totalCount; }
+        return n;
     }
 
     function polePoint(cx, cy, skyRadiusPx, latDeg) {
@@ -178,51 +249,52 @@ module Stellar {
         ];
     }
 
-    function drawPolaris(dc, x, y, nightScale, moonX, moonY, moonR2) {
-        if (nightScale <= 0.42) {
-            return;
-        }
+    function starSize(i) {
+        var u = rand01(i, 2);
 
-        var dxMoon = x - moonX;
-        var dyMoon = y - moonY;
-        if (moonR2 > 0.0 && dxMoon*dxMoon + dyMoon*dyMoon <= moonR2) {
-            return;
+        if (u < SMALL_FRAC) {
+            return STAR_SMALL;
         }
-
-        var xi = roundNearest(x);
-        var yi = roundNearest(y);
-        dc.fillRectangle(xi - 1, yi - 1, 2, 2);
+        if (u < SMALL_FRAC + MEDIUM_FRAC) {
+            return STAR_MEDIUM;
+        }
+        if (u < SMALL_FRAC + MEDIUM_FRAC + LARGE_FRAC) {
+            return STAR_LARGE;
+        }
+        return STAR_XL;
     }
 
-    function starSample(i, fieldRadiusPx) {
-        var u0 = rand01(i, 0);
-        var u1 = rand01(i, 1);
-        var u2 = rand01(i, 2);
+    function starColorBin(i) {
+        var u = rand01(i, 3);
 
-        var r = fieldRadiusPx*Math.sqrt(u0);
-        var a = 2.0*Math.PI*u1;
-
-        var x0 = r*Math.cos(a);
-        var y0 = r*Math.sin(a);
-
-        var starSize;
-        if (u2 < SMALL_FRAC) {
-            starSize = STAR_SMALL;
-        } else if (u2 < SMALL_FRAC + MEDIUM_FRAC) {
-            starSize = STAR_MEDIUM;
-        } else if (u2 < SMALL_FRAC + MEDIUM_FRAC + LARGE_FRAC) {
-            starSize = STAR_LARGE;
-        } else {
-            starSize = STAR_XL;
+        if (u < STAR_YELLOW_FRAC) {
+            return STAR_YELLOW;
         }
+        if (u < STAR_YELLOW_FRAC + STAR_SOFT_YELLOW_FRAC) {
+            return STAR_SOFT_YELLOW;
+        }
+        if (u < STAR_YELLOW_FRAC + STAR_SOFT_YELLOW_FRAC + STAR_RED_FRAC) {
+            return STAR_RED;
+        }
+        if (u < STAR_YELLOW_FRAC + STAR_SOFT_YELLOW_FRAC + STAR_RED_FRAC + STAR_BLUE_FRAC) {
+            return STAR_BLUE;
+        }
+        return STAR_WHITE;
+    }
 
-        return [x0, y0, starSize];
+    function fadedStarColors(nightScale) {
+        return [
+            blendColor(BLACK, STAR_COLOR_VALUES[STAR_YELLOW], nightScale),
+            blendColor(BLACK, STAR_COLOR_VALUES[STAR_SOFT_YELLOW], nightScale),
+            blendColor(BLACK, STAR_COLOR_VALUES[STAR_RED], nightScale),
+            blendColor(BLACK, STAR_COLOR_VALUES[STAR_BLUE], nightScale),
+            blendColor(BLACK, STAR_COLOR_VALUES[STAR_WHITE], nightScale)
+        ];
     }
 
     function siderealAngleDeg(year, month, day, hour, min) {
         var dayIndex = dayNumber(year, month, day) - 1.0;
         var minuteOfDay = 60.0*hour + min.toFloat();
-
         return wrap360(0.985647*dayIndex + 360.985647*(minuteOfDay/1440.0));
     }
 
@@ -230,14 +302,22 @@ module Stellar {
         return clamp((NIGHT_START_ALT_DEG - sunAltDeg)/(NIGHT_START_ALT_DEG - FULL_NIGHT_ALT_DEG), 0.0, 1.0);
     }
 
-    function starFieldRadiusPx(skyRadiusPx, latDeg) {
-        var altDeg = abs(latDeg);
-        if (altDeg > 90.0) {
-            altDeg = 90.0;
-        }
+    function blendColor(c0, c1, t) {
+        t = clamp(t, 0.0, 1.0);
 
-        var poleOffsetPx = skyRadiusPx*(1.0 - altDeg/90.0);
-        return skyRadiusPx + POLE_OFFSET_SCALE*poleOffsetPx;
+        var r0 = (c0/65536) % 256;
+        var g0 = (c0/256) % 256;
+        var b0 = c0 % 256;
+
+        var r1 = (c1/65536) % 256;
+        var g1 = (c1/256) % 256;
+        var b1 = c1 % 256;
+
+        var r = (r0 + (r1 - r0)*t).toNumber();
+        var g = (g0 + (g1 - g0)*t).toNumber();
+        var b = (b0 + (b1 - b0)*t).toNumber();
+
+        return r*65536 + g*256 + b;
     }
 
     function rand01(i, channel) {
