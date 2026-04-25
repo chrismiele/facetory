@@ -13,7 +13,7 @@ module Solar {
     const RING_OUTER_EDGE_SCALE = 0.1;
     const RING_THICKNESS_DEG = 6.0;
     const RING_INNER_EDGE_SCALE = 0.2;
-    const RING_PEAK_SCALE = 0.3;
+    const RING_PEAK_SCALE = 0.4;
 
     const SUNSET_ACCENT_COLOR = 0xFF8A00;
     const SUNSET_ACCENT_ALT_DEG = 1.5;
