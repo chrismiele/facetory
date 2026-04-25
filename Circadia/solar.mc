@@ -146,8 +146,6 @@ module Solar {
         var dy = yi - cy.toNumber();
         var d = Math.sqrt(dx*dx + dy*dy);
 
-        var outerGlowColor = scaleColor(sunColor, OUTER_GLOW_SCALE);
-
         for (var i = glowSteps; i >= 1; i -= 1) {
             var f = i.toFloat()*invSteps;
             var ri = (glowPx*f).toNumber();
@@ -156,7 +154,8 @@ module Solar {
                 continue;
             }
 
-            dc.setColor(blendColor(outerGlowColor, sunColor, 1.0 - f), BLACK);
+            var brightness = OUTER_GLOW_SCALE + (1.0 - OUTER_GLOW_SCALE)*(1.0 - f);
+            dc.setColor(scaleColor(sunColor, brightness), BLACK);
             dc.fillCircle(xi, yi, ri);
         }
     }
