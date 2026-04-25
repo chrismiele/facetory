@@ -22,7 +22,8 @@ module Lunar {
     const MOON_GLOW_DEG = 45.0;
     const MOON_RING_THICKNESS_DEG = 15.0;
     const SUN_GLOW_CUTOFF_DEG = 18.0;
-    const MAX_MOON_GLOW_BRIGHTNESS = 0.3;
+    const MAX_MOON_GLOW_BRIGHTNESS = 0.5;
+    const INNER_MOON_GLOW_BRIGHTNESS_SCALE = 0.5;
 
     const GIBBOUS_TERM_FRAC_NEAR_HALF = 0.5;
     const GIBBOUS_TERM_FRAC_NEAR_FULL = 0.8;
@@ -203,7 +204,7 @@ module Lunar {
 
         if (bin == PHASE_FULL) {
             resetOrientationBins();
-            drawMoonGlow(dc, xi, yi, phaseAngle, sunAltDeg, litColor, skyRadiusPx);
+            drawMoonGlow(dc, xi, yi, r, phaseAngle, sunAltDeg, litColor, skyRadiusPx);
             dc.setColor(litColor, BLACK);
             dc.fillCircle(xi, yi, ri);
             return;
@@ -281,7 +282,7 @@ module Lunar {
         _prevCrescentBin = -1;
     }
 
-    function drawMoonGlow(dc, xi, yi, phaseAngle, sunAltDeg, litColor, skyRadiusPx) {
+    function drawMoonGlow(dc, xi, yi, moonRadiusPx, phaseAngle, sunAltDeg, litColor, skyRadiusPx) {
         var fullMoonScale = clamp(1.0 - abs(wrap180(phaseAngle - 180.0))/FULL_MOON_WINDOW_DEG, 0.0, 1.0);
 
         if (fullMoonScale <= 0.0) {
@@ -304,10 +305,10 @@ module Lunar {
             glowSteps = 1;
         }
 
-        drawOffsetMoonGlowCircle(dc, xi, yi, outerR, litColor, glowBrightness, glowSteps);
+        drawOffsetMoonGlowCircle(dc, xi, yi, moonRadiusPx, outerR, litColor, glowBrightness, glowSteps);
     }
 
-    function drawOffsetMoonGlowCircle(dc, xg, yg, outerR, litColor, brightnessScale, glowSteps) {
+    function drawOffsetMoonGlowCircle(dc, xg, yg, moonRadiusPx, outerR, litColor, brightnessScale, glowSteps) {
         var thicknessR = outerR*(MOON_RING_THICKNESS_DEG/MOON_GLOW_DEG);
         var innerR = outerR - thicknessR;
         if (innerR < 0.0) {
@@ -316,7 +317,7 @@ module Lunar {
 
         var midR = 0.5*(outerR + innerR);
         var outerEdgeBrightness = 0.1*brightnessScale;
-        var innerEdgeBrightness = 0.2*brightnessScale;
+        var innerEdgeBrightness = INNER_MOON_GLOW_BRIGHTNESS_SCALE*brightnessScale;
 
         for (var i = glowSteps; i >= 1; i -= 1) {
             var f = i.toFloat()/glowSteps.toFloat();
@@ -329,11 +330,11 @@ module Lunar {
             } else if (rr >= innerR) {
                 brightness = innerEdgeBrightness
                     + (brightnessScale - innerEdgeBrightness)*(rr - innerR)/(midR - innerR);
-            } else if (innerR > 0.0) {
+            } else if (rr >= moonRadiusPx && innerR > moonRadiusPx) {
                 brightness = brightnessScale
-                    + (innerEdgeBrightness - brightnessScale)*rr/innerR;
+                    + (innerEdgeBrightness - brightnessScale)*(rr - moonRadiusPx)/(innerR - moonRadiusPx);
             } else {
-                brightness = brightnessScale;
+                continue;
             }
 
             var c = blendColor(BLACK, litColor, brightness);
