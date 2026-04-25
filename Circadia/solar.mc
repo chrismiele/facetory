@@ -10,7 +10,9 @@ module Solar {
     const BLACK = 0x000000;
     const WHITE = 0xFFFFFF;
 
-    const COLOR_SATURATION = 1.0;
+    // Now ONLY controls minute "whitewash"
+    const COLOR_SATURATION = 0.7; // ≈ reproduces old 0.45 white blend
+
     const OUTER_GLOW_SCALE = 0.1;
 
     const SUNSET_ACCENT_COLOR = 0xFF8A00;
@@ -236,34 +238,9 @@ module Solar {
         return _satBlue;
     }
 
-    function minuteColorForAlt(altDeg) {
-        ensureColorCache();
-
-        if (altDeg >= 18.0) {
-            return _satYellow;
-        }
-
-        if (altDeg >= 6.0) {
-            return blendColor(_satYellow, _yellowRedMid, (18.0 - altDeg)/12.0);
-        }
-
-        if (altDeg >= 0.0) {
-            return blendColor(_yellowRedMid, _satRed, (6.0 - altDeg)/6.0);
-        }
-
-        if (altDeg >= -6.0) {
-            return blendColor(_satRed, _redGreyMid, (-altDeg)/6.0);
-        }
-
-        if (altDeg >= -12.0) {
-            return blendColor(_redGreyMid, _satGrey, (-6.0 - altDeg)/6.0);
-        }
-
-        return _satGrey;
-    }
-
     function brightSunColor(sunColor) {
-        return blendColor(sunColor, WHITE, 0.45);
+        // minutes: 0 = white, 1 = pure sunColor
+        return blendColor(WHITE, sunColor, clamp(COLOR_SATURATION, 0.0, 1.0));
     }
 
     function sunsetAccentScale(sunAltDeg) {
@@ -275,28 +252,17 @@ module Solar {
             return;
         }
 
-        _satYellow = saturated(YELLOW);
-        _satRed = saturated(RED);
-        _satBlue = saturated(BLUE);
-        _satGrey = saturated(GREY);
+        // use "platonic" colors directly
+        _satYellow = YELLOW;
+        _satRed = RED;
+        _satBlue = BLUE;
+        _satGrey = GREY;
 
         _yellowRedMid = blendColor(_satYellow, _satRed, 0.5);
         _redBlueMid = blendColor(_satRed, _satBlue, 0.5);
         _redGreyMid = blendColor(_satRed, _satGrey, 0.5);
 
         _colorsReady = true;
-    }
-
-    function saturated(color) {
-        return blendColor(toGrey(color), color, clamp(COLOR_SATURATION, 0.0, 1.0));
-    }
-
-    function toGrey(color) {
-        var r = (color/65536) % 256;
-        var g = (color/256) % 256;
-        var b = color % 256;
-        var y = (0.299*r + 0.587*g + 0.114*b).toNumber();
-        return y*65536 + y*256 + y;
     }
 
     function blendColor(c0, c1, t) {
@@ -325,10 +291,6 @@ module Solar {
         var b = ((color % 256)*s).toNumber();
 
         return r*65536 + g*256 + b;
-    }
-
-    function applySaturation(color) {
-        return blendColor(toGrey(color), color, clamp(COLOR_SATURATION, 0.0, 1.0));
     }
 
     function dayOfYear(year, month, day) {

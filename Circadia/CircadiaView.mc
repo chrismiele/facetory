@@ -490,7 +490,7 @@ class CircadiaView extends WatchUi.WatchFace {
         var colonShift = R*COLON_V_SHIFT_FRAC;
 
         dc.setColor(
-            Solar.applySaturation(Solar.blendColor(WHITE, 0xFF8000, sunsetAccent)),
+            Solar.blendColor(WHITE, 0xFF8000, sunsetAccent),
             Graphics.COLOR_TRANSPARENT
         );
         dc.drawText(

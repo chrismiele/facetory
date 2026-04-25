@@ -5,7 +5,7 @@ module Stellar {
 
     const BLACK = 0x000000;
 
-    const STAR_COUNT = 300;
+    const STAR_COUNT = 200;
     const STAR_SEED = 26.0;
 
     const NIGHT_START_ALT_DEG = 0.0;
@@ -125,9 +125,13 @@ module Stellar {
         var centerAngle = Math.atan2(-py, -px);
 
         for (var i = 0; i < STAR_COUNT; i += 1) {
-            var r = skyRadiusPx*Math.sqrt(rand01(i, 0));
-            var a = 2.0*Math.PI*rand01(i, 1);
+            var w = 0.5;
+            var N = 7;
 
+            var u = (1 - w)*rand01(i, 0) + w*rand01(i % N, 0);
+            var r = skyRadiusPx*Math.sqrt(u);
+
+            var a = 2.0*Math.PI*((1 - w)*rand01(i, 1) + w*rand01(i % N, 1));
             var x = r*Math.cos(a);
             var y = r*Math.sin(a);
 
