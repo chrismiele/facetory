@@ -15,12 +15,6 @@ class CircadiaView extends WatchUi.WatchFace {
     const WHITE = 0xFFFFFF;
     const SILVER = 0xC8CDD3;
 
-    const SHOW_MOON = true;
-    const SHOW_SECONDS = false;
-    const USE_GPS = true;
-    const SHOW_STARS = true;
-    const SHOW_FACE = true;
-
     const SUN_GLOW_DEG = 18.0;
     const GLOW_STEPS = 18;
     const NEW_MOON_DIAMETER_DEG = 5.0;
@@ -41,16 +35,6 @@ class CircadiaView extends WatchUi.WatchFace {
     const SECOND_TICK_OUTSET_FRAC = 0.0;
     const SECOND_TICK_LENGTH_FRAC = 0.0449438202;
     const SECOND_TICK_HALF_WIDTH_FRAC = 0.0084269663;
-
-    const FIELD_DATE = 0;
-    const FIELD_BODY_BATTERY = 1;
-    const FIELD_TEMPERATURE = 2;
-    const FIELD_HEART_RATE = 3;
-    const FIELD_STEPS = 4;
-
-    const TOP_FIELD_KIND = FIELD_DATE;
-    const LEFT_FIELD_KIND = FIELD_TEMPERATURE;
-    const RIGHT_FIELD_KIND = FIELD_BODY_BATTERY;
 
     var LAT_DEG = 52.09;
     var LON_DEG = 5.12;
@@ -83,6 +67,8 @@ class CircadiaView extends WatchUi.WatchFace {
 
     function initialize() {
         WatchFace.initialize();
+        LAT_DEG = config.latDeg();
+        LON_DEG = config.lonDeg();
     }
 
     function onLayout(dc) {}
@@ -121,7 +107,10 @@ class CircadiaView extends WatchUi.WatchFace {
     }
 
     function updateLocationOnce() {
-        if (!USE_GPS) {
+        LAT_DEG = config.latDeg();
+        LON_DEG = config.lonDeg();
+
+        if (!config.useGps()) {
             return;
         }
 
@@ -163,6 +152,12 @@ class CircadiaView extends WatchUi.WatchFace {
         var g = Gregorian.info(now, Time.FORMAT_SHORT);
         var t = System.getClockTime();
 
+        var showMoon = config.showMoon();
+        var showStars = config.showStars();
+        var showSun = config.showSun();
+        var showFace = config.showFace();
+        var showSeconds = config.showSeconds();
+
         if (g.year != _cacheYear || g.month != _cacheMonth || g.day != _cacheDay ||
             t.hour != _cacheHour || t.min != _cacheMin) {
 
@@ -184,7 +179,7 @@ class CircadiaView extends WatchUi.WatchFace {
         var mp = [0.0, 0.0];
         var moonRadius = 0.0;
 
-        if (SHOW_MOON) {
+        if (showMoon) {
             mp = Solar.projectAltAz(_cachedMoonAltAz[0], _cachedMoonAltAz[1], cx, cy, R);
             moonRadius = moonDiameter/2.0 + 1.0;
         }
@@ -194,11 +189,11 @@ class CircadiaView extends WatchUi.WatchFace {
         dc.fillCircle(cx.toNumber(), cy.toNumber(), R.toNumber());
 
         var glowRadius = R*(SUN_GLOW_DEG/90.0);
-        if (intersectsSkyDisc(sp[0], sp[1], glowRadius, cx, cy, R)) {
+        if (showSun && intersectsSkyDisc(sp[0], sp[1], glowRadius, cx, cy, R)) {
             Solar.drawSunGlow(dc, sp[0], sp[1], cx, cy, R, _sunColor, SUN_GLOW_DEG, GLOW_STEPS);
         }
 
-        if (SHOW_STARS && sun[0] < 0.0) {
+        if (showStars && sun[0] < 0.0) {
             Stellar.drawStars(
                 dc,
                 cx,
@@ -216,11 +211,12 @@ class CircadiaView extends WatchUi.WatchFace {
                 sp[1],
                 mp[0],
                 mp[1],
-                moonRadius
+                moonRadius,
+                config.starCount()
             );
         }
 
-        if (SHOW_MOON && intersectsSkyDisc(mp[0], mp[1], moonRadius, cx, cy, R)) {
+        if (showMoon && intersectsSkyDisc(mp[0], mp[1], moonRadius, cx, cy, R)) {
             Lunar.drawMoonPhase(
                 dc,
                 mp[0],
@@ -239,8 +235,8 @@ class CircadiaView extends WatchUi.WatchFace {
             );
         }
 
-        if (SHOW_FACE && !_isSleeping) {
-            if (SHOW_SECONDS) {
+        if (showFace && !_isSleeping) {
+            if (showSeconds) {
                 drawSecondTicks(dc, cx, cy, R, t.sec);
             }
 
@@ -250,13 +246,17 @@ class CircadiaView extends WatchUi.WatchFace {
     }
 
     function onPartialUpdate(dc) {
-        if (!SHOW_FACE || _isSleeping) {
+        if (!config.showFace() || _isSleeping) {
             return;
         }
 
-        var topFast = fieldNeedsFastRefresh(TOP_FIELD_KIND);
-        var leftFast = fieldNeedsFastRefresh(LEFT_FIELD_KIND);
-        var rightFast = fieldNeedsFastRefresh(RIGHT_FIELD_KIND);
+        var topField = config.topField();
+        var leftField = config.leftField();
+        var rightField = config.rightField();
+
+        var topFast = fieldNeedsFastRefresh(topField);
+        var leftFast = fieldNeedsFastRefresh(leftField);
+        var rightFast = fieldNeedsFastRefresh(rightField);
 
         if (!topFast && !leftFast && !rightFast) {
             return;
@@ -342,7 +342,7 @@ class CircadiaView extends WatchUi.WatchFace {
         _sunColor = Solar.sunColorForAlt(_cachedSunAltAz[0]);
 
         _cachedMoonAltAz = [0.0, 0.0];
-        if (SHOW_MOON) {
+        if (config.showMoon()) {
             _cachedMoonAltAz = Lunar.lunarAltAzApprox(
                 g.year,
                 g.month,
@@ -359,47 +359,51 @@ class CircadiaView extends WatchUi.WatchFace {
         _cachedWeatherText = getWeatherTempText();
         _bodyBatteryText = getBodyBatteryDisplay();
 
-        _topFieldText = getFieldText(TOP_FIELD_KIND);
-        _leftFieldText = getFieldText(LEFT_FIELD_KIND);
-        _rightFieldText = getFieldText(RIGHT_FIELD_KIND);
+        _topFieldText = getFieldText(config.topField());
+        _leftFieldText = getFieldText(config.leftField());
+        _rightFieldText = getFieldText(config.rightField());
     }
 
     function refreshLiveFields() {
-        if (fieldNeedsFastRefresh(TOP_FIELD_KIND)) {
-            _topFieldText = getFieldText(TOP_FIELD_KIND);
+        var topField = config.topField();
+        var leftField = config.leftField();
+        var rightField = config.rightField();
+
+        if (fieldNeedsFastRefresh(topField)) {
+            _topFieldText = getFieldText(topField);
         }
 
-        if (fieldNeedsFastRefresh(LEFT_FIELD_KIND)) {
-            _leftFieldText = getFieldText(LEFT_FIELD_KIND);
+        if (fieldNeedsFastRefresh(leftField)) {
+            _leftFieldText = getFieldText(leftField);
         }
 
-        if (fieldNeedsFastRefresh(RIGHT_FIELD_KIND)) {
-            _rightFieldText = getFieldText(RIGHT_FIELD_KIND);
+        if (fieldNeedsFastRefresh(rightField)) {
+            _rightFieldText = getFieldText(rightField);
         }
     }
 
     function fieldNeedsFastRefresh(kind) {
-        return kind == FIELD_HEART_RATE || kind == FIELD_STEPS;
+        return kind == config.FIELD_HEART_RATE || kind == config.FIELD_STEPS;
     }
 
     function getFieldText(kind) {
-        if (kind == FIELD_DATE) {
+        if (kind == config.FIELD_DATE) {
             return _cachedDateText;
         }
 
-        if (kind == FIELD_TEMPERATURE) {
+        if (kind == config.FIELD_TEMPERATURE) {
             return _cachedWeatherText;
         }
 
-        if (kind == FIELD_BODY_BATTERY) {
+        if (kind == config.FIELD_BODY_BATTERY) {
             return _bodyBatteryText;
         }
 
-        if (kind == FIELD_STEPS) {
+        if (kind == config.FIELD_STEPS) {
             return getStepsDisplay();
         }
 
-        if (kind == FIELD_HEART_RATE) {
+        if (kind == config.FIELD_HEART_RATE) {
             return getHeartRateDisplay();
         }
 
@@ -509,7 +513,7 @@ class CircadiaView extends WatchUi.WatchFace {
             Graphics.TEXT_JUSTIFY_CENTER
         );
 
-        dc.setColor(Solar.brightSunColor(_sunColor), Graphics.COLOR_TRANSPARENT);
+        dc.setColor(Solar.brightSunColor(_sunColor, config.minuteSaturation()), Graphics.COLOR_TRANSPARENT);
         dc.drawText(
             (clockCx + colonGap).toNumber(),
             baselineY.toNumber(),
@@ -549,7 +553,20 @@ class CircadiaView extends WatchUi.WatchFace {
         if (cc == null || cc.temperature == null) {
             return "--";
         }
-        return roundToIntString(cc.temperature.toFloat()) + "\u00B0";
+
+        var temp = cc.temperature.toFloat();
+        var units = config.tempUnits();
+
+        if (units == config.UNIT_IMPERIAL) {
+            temp = temp*9.0/5.0 + 32.0;
+            return roundToIntString(temp) + "\u00B0F";
+        }
+
+        if (units == config.UNIT_METRIC) {
+            return roundToIntString(temp) + "\u00B0C";
+        }
+
+        return roundToIntString(temp) + "\u00B0";
     }
 
     function getBodyBatteryDisplay() {

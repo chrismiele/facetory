@@ -10,9 +10,6 @@ module Solar {
     const BLACK = 0x000000;
     const WHITE = 0xFFFFFF;
 
-    // Now ONLY controls minute "whitewash"
-    const COLOR_SATURATION = 0.7; // ≈ reproduces old 0.45 white blend
-
     const OUTER_GLOW_SCALE = 0.1;
 
     const SUNSET_ACCENT_COLOR = 0xFF8A00;
@@ -238,9 +235,9 @@ module Solar {
         return _satBlue;
     }
 
-    function brightSunColor(sunColor) {
+    function brightSunColor(sunColor, saturation) {
         // minutes: 0 = white, 1 = pure sunColor
-        return blendColor(WHITE, sunColor, clamp(COLOR_SATURATION, 0.0, 1.0));
+        return blendColor(WHITE, sunColor, clamp(saturation, 0.0, 1.0));
     }
 
     function sunsetAccentScale(sunAltDeg) {

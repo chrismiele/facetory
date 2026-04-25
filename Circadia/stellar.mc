@@ -5,7 +5,6 @@ module Stellar {
 
     const BLACK = 0x000000;
 
-    const STAR_COUNT = 200;
     const STAR_SEED = 26.0;
 
     const NIGHT_START_ALT_DEG = 0.0;
@@ -46,14 +45,15 @@ module Stellar {
     var _starCatalog = null;
     var _catalogSkyRadiusPx = -1.0;
     var _catalogLatDeg = 999.0;
+    var _catalogStarCount = -1;
 
-    function drawStars(dc, cx, cy, skyRadiusPx, year, month, day, hour, min, sec, latDeg, sunAltDeg, sunX, sunY, moonX, moonY, moonRadiusPx) {
+    function drawStars(dc, cx, cy, skyRadiusPx, year, month, day, hour, min, sec, latDeg, sunAltDeg, sunX, sunY, moonX, moonY, moonRadiusPx, starCount) {
         var nightScale = starNightScale(sunAltDeg);
         if (nightScale <= 0.0) {
             return;
         }
 
-        ensureStarCatalog(skyRadiusPx, latDeg);
+        ensureStarCatalog(skyRadiusPx, latDeg, starCount);
 
         var fadedColors = fadedStarColors(nightScale);
 
@@ -103,18 +103,20 @@ module Stellar {
         }
     }
 
-    function ensureStarCatalog(skyRadiusPx, latDeg) {
+    function ensureStarCatalog(skyRadiusPx, latDeg, starCount) {
         if (_starCatalog == null
             || abs(skyRadiusPx - _catalogSkyRadiusPx) > 0.5
-            || abs(latDeg - _catalogLatDeg) > 0.25) {
+            || abs(latDeg - _catalogLatDeg) > 0.25
+            || starCount != _catalogStarCount) {
 
-            _starCatalog = buildStarCatalog(skyRadiusPx, latDeg);
+            _starCatalog = buildStarCatalog(skyRadiusPx, latDeg, starCount);
             _catalogSkyRadiusPx = skyRadiusPx;
             _catalogLatDeg = latDeg;
+            _catalogStarCount = starCount;
         }
     }
 
-    function buildStarCatalog(skyRadiusPx, latDeg) {
+    function buildStarCatalog(skyRadiusPx, latDeg, starCount) {
         var stars = [];
 
         var pole = polePoint(0.0, 0.0, skyRadiusPx, latDeg);
@@ -124,7 +126,7 @@ module Stellar {
         var poleDist = Math.sqrt(px*px + py*py);
         var centerAngle = Math.atan2(-py, -px);
 
-        for (var i = 0; i < STAR_COUNT; i += 1) {
+        for (var i = 0; i < starCount; i += 1) {
             var w = 0.5;
             var N = 7;
 
