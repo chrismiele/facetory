@@ -10,7 +10,10 @@ module Solar {
     const BLACK = 0x000000;
     const WHITE = 0xFFFFFF;
 
-    const OUTER_GLOW_SCALE = 0.1;
+    const RING_OUTER_EDGE_SCALE = 0.1;
+    const RING_THICKNESS_DEG = 6.0;
+    const RING_INNER_EDGE_SCALE = 0.2;
+    const RING_PEAK_SCALE = 0.3;
 
     const SUNSET_ACCENT_COLOR = 0xFF8A00;
     const SUNSET_ACCENT_ALT_DEG = 1.5;
@@ -138,6 +141,13 @@ module Solar {
 
     function drawSunGlowDirect(dc, x, y, cx, cy, R, sunColor, glowDeg, glowSteps) {
         var glowPx = R*(glowDeg/90.0);
+        var thicknessPx = R*(RING_THICKNESS_DEG/90.0);
+        var innerPx = glowPx - thicknessPx;
+        if (innerPx < 0.0) {
+            innerPx = 0.0;
+        }
+
+        var midPx = 0.5*(glowPx + innerPx);
         var invSteps = 1.0/glowSteps.toFloat();
         var xi = x.toNumber();
         var yi = y.toNumber();
@@ -154,7 +164,21 @@ module Solar {
                 continue;
             }
 
-            var brightness = OUTER_GLOW_SCALE + (1.0 - OUTER_GLOW_SCALE)*(1.0 - f);
+            var brightness;
+
+            if (ri >= midPx) {
+                brightness = RING_PEAK_SCALE
+                    + (RING_OUTER_EDGE_SCALE - RING_PEAK_SCALE)*(ri - midPx)/(glowPx - midPx);
+            } else if (ri >= innerPx) {
+                brightness = RING_INNER_EDGE_SCALE
+                    + (RING_PEAK_SCALE - RING_INNER_EDGE_SCALE)*(ri - innerPx)/(midPx - innerPx);
+            } else if (innerPx > 0.0) {
+                brightness = 1.0
+                    + (RING_INNER_EDGE_SCALE - 1.0)*ri/innerPx;
+            } else {
+                brightness = 1.0;
+            }
+
             dc.setColor(scaleColor(sunColor, brightness), BLACK);
             dc.fillCircle(xi, yi, ri);
         }
