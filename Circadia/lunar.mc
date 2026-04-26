@@ -18,9 +18,14 @@ module Lunar {
 
     const BLACK = 0x000000;
     const NEW_MOON_GREY = 0x0A142B;
+    const MIP_MOON_BRIGHT = 0xFFFFFF;
+    const MIP_MOON_MEDIUM = 0xAAAAAA;
+    const MIP_MOON_DARK = 0x555555;
+    const MIP_NEW_MOON_BRIGHT = 0x000055;
 
     const MOON_GLOW_DEG = 45.0;
     const MOON_RING_THICKNESS_DEG = 15.0;
+    const MIP_MOON_RING_THICKNESS_DEG = 3.0;
     const SUN_GLOW_CUTOFF_DEG = 18.0;
     const MAX_MOON_GLOW_BRIGHTNESS = 0.5;
     const INNER_MOON_GLOW_BRIGHTNESS_SCALE = 0.5;
@@ -186,7 +191,7 @@ module Lunar {
         return _prevPhaseBin;
     }
 
-    function drawMoonPhase(dc, x, y, diameterPx, sunX, sunY, year, month, day, clockHour, offsetSec, sunAltDeg, litColor, skyRadiusPx) {
+    function drawMoonPhase(dc, x, y, diameterPx, sunX, sunY, year, month, day, clockHour, offsetSec, sunAltDeg, litColor, skyRadiusPx, mipMode) {
         var r = diameterPx/2.0;
         var xi = roundNearest(x);
         var yi = roundNearest(y);
@@ -195,16 +200,24 @@ module Lunar {
         var phaseAngle = lunarPhaseAngle(year, month, day, clockHour, offsetSec);
         var bin = lunarPhaseBinFromAngle(phaseAngle);
 
+        if (mipMode) {
+            litColor = MIP_MOON_BRIGHT;
+        }
+
         if (bin == PHASE_NEW) {
             resetOrientationBins();
-            dc.setColor(NEW_MOON_GREY, BLACK);
+            dc.setColor(mipMode ? MIP_NEW_MOON_BRIGHT : NEW_MOON_GREY, BLACK);
             dc.fillCircle(xi, yi, ri);
             return;
         }
 
         if (bin == PHASE_FULL) {
             resetOrientationBins();
-            drawMoonGlow(dc, xi, yi, r, phaseAngle, sunAltDeg, litColor, skyRadiusPx);
+            if (mipMode) {
+                drawMipMoonGlow(dc, xi, yi, r, phaseAngle, sunAltDeg, skyRadiusPx);
+            } else {
+                drawMoonGlow(dc, xi, yi, r, phaseAngle, sunAltDeg, litColor, skyRadiusPx);
+            }
             dc.setColor(litColor, BLACK);
             dc.fillCircle(xi, yi, ri);
             return;
@@ -274,6 +287,29 @@ module Lunar {
             );
             return;
         }
+    }
+
+    function drawMipMoonGlow(dc, xi, yi, moonRadiusPx, phaseAngle, sunAltDeg, skyRadiusPx) {
+        var fullness = clamp(1.0 - abs(wrap180(phaseAngle - 180.0))/FULL_MOON_WINDOW_DEG, 0.0, 1.0);
+        var nightScale = moonGlowNightScale(sunAltDeg);
+        var scale = nightScale*fullness;
+
+        if (scale <= 0.0) {
+            return;
+        }
+
+        var outerR = skyRadiusPx*(MOON_GLOW_DEG/90.0)*scale;
+        var innerR = outerR - skyRadiusPx*(MIP_MOON_RING_THICKNESS_DEG/90.0);
+
+        if (innerR < moonRadiusPx) {
+            innerR = moonRadiusPx;
+        }
+
+        dc.setColor(MIP_MOON_MEDIUM, BLACK);
+        dc.fillCircle(xi, yi, roundNearest(outerR));
+
+        dc.setColor(MIP_MOON_DARK, BLACK);
+        dc.fillCircle(xi, yi, roundNearest(innerR));
     }
 
     function resetOrientationBins() {

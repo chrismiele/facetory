@@ -13,6 +13,9 @@ module config {
     const UNIT_METRIC = 1;
     const UNIT_IMPERIAL = 2;
 
+    const DISPLAY_AMOLED = 0;
+    const DISPLAY_MIP = 1;
+
     // ===== USER-EDITABLE CHOICES =====
 
     const TOP_FIELD = FIELD_DATE;
@@ -32,6 +35,8 @@ module config {
 
     const STAR_COUNT = 200;
     const MINUTE_SATURATION = 0.7;
+    const MIP_MODE = false;
+    const SLEEP_DISPLAY_MODE = DISPLAY_MIP;
 
     // ===== ACCESSORS =====
 
@@ -89,5 +94,13 @@ module config {
 
     function minuteSaturation() {
         return MINUTE_SATURATION;
+    }
+
+    function mipMode() {
+        return MIP_MODE;
+    }
+
+    function sleepMipMode() {
+        return SLEEP_DISPLAY_MODE == DISPLAY_MIP;
     }
 }

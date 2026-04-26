@@ -10,6 +10,24 @@ module Solar {
     const BLACK = 0x000000;
     const WHITE = 0xFFFFFF;
 
+    const MIP_SUN_BRIGHT = 0xFFFF00;
+    const MIP_SUN_MEDIUM = 0xAAAA00;
+    const MIP_SUN_DARK = 0x555500;
+    const MIP_RED_BRIGHT = 0xFF5555;
+    const MIP_RED_MEDIUM = 0xAA0000;
+    const MIP_RED_DARK = 0x550000;
+    const MIP_BLUE_BRIGHT = 0x5555FF;
+    const MIP_BLUE_MEDIUM = 0x0000AA;
+    const MIP_BLUE_DARK = 0x000055;
+    const MIP_PURPLE_BRIGHT = 0xFF55FF;
+    const MIP_PURPLE_MEDIUM = 0xAA00AA;
+    const MIP_PURPLE_DARK = 0x550055;
+    const MIP_ORANGE_BRIGHT = 0xFFAA00;
+    const MIP_ORANGE_MEDIUM = 0xAA5500;
+    const MIP_ORANGE_DARK = 0x553000;
+
+    const MIP_RING_THICKNESS_DEG = 3.0;
+
     const RING_OUTER_EDGE_SCALE = 0.1;
     const RING_THICKNESS_DEG = 6.0;
     const RING_INNER_EDGE_SCALE = 0.2;
@@ -232,15 +250,63 @@ module Solar {
         return _yellowGlowBitmap;
     }
 
+    function drawMipSunGlow(dc, x, y, R, altDeg, bodyDeg, glowDeg) {
+        var colors = mipSunColorsForAlt(altDeg);
+        drawMipGlow(dc, x, y, R, bodyDeg, glowDeg, colors[0], colors[1], colors[2]);
+    }
+
+    function drawMipGlow(dc, x, y, R, bodyDeg, glowDeg, brightColor, mediumColor, darkColor) {
+        var glowR = R*(glowDeg/90.0);
+        var innerR = glowR - R*(MIP_RING_THICKNESS_DEG/90.0);
+        var bodyR = R*(bodyDeg/90.0)/2.0;
+
+        if (innerR < bodyR) {
+            innerR = bodyR;
+        }
+
+        dc.setColor(mediumColor, BLACK);
+        dc.fillCircle(x.toNumber(), y.toNumber(), glowR.toNumber());
+
+        dc.setColor(darkColor, BLACK);
+        dc.fillCircle(x.toNumber(), y.toNumber(), innerR.toNumber());
+
+        dc.setColor(brightColor, BLACK);
+        dc.fillCircle(x.toNumber(), y.toNumber(), bodyR.toNumber());
+    }
+
+    function mipSunColorsForAlt(altDeg) {
+        if (altDeg >= 6.0) {
+            return [MIP_SUN_BRIGHT, MIP_SUN_MEDIUM, MIP_SUN_DARK];
+        }
+
+        if (altDeg >= 0.0) {
+            return [MIP_ORANGE_BRIGHT, MIP_ORANGE_MEDIUM, MIP_ORANGE_DARK];
+        }
+
+        if (altDeg >= -6.0) {
+            return [MIP_RED_BRIGHT, MIP_RED_MEDIUM, MIP_RED_DARK];
+        }
+
+        if (altDeg >= -12.0) {
+            return [MIP_PURPLE_BRIGHT, MIP_PURPLE_MEDIUM, MIP_PURPLE_DARK];
+        }
+
+        return [MIP_BLUE_BRIGHT, MIP_BLUE_MEDIUM, MIP_BLUE_DARK];
+    }
+
+    function mipBrightSunColorForAlt(altDeg) {
+        return mipSunColorsForAlt(altDeg)[0];
+    }
+
     function sunColorForAlt(altDeg) {
         ensureColorCache();
 
-        if (altDeg >= 18.0) {
+        if (altDeg >= 12.0) {
             return _satYellow;
         }
 
         if (altDeg >= 6.0) {
-            return blendColor(_satYellow, _yellowRedMid, (18.0 - altDeg)/12.0);
+            return blendColor(_satYellow, _yellowRedMid, (12.0 - altDeg)/6.0);
         }
 
         if (altDeg >= 0.0) {

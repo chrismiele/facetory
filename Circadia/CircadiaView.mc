@@ -157,6 +157,7 @@ class CircadiaView extends WatchUi.WatchFace {
         var showSun = config.showSun();
         var showFace = config.showFace();
         var showSeconds = config.showSeconds();
+        var mipMode = config.mipMode() || (_isSleeping && config.sleepMipMode());
 
         if (g.year != _cacheYear || g.month != _cacheMonth || g.day != _cacheDay ||
             t.hour != _cacheHour || t.min != _cacheMin) {
@@ -190,7 +191,11 @@ class CircadiaView extends WatchUi.WatchFace {
 
         var glowRadius = R*(SUN_GLOW_DEG/90.0);
         if (showSun && intersectsSkyDisc(sp[0], sp[1], glowRadius, cx, cy, R)) {
-            Solar.drawSunGlow(dc, sp[0], sp[1], cx, cy, R, _sunColor, SUN_GLOW_DEG, GLOW_STEPS);
+            if (mipMode) {
+                Solar.drawMipSunGlow(dc, sp[0], sp[1], R, sun[0], NEW_MOON_DIAMETER_DEG, SUN_GLOW_DEG);
+            } else {
+                Solar.drawSunGlow(dc, sp[0], sp[1], cx, cy, R, _sunColor, SUN_GLOW_DEG, GLOW_STEPS);
+            }
         }
 
         if (showStars && sun[0] < 0.0) {
@@ -230,8 +235,9 @@ class CircadiaView extends WatchUi.WatchFace {
                 _cachedClockHourNow,
                 _cachedOffsetSec,
                 sun[0],
-                SILVER,
-                R
+                mipMode ? Lunar.MIP_MOON_BRIGHT : SILVER,
+                R,
+                mipMode
             );
         }
 
@@ -339,7 +345,7 @@ class CircadiaView extends WatchUi.WatchFace {
         );
 
         _cachedSunsetAccent = Solar.sunsetAccentScale(_cachedSunAltAz[0]);
-        _sunColor = Solar.sunColorForAlt(_cachedSunAltAz[0]);
+        _sunColor = config.mipMode() ? Solar.mipBrightSunColorForAlt(_cachedSunAltAz[0]) : Solar.sunColorForAlt(_cachedSunAltAz[0]);
 
         _cachedMoonAltAz = [0.0, 0.0];
         if (config.showMoon()) {
@@ -513,7 +519,7 @@ class CircadiaView extends WatchUi.WatchFace {
             Graphics.TEXT_JUSTIFY_CENTER
         );
 
-        dc.setColor(Solar.brightSunColor(_sunColor, config.minuteSaturation()), Graphics.COLOR_TRANSPARENT);
+        dc.setColor(config.mipMode() ? _sunColor : Solar.brightSunColor(_sunColor, config.minuteSaturation()), Graphics.COLOR_TRANSPARENT);
         dc.drawText(
             (clockCx + colonGap).toNumber(),
             baselineY.toNumber(),
