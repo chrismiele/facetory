@@ -1,4 +1,3 @@
-using Toybox.Graphics;
 using Toybox.Math;
 
 module Lunar {
@@ -191,200 +190,45 @@ module Lunar {
         return _prevPhaseBin;
     }
 
-    function drawMoonPhase(dc, x, y, diameterPx, sunX, sunY, year, month, day, clockHour, offsetSec, sunAltDeg, litColor, skyRadiusPx, mipMode) {
-        var phaseAngle = lunarPhaseAngle(year, month, day, clockHour, offsetSec);
-        var bin = lunarPhaseBinFromAngle(phaseAngle);
-        drawMoonPhaseCached(dc, x, y, diameterPx, sunX, sunY, phaseAngle, bin, sunAltDeg, litColor, skyRadiusPx, mipMode);
-    }
-
-    function drawMoonPhaseCached(dc, x, y, diameterPx, sunX, sunY, phaseAngle, bin, sunAltDeg, litColor, skyRadiusPx, mipMode) {
-        var r = diameterPx/2.0;
-        var xi = roundNearest(x);
-        var yi = roundNearest(y);
-        var ri = roundNearest(r);
-
-        if (mipMode) {
-            litColor = MIP_MOON_BRIGHT;
-        }
-
-        if (bin == PHASE_NEW) {
-            resetOrientationBins();
-            dc.setColor(mipMode ? MIP_NEW_MOON_BRIGHT : NEW_MOON_GREY, BLACK);
-            dc.fillCircle(xi, yi, ri);
-            return;
-        }
-
-        if (bin == PHASE_FULL) {
-            resetOrientationBins();
-            if (mipMode) {
-                drawMipMoonGlow(dc, xi, yi, r, phaseAngle, sunAltDeg, skyRadiusPx);
-            } else {
-                drawMoonGlow(dc, xi, yi, r, phaseAngle, sunAltDeg, litColor, skyRadiusPx);
-            }
-            dc.setColor(litColor, BLACK);
-            dc.fillCircle(xi, yi, ri);
-            return;
-        }
-
-        var frame = moonFrame(x, y, sunX, sunY);
-        var ux = frame[0];
-        var uy = frame[1];
-        var angle = wrap360(rad2deg(Math.atan2(uy, ux)));
-
-        if (bin == PHASE_WAXING_NEAR_HALF_GIBBOUS || bin == PHASE_WAXING_NEAR_FULL_GIBBOUS ||
-            bin == PHASE_WANING_NEAR_FULL_GIBBOUS || bin == PHASE_WANING_NEAR_HALF_GIBBOUS) {
-
-            _prevHalfBin = -1;
-            _prevCrescentBin = -1;
-            _prevGibbousBin = stickyBin(angle, _prevGibbousBin, GIBBOUS_BIN_COUNT, GIBBOUS_HYST_DEG);
-
-            dc.setColor(litColor, Graphics.COLOR_TRANSPARENT);
-
-            if (bin == PHASE_WAXING_NEAR_HALF_GIBBOUS || bin == PHASE_WANING_NEAR_HALF_GIBBOUS) {
-                drawGibbousComposite(dc, xi, yi, r, _prevGibbousBin, GIBBOUS_TERM_FRAC_NEAR_HALF);
-            } else {
-                drawGibbousComposite(dc, xi, yi, r, _prevGibbousBin, GIBBOUS_TERM_FRAC_NEAR_FULL);
-            }
-            return;
-        }
-
-        dc.setColor(litColor, BLACK);
-        dc.fillCircle(xi, yi, ri);
-
-        if (bin == PHASE_FIRST_QUARTER || bin == PHASE_LAST_QUARTER) {
-            _prevGibbousBin = -1;
-            _prevCrescentBin = -1;
-            _prevHalfBin = stickyBin(angle, _prevHalfBin, HALF_BIN_COUNT, HALF_HYST_DEG);
-
-            var halfDir = binDirection(_prevHalfBin, HALF_BIN_COUNT);
-            drawDarkHalf(dc, xi, yi, r, halfDir[0], halfDir[1]);
-            return;
-        }
-
-        if (bin == PHASE_WAXING_THIN_CRESCENT || bin == PHASE_WANING_THIN_CRESCENT ||
-            bin == PHASE_WAXING_THICK_CRESCENT || bin == PHASE_WANING_THICK_CRESCENT) {
-
-            _prevGibbousBin = -1;
-            _prevHalfBin = -1;
-            _prevCrescentBin = stickyBin(angle, _prevCrescentBin, CRESCENT_BIN_COUNT, CRESCENT_HYST_DEG);
-
-            var crescentDir = binDirection(_prevCrescentBin, CRESCENT_BIN_COUNT);
-            var shiftDeg = CRESCENT_SHIFT_DEG_THICK;
-            var blackFrac = CRESCENT_BLACK_FRAC_THICK;
-
-            if (bin == PHASE_WAXING_THIN_CRESCENT || bin == PHASE_WANING_THIN_CRESCENT) {
-                shiftDeg = CRESCENT_SHIFT_DEG_THIN;
-                blackFrac = CRESCENT_BLACK_FRAC_THIN;
-            }
-
-            drawShiftedBlackCircle(
-                dc,
-                xi,
-                yi,
-                skyRadiusPx,
-                r,
-                crescentDir[0],
-                crescentDir[1],
-                shiftDeg,
-                blackFrac*r
-            );
-            return;
-        }
-    }
-
-    function drawMipMoonGlow(dc, xi, yi, moonRadiusPx, phaseAngle, sunAltDeg, skyRadiusPx) {
-        var fullness = clamp(1.0 - abs(wrap180(phaseAngle - 180.0))/FULL_MOON_WINDOW_DEG, 0.0, 1.0);
-        var nightScale = moonGlowNightScale(sunAltDeg);
-        var scale = nightScale*fullness;
-
-        if (scale <= 0.0) {
-            return;
-        }
-
-        var outerR = skyRadiusPx*(MOON_GLOW_DEG/90.0)*scale;
-        var innerR = outerR - skyRadiusPx*(MIP_MOON_RING_THICKNESS_DEG/90.0);
-
-        if (innerR < moonRadiusPx) {
-            innerR = moonRadiusPx;
-        }
-
-        dc.setColor(MIP_MOON_MEDIUM, BLACK);
-        dc.fillCircle(xi, yi, roundNearest(outerR));
-
-        dc.setColor(MIP_MOON_DARK, BLACK);
-        dc.fillCircle(xi, yi, roundNearest(innerR));
-    }
-
     function resetOrientationBins() {
         _prevGibbousBin = -1;
         _prevHalfBin = -1;
         _prevCrescentBin = -1;
     }
 
-    function drawMoonGlow(dc, xi, yi, moonRadiusPx, phaseAngle, sunAltDeg, litColor, skyRadiusPx) {
-        var fullMoonScale = clamp(1.0 - abs(wrap180(phaseAngle - 180.0))/FULL_MOON_WINDOW_DEG, 0.0, 1.0);
-
-        if (fullMoonScale <= 0.0) {
-            return;
-        }
-
-        var nightScale = moonGlowNightScale(sunAltDeg);
-        if (nightScale <= 0.0) {
-            return;
-        }
-
-        var outerR = skyRadiusPx*(MOON_GLOW_DEG/90.0)*fullMoonScale;
-        if (outerR <= 0.5) {
-            return;
-        }
-
-        var glowBrightness = MAX_MOON_GLOW_BRIGHTNESS*nightScale*fullMoonScale;
-        var glowSteps = roundNearest(1.0*MOON_GLOW_DEG*fullMoonScale);
-        if (glowSteps < 1) {
-            glowSteps = 1;
-        }
-
-        drawOffsetMoonGlowCircle(dc, xi, yi, moonRadiusPx, outerR, litColor, glowBrightness, glowSteps);
+    function resetHalfAndCrescentBins() {
+        _prevHalfBin = -1;
+        _prevCrescentBin = -1;
     }
 
-    function drawOffsetMoonGlowCircle(dc, xg, yg, moonRadiusPx, outerR, litColor, brightnessScale, glowSteps) {
-        var thicknessR = outerR*(MOON_RING_THICKNESS_DEG/MOON_GLOW_DEG);
-        var innerR = outerR - thicknessR;
-        if (innerR < 0.0) {
-            innerR = 0.0;
-        }
-
-        var midR = 0.5*(outerR + innerR);
-        var outerEdgeBrightness = 0.1*brightnessScale;
-        var innerEdgeBrightness = INNER_MOON_GLOW_BRIGHTNESS_SCALE*brightnessScale;
-
-        for (var i = glowSteps; i >= 1; i -= 1) {
-            var f = i.toFloat()/glowSteps.toFloat();
-            var rr = outerR*f;
-            var brightness;
-
-            if (rr >= midR) {
-                brightness = brightnessScale
-                    + (outerEdgeBrightness - brightnessScale)*(rr - midR)/(outerR - midR);
-            } else if (rr >= innerR) {
-                brightness = innerEdgeBrightness
-                    + (brightnessScale - innerEdgeBrightness)*(rr - innerR)/(midR - innerR);
-            } else if (rr >= moonRadiusPx && innerR > moonRadiusPx) {
-                brightness = brightnessScale
-                    + (innerEdgeBrightness - brightnessScale)*(rr - moonRadiusPx)/(innerR - moonRadiusPx);
-            } else {
-                continue;
-            }
-
-            var c = blendColor(BLACK, litColor, brightness);
-
-            dc.setColor(c, BLACK);
-            dc.fillCircle(roundNearest(xg), roundNearest(yg), roundNearest(rr));
-        }
+    function resetGibbousAndCrescentBins() {
+        _prevGibbousBin = -1;
+        _prevCrescentBin = -1;
     }
 
-    function moonGlowNightScale(sunAltDeg) {
-        return clamp((-sunAltDeg)/SUN_GLOW_CUTOFF_DEG, 0.0, 1.0);
+    function resetGibbousAndHalfBins() {
+        _prevGibbousBin = -1;
+        _prevHalfBin = -1;
+    }
+
+    function moonOrientationAngle(x, y, sunX, sunY) {
+        var frame = moonFrame(x, y, sunX, sunY);
+        return wrap360(rad2deg(Math.atan2(frame[1], frame[0])));
+    }
+
+    function gibbousOrientationBin(angle) {
+        _prevGibbousBin = stickyBin(angle, _prevGibbousBin, GIBBOUS_BIN_COUNT, GIBBOUS_HYST_DEG);
+        return _prevGibbousBin;
+    }
+
+    function halfOrientationVector(angle) {
+        _prevHalfBin = stickyBin(angle, _prevHalfBin, HALF_BIN_COUNT, HALF_HYST_DEG);
+        return binDirection(_prevHalfBin, HALF_BIN_COUNT);
+    }
+
+    function crescentOrientationVector(angle) {
+        _prevCrescentBin = stickyBin(angle, _prevCrescentBin, CRESCENT_BIN_COUNT, CRESCENT_HYST_DEG);
+        return binDirection(_prevCrescentBin, CRESCENT_BIN_COUNT);
     }
 
     function lunarPhaseAngle(year, month, day, clockHour, offsetSec) {
@@ -465,97 +309,6 @@ module Lunar {
         var step = 360.0/binCount.toFloat();
         var ang = deg2rad(bin.toFloat()*step);
         return [Math.cos(ang), Math.sin(ang)];
-    }
-
-    function drawShiftedBlackCircle(dc, xi, yi, skyRadiusPx, moonRadiusPx, ux, uy, shiftDeg, rb) {
-        var shift = skyRadiusPx*(shiftDeg/90.0);
-        var dx = roundNearest(shift*ux);
-        var dy = roundNearest(shift*uy);
-        var rbi = roundNearest(rb);
-
-        dc.setColor(BLACK, BLACK);
-        dc.fillCircle(xi - dx, yi - dy, rbi);
-    }
-
-    function drawDarkHalf(dc, xi, yi, r, ux, uy) {
-        dc.setColor(BLACK, BLACK);
-
-        var vx = -uy;
-        var vy = ux;
-
-        var t0 = -2.2*r;
-        var t1 = 0.0;
-        var s0 = -2.2*r;
-        var s1 = 2.2*r;
-
-        var x0 = roundNearest(xi + t0*ux + s0*vx);
-        var y0 = roundNearest(yi + t0*uy + s0*vy);
-        var x1 = roundNearest(xi + t0*ux + s1*vx);
-        var y1 = roundNearest(yi + t0*uy + s1*vy);
-        var x2 = roundNearest(xi + t1*ux + s1*vx);
-        var y2 = roundNearest(yi + t1*uy + s1*vy);
-        var x3 = roundNearest(xi + t1*ux + s0*vx);
-        var y3 = roundNearest(yi + t1*uy + s0*vy);
-
-        dc.fillPolygon([
-            [x0, y0],
-            [x1, y1],
-            [x2, y2],
-            [x3, y3]
-        ]);
-    }
-
-    function drawGibbousComposite(dc, xi, yi, r, orient, termFrac) {
-        if (orient == ORIENT_RIGHT) {
-            drawGibbousHorizontal(dc, xi, yi, r, true, termFrac);
-            return;
-        }
-
-        if (orient == ORIENT_DOWN) {
-            drawGibbousVertical(dc, xi, yi, r, true, termFrac);
-            return;
-        }
-
-        if (orient == ORIENT_LEFT) {
-            drawGibbousHorizontal(dc, xi, yi, r, false, termFrac);
-            return;
-        }
-
-        drawGibbousVertical(dc, xi, yi, r, false, termFrac);
-    }
-
-    function drawGibbousHorizontal(dc, xi, yi, r, rightSide, termFrac) {
-        var ri = roundNearest(r);
-        var rx = roundNearest(r*termFrac);
-        var d = roundNearest(2.0*r);
-
-        dc.setClip(
-            rightSide ? xi : roundNearest(xi - r),
-            roundNearest(yi - r),
-            ri + 1,
-            d + 1
-        );
-        dc.fillCircle(xi, yi, ri);
-        dc.clearClip();
-
-        dc.fillEllipse(xi, yi, rx, ri);
-    }
-
-    function drawGibbousVertical(dc, xi, yi, r, downSide, termFrac) {
-        var ri = roundNearest(r);
-        var ry = roundNearest(r*termFrac);
-        var d = roundNearest(2.0*r);
-
-        dc.setClip(
-            roundNearest(xi - r),
-            downSide ? yi : roundNearest(yi - r),
-            d + 1,
-            ri + 1
-        );
-        dc.fillCircle(xi, yi, ri);
-        dc.clearClip();
-
-        dc.fillEllipse(xi, yi, ri, ry);
     }
 
     function blendColor(c0, c1, t) {

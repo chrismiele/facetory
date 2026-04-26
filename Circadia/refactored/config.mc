@@ -27,9 +27,9 @@ module config {
     const SHOW_STARS = true;
     const SHOW_SUN = true;
     const SHOW_FACE = true;
-    const SHOW_SECONDS = true;
+    const SHOW_SECONDS = false;
 
-    const USE_GPS = false;
+    const USE_GPS = true;
     const LAT_DEG = 52.09;
     const LON_DEG = 5.12;
 

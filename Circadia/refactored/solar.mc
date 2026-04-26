@@ -26,13 +26,6 @@ module Solar {
     const MIP_ORANGE_MEDIUM = 0xAA5500;
     const MIP_ORANGE_DARK = 0x553000;
 
-    const MIP_RING_THICKNESS_DEG = 3.0;
-
-    const RING_OUTER_EDGE_SCALE = 0.1;
-    const RING_THICKNESS_DEG = 6.0;
-    const RING_INNER_EDGE_SCALE = 0.2;
-    const RING_PEAK_SCALE = 0.4;
-
     const SUNSET_ACCENT_COLOR = 0xFF8A00;
     const SUNSET_ACCENT_ALT_DEG = 1.5;
     const MONTH_OFFSETS = [0.0,31.0,59.0,90.0,120.0,151.0,181.0,212.0,243.0,273.0,304.0,334.0];
@@ -45,13 +38,6 @@ module Solar {
     var _yellowRedMid;
     var _redBlueMid;
     var _redGreyMid;
-    var _transparent;
-
-    var _yellowGlowBitmap;
-    var _yellowGlowR;
-    var _yellowGlowDeg;
-    var _yellowGlowSteps;
-    var _yellowGlowRadiusPx;
 
     function solarAltAzApprox(year, month, day, clockHour, offsetSec, latDeg, lonDeg) {
         var doy = dayOfYear(year, month, day);
@@ -137,141 +123,6 @@ module Solar {
             cx + rho*Math.sin(az),
             cy - rho*Math.cos(az)
         ];
-    }
-
-    function drawSunGlow(dc, x, y, cx, cy, R, sunColor, glowDeg, glowSteps) {
-        ensureColorCache();
-
-        if (sunColor == _satYellow && Toybox.Graphics has :createBufferedBitmap) {
-            var bmp = getYellowGlowBitmap(R, glowDeg, glowSteps);
-            if (bmp != null) {
-                dc.drawBitmap(
-                    x.toNumber() - _yellowGlowRadiusPx,
-                    y.toNumber() - _yellowGlowRadiusPx,
-                    bmp
-                );
-                return;
-            }
-        }
-
-        drawSunGlowDirect(dc, x, y, cx, cy, R, sunColor, glowDeg, glowSteps);
-    }
-
-    function drawSunGlowDirect(dc, x, y, cx, cy, R, sunColor, glowDeg, glowSteps) {
-        var glowPx = R*(glowDeg/90.0);
-        var thicknessPx = R*(RING_THICKNESS_DEG/90.0);
-        var innerPx = glowPx - thicknessPx;
-        if (innerPx < 0.0) {
-            innerPx = 0.0;
-        }
-
-        var midPx = 0.5*(glowPx + innerPx);
-        var invSteps = 1.0/glowSteps.toFloat();
-        var xi = x.toNumber();
-        var yi = y.toNumber();
-
-        var dx = xi - cx.toNumber();
-        var dy = yi - cy.toNumber();
-        var d = Math.sqrt(dx*dx + dy*dy);
-
-        for (var i = glowSteps; i >= 1; i -= 1) {
-            var f = i.toFloat()*invSteps;
-            var ri = (glowPx*f).toNumber();
-
-            if (d - ri >= R) {
-                continue;
-            }
-
-            var brightness;
-
-            if (ri >= midPx) {
-                brightness = RING_PEAK_SCALE
-                    + (RING_OUTER_EDGE_SCALE - RING_PEAK_SCALE)*(ri - midPx)/(glowPx - midPx);
-            } else if (ri >= innerPx) {
-                brightness = RING_INNER_EDGE_SCALE
-                    + (RING_PEAK_SCALE - RING_INNER_EDGE_SCALE)*(ri - innerPx)/(midPx - innerPx);
-            } else if (innerPx > 0.0) {
-                brightness = 1.0
-                    + (RING_INNER_EDGE_SCALE - 1.0)*ri/innerPx;
-            } else {
-                brightness = 1.0;
-            }
-
-            dc.setColor(scaleColor(sunColor, brightness), BLACK);
-            dc.fillCircle(xi, yi, ri);
-        }
-    }
-
-    function getYellowGlowBitmap(R, glowDeg, glowSteps) {
-        if (_yellowGlowBitmap != null
-            && _yellowGlowR == R
-            && _yellowGlowDeg == glowDeg
-            && _yellowGlowSteps == glowSteps) {
-            return _yellowGlowBitmap;
-        }
-
-        var glowPx = R*(glowDeg/90.0);
-        var maxRadius = (glowPx > R) ? glowPx : R;
-        var radiusPx = maxRadius.toNumber() + 2;
-        var size = 2*radiusPx + 1;
-
-        var ref = Graphics.createBufferedBitmap({
-            :width => size,
-            :height => size,
-            :alphaBlending => Graphics.ALPHA_BLENDING_FULL
-        });
-
-        if (ref == null) {
-            return null;
-        }
-
-        var bmp = ref.get();
-        if (bmp == null) {
-            return null;
-        }
-
-        var bdc = bmp.getDc();
-
-        if (_transparent == null) {
-            _transparent = Graphics.createColor(0, 0, 0, 0);
-        }
-
-        bdc.setColor(BLACK, _transparent);
-        bdc.clear();
-
-        drawSunGlowDirect(bdc, radiusPx, radiusPx, radiusPx, radiusPx, R, _satYellow, glowDeg, glowSteps);
-
-        _yellowGlowBitmap = bmp;
-        _yellowGlowR = R;
-        _yellowGlowDeg = glowDeg;
-        _yellowGlowSteps = glowSteps;
-        _yellowGlowRadiusPx = radiusPx;
-
-        return _yellowGlowBitmap;
-    }
-
-    function drawMipSunGlow(dc, x, y, R, altDeg, bodyDeg, glowDeg) {
-        var colors = mipSunColorsForAlt(altDeg);
-        drawMipGlow(dc, x, y, R, bodyDeg, glowDeg, colors[0], colors[1], colors[2]);
-    }
-
-    function drawMipGlow(dc, x, y, R, bodyDeg, glowDeg, brightColor, mediumColor, darkColor) {
-        var glowR = R*(glowDeg/90.0);
-        var innerR = glowR - R*(MIP_RING_THICKNESS_DEG/90.0);
-        var bodyR = R*(bodyDeg/90.0)/2.0;
-
-        if (innerR < bodyR) {
-            innerR = bodyR;
-        }
-
-        dc.setColor(mediumColor, BLACK);
-        dc.fillCircle(x.toNumber(), y.toNumber(), glowR.toNumber());
-
-        dc.setColor(darkColor, BLACK);
-        dc.fillCircle(x.toNumber(), y.toNumber(), innerR.toNumber());
-
-        dc.setColor(brightColor, BLACK);
-        dc.fillCircle(x.toNumber(), y.toNumber(), bodyR.toNumber());
     }
 
     function mipSunColorsForAlt(altDeg) {
