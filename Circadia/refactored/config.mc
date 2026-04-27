@@ -19,8 +19,8 @@ module config {
     // ===== USER-EDITABLE CHOICES =====
 
     const TOP_FIELD = FIELD_DATE;
-    const LEFT_FIELD = FIELD_TEMPERATURE;
-    const RIGHT_FIELD = FIELD_BODY_BATTERY;
+    const LEFT_FIELD = FIELD_HEART_RATE;
+    const RIGHT_FIELD = FIELD_STEPS;
     const TEMP_UNITS = UNIT_AUTO;
 
     const SHOW_MOON = true;
@@ -30,13 +30,13 @@ module config {
     const SHOW_SECONDS = false;
 
     const USE_GPS = true;
-    const LAT_DEG = 52.09;
-    const LON_DEG = 5.12;
+    const LAT_DEG = 49.29;
+    const LON_DEG = 123.12;
 
     const STAR_COUNT = 200;
     const MINUTE_SATURATION = 0.7;
     const MIP_MODE = false;
-    const SLEEP_DISPLAY_MODE = DISPLAY_MIP;
+    const SLEEP_DISPLAY_MODE = DISPLAY_AMOLED;
 
     // ===== ACCESSORS =====
 

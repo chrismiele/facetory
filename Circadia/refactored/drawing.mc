@@ -10,7 +10,8 @@ module Drawing {
     const SUN_GLOW_DEG = 18.0;
     const MOON_GLOW_DEG = 45.0;
     const GLOW_STEPS = 18;
-    const FULL_MOON_DIAMETER_DEG = 12.0;
+    const NEW_MOON_DIAMETER_DEG = 5.0;
+    const MOON_DIAMETER_DEG = 12.0;
     const RING_THICKNESS_DEG = 6.0;
     const MIP_RING_THICKNESS_DEG = 3.0;
     const MOON_RING_THICKNESS_DEG = 15.0;
@@ -21,16 +22,52 @@ module Drawing {
     const RING_INNER_EDGE_SCALE = 0.2;
     const RING_PEAK_SCALE = 0.4;
 
+    const NEW_MOON_GREY = 0x0A142B;
     const MIP_MOON_BRIGHT = 0xFFFFFF;
     const MIP_MOON_MEDIUM = 0xAAAAAA;
     const MIP_MOON_DARK = 0x555555;
     const MIP_NEW_MOON_BRIGHT = 0x000055;
+
+    const STAR_SMALL = 0;
+    const STAR_MEDIUM = 1;
+    const STAR_LARGE = 2;
+    const STAR_XL = 3;
+
+    const STAR_YELLOW = 0;
+    const STAR_SOFT_YELLOW = 1;
+    const STAR_RED = 2;
+    const STAR_BLUE = 3;
+    const STAR_WHITE = 4;
+
+    const SMALL_STAR_FRAC = 0.7;
+    const MEDIUM_STAR_FRAC = 0.25;
+    const LARGE_STAR_FRAC = 0.03;
+
+    const STAR_COLOR_VALUES = [
+        0xFDEBD2,
+        0xFFF6D8,
+        0xFFB08A,
+        0xC9D8FF,
+        0xF4F4FF
+    ];
+
+    const STAR_YELLOW_FRAC = 0.55;
+    const STAR_SOFT_YELLOW_FRAC = 0.20;
+    const STAR_RED_FRAC = 0.12;
+    const STAR_BLUE_FRAC = 0.08;
 
     var _yellowGlowBitmap;
     var _yellowGlowR;
     var _yellowGlowDeg;
     var _yellowGlowSteps;
     var _yellowGlowRadiusPx;
+
+    var _blueGlowBitmap;
+    var _blueGlowR;
+    var _blueGlowDeg;
+    var _blueGlowSteps;
+    var _blueGlowRadiusPx;
+
     var _transparent;
 
     const CLOCK_RADIUS_FRAC = 0.6179775281;
@@ -89,13 +126,13 @@ module Drawing {
         var glowRadius = R*(SUN_GLOW_DEG/90.0);
         if (showSun && intersectsSkyDisc(sx, sy, glowRadius, cx, cy, R)) {
             if (mipMode) {
-                drawMipSun(dc, sx, sy, R, sunAlt, FULL_MOON_DIAMETER_DEG, SUN_GLOW_DEG);
+                drawMipSun(dc, sx, sy, R, sunAlt);
             } else {
                 drawSunGlow(dc, sx, sy, cx, cy, R, sunColor, SUN_GLOW_DEG, GLOW_STEPS);
             }
         }
 
-        if (showStars && sunAlt < 0.0) {
+        if (showStars) {
             Stellar.drawProjectedStars(dc);
         }
 
@@ -280,18 +317,21 @@ module Drawing {
 
 
     function drawSunGlow(dc, x, y, cx, cy, R, sunColor, glowDeg, glowSteps) {
-        if (sunColor == Solar.YELLOW && Toybox.Graphics has :createBufferedBitmap) {
-            var bmp = getYellowGlowBitmap(R, glowDeg, glowSteps);
-            if (bmp != null) {
-                dc.drawBitmap(
-                    x.toNumber() - _yellowGlowRadiusPx,
-                    y.toNumber() - _yellowGlowRadiusPx,
-                    bmp
-                );
-                return;
+        if (Toybox.Graphics has :createBufferedBitmap) {
+            if (sunColor == Solar.YELLOW) {
+                var bmp = getYellowGlowBitmap(R, glowDeg, glowSteps);
+                if (bmp != null) {
+                    dc.drawBitmap(x.toNumber() - _yellowGlowRadiusPx, y.toNumber() - _yellowGlowRadiusPx, bmp);
+                    return;
+                }
+            } else if (sunColor == Solar.BLUE) {
+                var bmp = getBlueGlowBitmap(R, glowDeg, glowSteps);
+                if (bmp != null) {
+                    dc.drawBitmap(x.toNumber() - _blueGlowRadiusPx, y.toNumber() - _blueGlowRadiusPx, bmp);
+                    return;
+                }
             }
         }
-
         drawSunGlowDirect(dc, x, y, cx, cy, R, sunColor, glowDeg, glowSteps);
     }
 
@@ -349,8 +389,7 @@ module Drawing {
         }
 
         var glowPx = R*(glowDeg/90.0);
-        var maxRadius = (glowPx > R) ? glowPx : R;
-        var radiusPx = maxRadius.toNumber() + 2;
+        var radiusPx = glowPx.toNumber() + 2;
         var size = 2*radiusPx + 1;
 
         var ref = Graphics.createBufferedBitmap({
@@ -388,13 +427,75 @@ module Drawing {
         return _yellowGlowBitmap;
     }
 
-    function drawMipSun(dc, x, y, R, altDeg, bodyDeg, glowDeg) {
+    function getBlueGlowBitmap(R, glowDeg, glowSteps) {
+        if (_blueGlowBitmap != null
+            && _blueGlowR == R
+            && _blueGlowDeg == glowDeg
+            && _blueGlowSteps == glowSteps) {
+            return _blueGlowBitmap;
+        }
+
+        var glowPx = R*(glowDeg/90.0);
+        var radiusPx = glowPx.toNumber() + 2;
+        var size = 2*radiusPx + 1;
+
+        var ref = Graphics.createBufferedBitmap({
+            :width => size,
+            :height => size,
+            :alphaBlending => Graphics.ALPHA_BLENDING_FULL
+        });
+
+        if (ref == null) { return null; }
+
+        var bmp = ref.get();
+        if (bmp == null) { return null; }
+
+        var bdc = bmp.getDc();
+
+        if (_transparent == null) {
+            _transparent = Graphics.createColor(0, 0, 0, 0);
+        }
+
+        bdc.setColor(BLACK, _transparent);
+        bdc.clear();
+
+        drawSunGlowDirect(bdc, radiusPx, radiusPx, radiusPx, radiusPx, R, Solar.BLUE, glowDeg, glowSteps);
+
+        _blueGlowBitmap = bmp;
+        _blueGlowR = R;
+        _blueGlowDeg = glowDeg;
+        _blueGlowSteps = glowSteps;
+        _blueGlowRadiusPx = radiusPx;
+
+        return _blueGlowBitmap;
+    }
+
+    function drawMipSun(dc, x, y, R, altDeg) {
+        // Three concentric circles with distinct size anchors:
+        //   (1) Dim outer   — radius at SUN_GLOW_DEG (18 deg)
+        //   (2) Medium mid  — radius at MOON_DIAMETER_DEG/2 (full-moon body, 6 deg)
+        //   (3) Bright core — radius at NEW_MOON_DIAMETER_DEG/2 (new-moon body, 2.5 deg)
         var colors = Solar.mipSunColorsForAlt(altDeg);
-        drawMipHaloBody(dc, x, y, R, bodyDeg, glowDeg, colors[0], colors[1], colors[2]);
+
+        var dimR  = R * (SUN_GLOW_DEG        / 90.0);
+        var midR  = R * (MOON_DIAMETER_DEG   / 90.0) / 2.0;
+        var coreR = R * (NEW_MOON_DIAMETER_DEG / 90.0) / 2.0;
+
+        var xi = x.toNumber();
+        var yi = y.toNumber();
+
+        dc.setColor(colors[2], BLACK);
+        dc.fillCircle(xi, yi, roundNearest(dimR));
+
+        dc.setColor(colors[1], BLACK);
+        dc.fillCircle(xi, yi, roundNearest(midR));
+
+        dc.setColor(colors[0], BLACK);
+        dc.fillCircle(xi, yi, roundNearest(coreR));
     }
 
     function drawNewMoon(dc, xi, yi, ri, mipMode) {
-        dc.setColor(mipMode ? MIP_NEW_MOON_BRIGHT : Lunar.NEW_MOON_GREY, BLACK);
+        dc.setColor(BLACK, BLACK);
         dc.fillCircle(xi, yi, ri);
     }
 
@@ -673,6 +774,31 @@ module Drawing {
         dc.clearClip();
 
         dc.fillEllipse(xi, yi, ri, ry);
+    }
+
+    function fadedStarColors(nightScale) {
+        var starScale = 0.8*nightScale;
+        return [
+            Solar.blendColor(BLACK, STAR_COLOR_VALUES[STAR_YELLOW], starScale),
+            Solar.blendColor(BLACK, STAR_COLOR_VALUES[STAR_SOFT_YELLOW], starScale),
+            Solar.blendColor(BLACK, STAR_COLOR_VALUES[STAR_RED], starScale),
+            Solar.blendColor(BLACK, STAR_COLOR_VALUES[STAR_BLUE], starScale),
+            Solar.blendColor(BLACK, STAR_COLOR_VALUES[STAR_WHITE], starScale)
+        ];
+    }
+
+    function drawProjectedStar(dc, xi, yi, starSize, starColor) {
+        dc.setColor(starColor, BLACK);
+
+        if (starSize == STAR_XL) {
+            dc.fillRectangle(xi - 2, yi - 2, 4, 4);
+        } else if (starSize == STAR_LARGE) {
+            dc.fillRectangle(xi - 1, yi - 1, 3, 3);
+        } else if (starSize == STAR_MEDIUM) {
+            dc.fillRectangle(xi - 1, yi - 1, 2, 2);
+        } else {
+            dc.drawPoint(xi, yi);
+        }
     }
 
     function closenessToFullMoon(phaseAngle) {
