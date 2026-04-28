@@ -19,8 +19,8 @@ module config {
     // ===== USER-EDITABLE CHOICES =====
 
     const TOP_FIELD = FIELD_DATE;
-    const LEFT_FIELD = FIELD_HEART_RATE;
-    const RIGHT_FIELD = FIELD_STEPS;
+    const LEFT_FIELD = FIELD_TEMPERATURE;
+    const RIGHT_FIELD = FIELD_BODY_BATTERY;
     const TEMP_UNITS = UNIT_AUTO;
 
     const SHOW_MOON = true;

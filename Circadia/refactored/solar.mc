@@ -1,4 +1,5 @@
 using Toybox.Graphics;
+using Toybox.Lang;
 using Toybox.Math;
 
 module Solar {
@@ -30,13 +31,12 @@ module Solar {
 
     const SUNSET_ACCENT_COLOR   = 0xFF8A00;
     const SUNSET_ACCENT_ALT_DEG = 1.5;
-    const MONTH_OFFSETS = [0.0, 31.0, 59.0, 90.0, 120.0, 151.0, 181.0, 212.0, 243.0, 273.0, 304.0, 334.0];
 
     function solarAltAzApprox(year, month, day, clockHour, offsetSec, latDeg, lonDeg) {
-        var doy     = dayOfYear(year, month, day);
-        var yearLen = isLeapYear(year) ? 366.0 : 365.0;
+        var doy     = MathUtil.dayOfYear(year, month, day);
+        var yearLen = MathUtil.isLeapYear(year) ? 366.0 : 365.0;
 
-        var lat    = deg2rad(latDeg);
+        var lat    = MathUtil.deg2rad(latDeg);
         var sinLat = Math.sin(lat);
         var cosLat = Math.cos(lat);
 
@@ -58,107 +58,74 @@ module Solar {
 
         var tzMeridianDeg = offsetSec / 240.0;
         var solarHours    = clockHour + (eqtMin + 4.0 * (lonDeg - tzMeridianDeg)) / 60.0;
-        var H             = deg2rad(15.0 * (solarHours - 12.0));
+        var H             = MathUtil.deg2rad(15.0 * (solarHours - 12.0));
 
         var sinDec = Math.sin(dec);
         var cosDec = Math.cos(dec);
         var cosH   = Math.cos(H);
 
-        var sinAlt = clamp(sinLat * sinDec + cosLat * cosDec * cosH, -1.0, 1.0);
+        var sinAlt = MathUtil.clamp(sinLat * sinDec + cosLat * cosDec * cosH, -1.0, 1.0);
         var alt    = Math.asin(sinAlt);
-        var altDeg = rad2deg(alt) + refractionDeg(rad2deg(alt));
+        var altDeg = MathUtil.rad2deg(alt) + MathUtil.refractionDeg(MathUtil.rad2deg(alt));
 
         if (90.0 - altDeg < 0.1) { return [altDeg, 0.0]; }
 
         var cosAlt = Math.cos(alt);
-        if (abs(cosAlt) < 1e-6) { cosAlt = (cosAlt < 0.0) ? -1e-6 : 1e-6; }
+        if (MathUtil.abs(cosAlt) < 1e-6) { cosAlt = (cosAlt < 0.0) ? -1e-6 : 1e-6; }
 
-        var cosAz = clamp((sinDec - sinAlt * sinLat) / (cosAlt * cosLat), -1.0, 1.0);
+        var cosAz = MathUtil.clamp((sinDec - sinAlt * sinLat) / (cosAlt * cosLat), -1.0, 1.0);
         var az    = Math.acos(cosAz);
         if (Math.sin(H) > 0.0) { az = 2.0 * Math.PI - az; }
 
-        return [altDeg, rad2deg(az)];
-    }
-
-    function refractionDeg(altDeg) {
-        if (altDeg < -4.0) { return 0.0; }
-        return 1.02 / (60.0 * Math.tan(deg2rad(altDeg + 10.3 / (altDeg + 5.11))));
+        return [altDeg, MathUtil.rad2deg(az)];
     }
 
     function projectAltAz(altDeg, azDeg, cx, cy, R) {
-        var rho = clamp(R * (1.0 - altDeg / 90.0), 0.0, R * 2.0);
-        var az  = deg2rad(azDeg);
+        var rho = MathUtil.clamp(R * (1.0 - altDeg / 90.0), 0.0, R * 2.0);
+        var az  = MathUtil.deg2rad(azDeg);
         return [cx + rho * Math.sin(az), cy - rho * Math.cos(az)];
     }
 
     function mipSunColorsForAlt(altDeg) {
-        if (altDeg >= 6.0)  { return [MIP_SUN_BRIGHT,    MIP_SUN_MEDIUM,    MIP_SUN_DARK]; }
-        if (altDeg >= 0.0)  { return [MIP_ORANGE_BRIGHT, MIP_ORANGE_MEDIUM, MIP_ORANGE_DARK]; }
-        if (altDeg >= -6.0) { return [MIP_RED_BRIGHT,    MIP_RED_MEDIUM,    MIP_RED_DARK]; }
-        if (altDeg >= -12.0){ return [MIP_PURPLE_BRIGHT, MIP_PURPLE_MEDIUM, MIP_PURPLE_DARK]; }
+        if (altDeg >= 6.0)   { return [MIP_SUN_BRIGHT,    MIP_SUN_MEDIUM,    MIP_SUN_DARK];    }
+        if (altDeg >= 0.0)   { return [MIP_ORANGE_BRIGHT, MIP_ORANGE_MEDIUM, MIP_ORANGE_DARK]; }
+        if (altDeg >= -6.0)  { return [MIP_RED_BRIGHT,    MIP_RED_MEDIUM,    MIP_RED_DARK];    }
+        if (altDeg >= -12.0) { return [MIP_PURPLE_BRIGHT, MIP_PURPLE_MEDIUM, MIP_PURPLE_DARK]; }
         return [MIP_BLUE_BRIGHT, MIP_BLUE_MEDIUM, MIP_BLUE_DARK];
     }
 
     function mipBrightSunColorForAlt(altDeg) {
-        return mipSunColorsForAlt(altDeg)[0];
+        var colors = mipSunColorsForAlt(altDeg) as Lang.Array;
+        return colors[0];
     }
 
-    // AMOLED: returns a blended colour representing the sun's colour at altitude
+    // AMOLED: returns a blended colour representing the sun's colour at altitude.
     function sunColorForAlt(altDeg) {
         if (altDeg >= 12.0)  { return YELLOW; }
-        if (altDeg >= 6.0)   { return blendColor(YELLOW, ORANGE, (12.0 - altDeg) / 6.0); }
-        if (altDeg >= 0.0)   { return blendColor(ORANGE, RED,    (6.0  - altDeg) / 6.0); }
-        if (altDeg >= -6.0)  { return blendColor(RED,    PURPLE, (-altDeg)        / 6.0); }
-        if (altDeg >= -12.0) { return blendColor(PURPLE, BLUE,   (-6.0 - altDeg)  / 6.0); }
+        if (altDeg >= 6.0)   { return MathUtil.blendColor(YELLOW, ORANGE, (12.0 - altDeg) / 6.0); }
+        if (altDeg >= 0.0)   { return MathUtil.blendColor(ORANGE, RED,    (6.0  - altDeg) / 6.0); }
+        if (altDeg >= -6.0)  { return MathUtil.blendColor(RED,    PURPLE, (-altDeg)        / 6.0); }
+        if (altDeg >= -12.0) { return MathUtil.blendColor(PURPLE, BLUE,   (-6.0 - altDeg)  / 6.0); }
         return BLUE;
     }
 
     function brightSunColor(sunColor, saturation) {
-        return blendColor(WHITE, sunColor, clamp(saturation, 0.0, 1.0));
+        return MathUtil.blendColor(WHITE, sunColor, MathUtil.clamp(saturation, 0.0, 1.0));
     }
 
     function sunsetAccentScale(sunAltDeg) {
-        return clamp(1.0 - abs(sunAltDeg) / SUNSET_ACCENT_ALT_DEG, 0.0, 1.0);
+        return MathUtil.clamp(1.0 - MathUtil.abs(sunAltDeg) / SUNSET_ACCENT_ALT_DEG, 0.0, 1.0);
     }
 
-    function blendColor(c0, c1, t) {
-        t = clamp(t, 0.0, 1.0);
-        var r = ((c0 / 65536) % 256 + ((c1 / 65536) % 256 - (c0 / 65536) % 256) * t).toNumber();
-        var g = ((c0 / 256)   % 256 + ((c1 / 256)   % 256 - (c0 / 256)   % 256) * t).toNumber();
-        var b = ( c0          % 256 + ( c1           % 256 -  c0          % 256) * t).toNumber();
-        return r * 65536 + g * 256 + b;
-    }
+    // Public alias kept for Drawing's existing `Solar.blendColor` call sites.
+    function blendColor(c0, c1, t) { return MathUtil.blendColor(c0, c1, t); }
 
     function scaleColor(color, s) {
-        s = clamp(s, 0.0, 1.0);
+        s = MathUtil.clamp(s, 0.0, 1.0);
         var r = (((color / 65536) % 256) * s).toNumber();
         var g = (((color / 256)   % 256) * s).toNumber();
         var b = ( (color          % 256) * s).toNumber();
         return r * 65536 + g * 256 + b;
     }
 
-    function dayOfYear(year, month, day) {
-        var doy = MONTH_OFFSETS[month - 1] + day.toFloat();
-        if (month > 2 && isLeapYear(year)) { doy += 1.0; }
-        return doy;
-    }
-
-    function isLeapYear(year) {
-        if ((year % 400) == 0) { return true; }
-        if ((year % 100) == 0) { return false; }
-        return ((year % 4) == 0);
-    }
-
-    function clamp(x, lo, hi) {
-        if (x < lo) { return lo; }
-        if (x > hi) { return hi; }
-        return x;
-    }
-
-    function abs(x) {
-        return (x < 0.0) ? -x : x;
-    }
-
-    function deg2rad(x) { return x * Math.PI / 180.0; }
-    function rad2deg(x) { return x * 180.0 / Math.PI; }
 }
