@@ -3,9 +3,10 @@ using Toybox.Math;
 
 module Drawing {
 
-    const BLACK  = 0x000000;
-    const WHITE  = 0xFFFFFF;
-    const SILVER = 0xC8CDD3;
+    // Local shorthands for the two colours used pervasively. Every other
+    // colour comes from Colours.* — see colours.mc for the single source.
+    const BLACK = 0x000000;
+    const WHITE = 0xFFFFFF;
 
     const SUN_GLOW_DEG     = 18.0;
     const MOON_GLOW_DEG    = 45.0;
@@ -22,32 +23,21 @@ module Drawing {
     const RING_INNER_EDGE_SCALE = 0.2;
     const RING_PEAK_SCALE       = 0.4;
 
-    const NEW_MOON_GREY      = 0x0A142B;
-    const MIP_MOON_BRIGHT    = 0xFFFFFF;
-    const MIP_MOON_MEDIUM    = 0xAAAAAA;
-    const MIP_MOON_DARK      = 0x555555;
     const STAR_SMALL  = 0;
     const STAR_MEDIUM = 1;
     const STAR_LARGE  = 2;
     const STAR_XL     = 3;
 
-    const STAR_YELLOW      = 0;
-    const STAR_SOFT_YELLOW = 1;
-    const STAR_RED         = 2;
-    const STAR_BLUE        = 3;
-    const STAR_WHITE       = 4;
+    // Star-colour bin indices used by Stellar to address fadedStarColors().
+    const STAR_BIN_YELLOW      = 0;
+    const STAR_BIN_SOFT_YELLOW = 1;
+    const STAR_BIN_RED         = 2;
+    const STAR_BIN_BLUE        = 3;
+    const STAR_BIN_WHITE       = 4;
 
     const SMALL_STAR_FRAC  = 0.7;
     const MEDIUM_STAR_FRAC = 0.25;
     const LARGE_STAR_FRAC  = 0.03;
-
-    const STAR_COLOR_VALUES = [
-        0xFDEBD2,
-        0xFFF6D8,
-        0xFFB08A,
-        0xC9D8FF,
-        0xF4F4FF
-    ];
 
     const STAR_YELLOW_FRAC      = 0.55;
     const STAR_SOFT_YELLOW_FRAC = 0.20;
@@ -177,7 +167,7 @@ module Drawing {
                 phaseAngle,
                 phaseBin,
                 sunAlt,
-                mipMode ? MIP_MOON_BRIGHT : SILVER,
+                mipMode ? Colours.MIP_MOON_BRIGHT : Colours.MOON_AMOLED,
                 R,
                 mipMode
             );
@@ -221,7 +211,7 @@ module Drawing {
 
         var color = WHITE;
         if (text.length() > 0 && text.substring(0, 1).equals("*")) {
-            color = Solar.YELLOW;
+            color = Colours.CHARGING;
             text = text.substring(1, text.length());
         }
 
@@ -333,11 +323,11 @@ module Drawing {
         var colonGap   = R*COLON_GAP_FRAC;
         var colonShift = R*COLON_V_SHIFT_FRAC;
 
-        dc.setColor(Solar.blendColor(WHITE, 0xFF8000, sunsetAccent), Graphics.COLOR_TRANSPARENT);
+        dc.setColor(MathUtil.blendColor(WHITE, Colours.SUNSET_ACCENT, sunsetAccent), Graphics.COLOR_TRANSPARENT);
         dc.drawText((clockCx - colonGap).toNumber(), baselineY.toNumber(), font, hText, Graphics.TEXT_JUSTIFY_RIGHT);
         dc.drawText(clockCx.toNumber(), (baselineY - colonShift).toNumber(), font, ":", Graphics.TEXT_JUSTIFY_CENTER);
 
-        dc.setColor(config.mipMode() ? sunColor : Solar.brightSunColor(sunColor, config.minuteSaturation()), Graphics.COLOR_TRANSPARENT);
+        dc.setColor(Solar.brightSunColor(sunColor, config.minuteSaturation()), Graphics.COLOR_TRANSPARENT);
         dc.drawText((clockCx + colonGap).toNumber(), baselineY.toNumber(), font, mText, Graphics.TEXT_JUSTIFY_LEFT);
 
         drawSubfields(dc, cx, cy, R, leftText, rightText);
@@ -356,7 +346,7 @@ module Drawing {
     function drawFieldText(dc, x, y, text) {
         var color = WHITE;
         if (text.length() > 0 && text.substring(0, 1).equals("*")) {
-            color = Solar.YELLOW;
+            color = Colours.CHARGING;
             text = text.substring(1, text.length());
         }
         dc.setColor(color, Graphics.COLOR_TRANSPARENT);
@@ -365,8 +355,8 @@ module Drawing {
 
     // Map a sun colour to a glow-cache slot, or -1 if no cache exists for it.
     function glowCacheSlot(sunColor) {
-        if (sunColor == Solar.YELLOW) { return GLOW_SLOT_YELLOW; }
-        if (sunColor == Solar.BLUE)   { return GLOW_SLOT_BLUE; }
+        if (sunColor == Colours.SUN_YELLOW) { return GLOW_SLOT_YELLOW; }
+        if (sunColor == Colours.SUN_BLUE)   { return GLOW_SLOT_BLUE; }
         return -1;
     }
 
@@ -466,26 +456,27 @@ module Drawing {
     }
 
     function drawMipSun(dc, x, y, R, altDeg) {
-        // Three concentric circles with distinct size anchors:
-        //   (1) Dim outer   — radius at SUN_GLOW_DEG (18 deg)
-        //   (2) Medium mid  — radius at MOON_DIAMETER_DEG/2 (full-moon body, 6 deg)
-        //   (3) Bright core — radius at NEW_MOON_DIAMETER_DEG/2 (new-moon body, 2.5 deg)
+        // Three concentric rings, painted outer → middle → core. Sizes:
+        //   outer  — radius at SUN_GLOW_DEG (18 deg)
+        //   middle — radius at MOON_DIAMETER_DEG/2 (6 deg)
+        //   core   — radius at NEW_MOON_DIAMETER_DEG/2 (2.5 deg)
+        // Colours come from mipSunColorsForAlt; see Solar for the full table.
         var colors = Solar.mipSunColorsForAlt(altDeg);
 
-        var dimR  = R * (SUN_GLOW_DEG          / 90.0);
-        var midR  = R * (MOON_DIAMETER_DEG     / 90.0) / 2.0;
-        var coreR = R * (NEW_MOON_DIAMETER_DEG / 90.0) / 2.0;
+        var outerR  = R * (SUN_GLOW_DEG          / 90.0);
+        var middleR = R * (MOON_DIAMETER_DEG     / 90.0) / 2.0;
+        var coreR   = R * (NEW_MOON_DIAMETER_DEG / 90.0) / 2.0;
 
         var xi = x.toNumber();
         var yi = y.toNumber();
 
-        dc.setColor(colors[2], BLACK);
-        dc.fillCircle(xi, yi, MathUtil.roundNearest(dimR));
+        dc.setColor(colors[0], BLACK);
+        dc.fillCircle(xi, yi, MathUtil.roundNearest(outerR));
 
         dc.setColor(colors[1], BLACK);
-        dc.fillCircle(xi, yi, MathUtil.roundNearest(midR));
+        dc.fillCircle(xi, yi, MathUtil.roundNearest(middleR));
 
-        dc.setColor(colors[0], BLACK);
+        dc.setColor(colors[2], BLACK);
         dc.fillCircle(xi, yi, MathUtil.roundNearest(coreR));
     }
 
@@ -497,7 +488,7 @@ module Drawing {
     function drawFullMoon(dc, xi, yi, moonRadiusPx, phaseAngle, sunAltDeg, litColor, skyRadiusPx, mipMode) {
         if (mipMode) {
             var scale = moonGlowNightScale(sunAltDeg)*closenessToFullMoon(phaseAngle);
-            drawMipHaloBodyScaled(dc, xi, yi, skyRadiusPx, moonRadiusPx, MOON_GLOW_DEG, scale, MIP_MOON_BRIGHT, MIP_MOON_DARK, MIP_MOON_MEDIUM);
+            drawMipHaloBodyScaled(dc, xi, yi, skyRadiusPx, moonRadiusPx, MOON_GLOW_DEG, scale, Colours.MIP_MOON_BRIGHT, Colours.MIP_MOON_DARK, Colours.MIP_MOON_MEDIUM);
             return;
         }
 
@@ -514,7 +505,7 @@ module Drawing {
         var ri = MathUtil.roundNearest(r);
 
         if (mipMode) {
-            litColor = MIP_MOON_BRIGHT;
+            litColor = Colours.MIP_MOON_BRIGHT;
         }
 
         if (bin == Lunar.PHASE_NEW) {
@@ -655,7 +646,7 @@ module Drawing {
                 continue;
             }
 
-            var c = Solar.blendColor(BLACK, litColor, brightness);
+            var c = MathUtil.blendColor(BLACK, litColor, brightness);
 
             dc.setColor(c, BLACK);
             dc.fillCircle(MathUtil.roundNearest(xg), MathUtil.roundNearest(yg), MathUtil.roundNearest(rr));
@@ -679,19 +670,20 @@ module Drawing {
         var vx = -uy;
         var vy =  ux;
 
-        var t0 = -2.2*r;
-        var t1 =  0.0;
-        var s0 = -2.2*r;
-        var s1 =  2.2*r;
+        // The dark-half polygon spans the moon's near-side rectangle: from
+        // 2.2r behind the moon (along -ux) up to the moon's centre, full
+        // width (4.4r). The "front" edge passes through (xi, yi).
+        var t = -2.2*r;     // back distance
+        var s =  2.2*r;     // half-width
 
-        var x0 = MathUtil.roundNearest(xi + t0*ux + s0*vx);
-        var y0 = MathUtil.roundNearest(yi + t0*uy + s0*vy);
-        var x1 = MathUtil.roundNearest(xi + t0*ux + s1*vx);
-        var y1 = MathUtil.roundNearest(yi + t0*uy + s1*vy);
-        var x2 = MathUtil.roundNearest(xi + t1*ux + s1*vx);
-        var y2 = MathUtil.roundNearest(yi + t1*uy + s1*vy);
-        var x3 = MathUtil.roundNearest(xi + t1*ux + s0*vx);
-        var y3 = MathUtil.roundNearest(yi + t1*uy + s0*vy);
+        var x0 = MathUtil.roundNearest(xi + t*ux - s*vx);
+        var y0 = MathUtil.roundNearest(yi + t*uy - s*vy);
+        var x1 = MathUtil.roundNearest(xi + t*ux + s*vx);
+        var y1 = MathUtil.roundNearest(yi + t*uy + s*vy);
+        var x2 = MathUtil.roundNearest(xi + s*vx);
+        var y2 = MathUtil.roundNearest(yi + s*vy);
+        var x3 = MathUtil.roundNearest(xi - s*vx);
+        var y3 = MathUtil.roundNearest(yi - s*vy);
 
         dc.fillPolygon([
             [x0, y0],
@@ -757,11 +749,11 @@ module Drawing {
     function fadedStarColors(nightScale) {
         var starScale = 0.8*nightScale;
         return [
-            Solar.blendColor(BLACK, STAR_COLOR_VALUES[STAR_YELLOW],      starScale),
-            Solar.blendColor(BLACK, STAR_COLOR_VALUES[STAR_SOFT_YELLOW], starScale),
-            Solar.blendColor(BLACK, STAR_COLOR_VALUES[STAR_RED],         starScale),
-            Solar.blendColor(BLACK, STAR_COLOR_VALUES[STAR_BLUE],        starScale),
-            Solar.blendColor(BLACK, STAR_COLOR_VALUES[STAR_WHITE],       starScale)
+            MathUtil.blendColor(BLACK, Colours.STAR_YELLOW,      starScale),
+            MathUtil.blendColor(BLACK, Colours.STAR_SOFT_YELLOW, starScale),
+            MathUtil.blendColor(BLACK, Colours.STAR_RED,         starScale),
+            MathUtil.blendColor(BLACK, Colours.STAR_BLUE,        starScale),
+            MathUtil.blendColor(BLACK, Colours.STAR_WHITE,       starScale)
         ];
     }
 

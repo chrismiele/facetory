@@ -17,7 +17,7 @@ class CircadiaView extends WatchUi.WatchFace {
     var _latDeg;
     var _lonDeg;
 
-    var _sunColor = Drawing.WHITE;
+    var _sunColor = Colours.WHITE;
     var _bodyBatteryText = NO_DATA;
     var _stressText      = NO_DATA;
     var _batteryPctText  = NO_DATA;   // "87%" — refreshed once per minute
@@ -34,8 +34,6 @@ class CircadiaView extends WatchUi.WatchFace {
     var _cacheMipMode = false;
 
     // Pre-computed per-minute values
-    var _cachedClockHourNow    = 0.0;
-    var _cachedOffsetSec       = 0;
     var _cachedMoonDiameterDeg = Drawing.NEW_MOON_DIAMETER_DEG;
     var _cachedMoonPhaseAngle  = 0.0;
     var _cachedMoonPhaseBin    = Lunar.PHASE_NEW;
@@ -182,11 +180,11 @@ class CircadiaView extends WatchUi.WatchFace {
     // ── Minute-level cache ───────────────────────────────────────────────────
 
     function updateMinuteCache(now, g, t, mipMode) {
-        _cachedOffsetSec    = t.timeZoneOffset;
-        _cachedClockHourNow = t.hour + t.min / 60.0;
+        var clockHour = t.hour + t.min / 60.0;
+        var offsetSec = t.timeZoneOffset;
 
         _cachedMoonPhaseAngle = Lunar.lunarPhaseAngle(
-            g.year, g.month, g.day, _cachedClockHourNow, _cachedOffsetSec
+            g.year, g.month, g.day, clockHour, offsetSec
         );
         _cachedMoonPhaseBin = Lunar.lunarPhaseBinFromAngle(_cachedMoonPhaseAngle);
         _cachedMoonDiameterDeg = (_cachedMoonPhaseBin == Lunar.PHASE_NEW)
@@ -194,7 +192,7 @@ class CircadiaView extends WatchUi.WatchFace {
             : Drawing.MOON_DIAMETER_DEG;
 
         _cachedSunAltAz = Solar.solarAltAzApprox(
-            g.year, g.month, g.day, _cachedClockHourNow, _cachedOffsetSec,
+            g.year, g.month, g.day, clockHour, offsetSec,
             _latDeg, _lonDeg
         );
         _cachedSunsetAccent = Solar.sunsetAccentScale(_cachedSunAltAz[0]);
@@ -205,7 +203,7 @@ class CircadiaView extends WatchUi.WatchFace {
         _cachedMoonAltAz = [0.0, 0.0];
         if (config.showMoon()) {
             _cachedMoonAltAz = Lunar.lunarAltAzApprox(
-                g.year, g.month, g.day, _cachedClockHourNow, _cachedOffsetSec,
+                g.year, g.month, g.day, clockHour, offsetSec,
                 _latDeg, _lonDeg
             );
         }

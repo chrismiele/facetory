@@ -199,14 +199,14 @@ module Stellar {
 
     function starColorBin(i) {
         var u = rand01(i, 3);
-        if (u < Drawing.STAR_YELLOW_FRAC) { return Drawing.STAR_YELLOW; }
+        if (u < Drawing.STAR_YELLOW_FRAC) { return Drawing.STAR_BIN_YELLOW; }
         var accum = Drawing.STAR_YELLOW_FRAC + Drawing.STAR_SOFT_YELLOW_FRAC;
-        if (u < accum) { return Drawing.STAR_SOFT_YELLOW; }
+        if (u < accum) { return Drawing.STAR_BIN_SOFT_YELLOW; }
         accum += Drawing.STAR_RED_FRAC;
-        if (u < accum) { return Drawing.STAR_RED; }
+        if (u < accum) { return Drawing.STAR_BIN_RED; }
         accum += Drawing.STAR_BLUE_FRAC;
-        if (u < accum) { return Drawing.STAR_BLUE; }
-        return Drawing.STAR_WHITE;
+        if (u < accum) { return Drawing.STAR_BIN_BLUE; }
+        return Drawing.STAR_BIN_WHITE;
     }
 
     // ── Astronomy helpers ────────────────────────────────────────────────────

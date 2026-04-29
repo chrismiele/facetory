@@ -1,31 +1,7 @@
-using Toybox.Graphics;
 using Toybox.Lang;
 using Toybox.Math;
 
 module Solar {
-
-    const YELLOW = 0xFFFF00;
-    const ORANGE = 0xFFAA00;
-    const RED    = 0xFF0000;
-    const PURPLE = 0xFF55FF;
-    const BLUE   = 0x0000FF;
-    const WHITE  = 0xFFFFFF;
-
-    const MIP_SUN_BRIGHT    = 0xFFFF00;
-    const MIP_SUN_MEDIUM    = 0xAAAA00;
-    const MIP_SUN_DARK      = 0x555500;
-    const MIP_RED_BRIGHT    = 0xFF5555;
-    const MIP_RED_MEDIUM    = 0xAA0000;
-    const MIP_RED_DARK      = 0x550000;
-    const MIP_BLUE_BRIGHT   = 0x5555FF;
-    const MIP_BLUE_MEDIUM   = 0x0000AA;
-    const MIP_BLUE_DARK     = 0x000055;
-    const MIP_PURPLE_BRIGHT = 0xFF55FF;
-    const MIP_PURPLE_MEDIUM = 0xAA00AA;
-    const MIP_PURPLE_DARK   = 0x550055;
-    const MIP_ORANGE_BRIGHT = 0xFFAA00;
-    const MIP_ORANGE_MEDIUM = 0xAA5500;
-    const MIP_ORANGE_DARK   = 0x553000;
 
     const SUNSET_ACCENT_ALT_DEG = 1.5;
 
@@ -83,39 +59,52 @@ module Solar {
         return [cx + rho * Math.sin(az), cy - rho * Math.cos(az)];
     }
 
+    // Three MIP shades for the sun's halo at altitude, returned as
+    // [OUTER, MIDDLE, CORE] in paint order (outer drawn first, core last).
+    //
+    // Daytime is a pure yellow dark→medium→bright ramp. Each transition
+    // band uses two shades from itself (MEDIUM outer, BRIGHT middle) plus
+    // a CORE carried over from the warmer phase, giving a "glowing ember"
+    // centre that trails one band behind the surrounding atmosphere.
     function mipSunColorsForAlt(altDeg) {
-        if (altDeg >= 6.0)   { return [MIP_SUN_BRIGHT,    MIP_SUN_MEDIUM,    MIP_SUN_DARK];    }
-        if (altDeg >= 0.0)   { return [MIP_ORANGE_BRIGHT, MIP_ORANGE_MEDIUM, MIP_ORANGE_DARK]; }
-        if (altDeg >= -6.0)  { return [MIP_RED_BRIGHT,    MIP_RED_MEDIUM,    MIP_RED_DARK];    }
-        if (altDeg >= -12.0) { return [MIP_PURPLE_BRIGHT, MIP_PURPLE_MEDIUM, MIP_PURPLE_DARK]; }
-        return [MIP_BLUE_BRIGHT, MIP_BLUE_MEDIUM, MIP_BLUE_DARK];
+        if (altDeg >= 6.0)   { return [Colours.MIP_SUN_DARK,      Colours.MIP_SUN_MEDIUM,    Colours.MIP_SUN_BRIGHT];     }
+        if (altDeg >= 0.0)   { return [Colours.MIP_ORANGE_MEDIUM, Colours.MIP_ORANGE_BRIGHT, Colours.MIP_SUN_BRIGHT];     }
+        if (altDeg >= -6.0)  { return [Colours.MIP_RED_MEDIUM,    Colours.MIP_RED_BRIGHT,    Colours.MIP_ORANGE_BRIGHT];  }
+        if (altDeg >= -12.0) { return [Colours.MIP_PURPLE_MEDIUM, Colours.MIP_PURPLE_BRIGHT, Colours.MIP_RED_BRIGHT];     }
+        return [Colours.MIP_BLUE_MEDIUM, Colours.MIP_BLUE_BRIGHT, Colours.MIP_PURPLE_BRIGHT];
     }
 
+    // The band's BRIGHT shade — used as the MIP minute-text colour.
+    // For daytime this is yellow (the core). For transition bands it's
+    // the current band's middle ring (the dominant hue surrounding the
+    // ember-coloured core).
     function mipBrightSunColorForAlt(altDeg) {
-        var colors = mipSunColorsForAlt(altDeg) as Lang.Array;
-        return colors[0];
+        if (altDeg >= 6.0)   { return Colours.MIP_SUN_BRIGHT;    }
+        if (altDeg >= 0.0)   { return Colours.MIP_ORANGE_BRIGHT; }
+        if (altDeg >= -6.0)  { return Colours.MIP_RED_BRIGHT;    }
+        if (altDeg >= -12.0) { return Colours.MIP_PURPLE_BRIGHT; }
+        return Colours.MIP_BLUE_BRIGHT;
     }
 
-    // AMOLED: returns a blended colour representing the sun's colour at altitude.
+    // AMOLED: blended colour for the sun's body at altitude. Smooth gradient
+    // between palette anchors; matches the minute-text colour after whitening.
     function sunColorForAlt(altDeg) {
-        if (altDeg >= 12.0)  { return YELLOW; }
-        if (altDeg >= 6.0)   { return MathUtil.blendColor(YELLOW, ORANGE, (12.0 - altDeg) / 6.0); }
-        if (altDeg >= 0.0)   { return MathUtil.blendColor(ORANGE, RED,    (6.0  - altDeg) / 6.0); }
-        if (altDeg >= -6.0)  { return MathUtil.blendColor(RED,    PURPLE, (-altDeg)        / 6.0); }
-        if (altDeg >= -12.0) { return MathUtil.blendColor(PURPLE, BLUE,   (-6.0 - altDeg)  / 6.0); }
-        return BLUE;
+        if (altDeg >= 12.0)  { return Colours.SUN_YELLOW; }
+        if (altDeg >= 6.0)   { return MathUtil.blendColor(Colours.SUN_YELLOW, Colours.SUN_ORANGE, (12.0 - altDeg) / 6.0); }
+        if (altDeg >= 0.0)   { return MathUtil.blendColor(Colours.SUN_ORANGE, Colours.SUN_RED,    (6.0  - altDeg) / 6.0); }
+        if (altDeg >= -6.0)  { return MathUtil.blendColor(Colours.SUN_RED,    Colours.SUN_PURPLE, (-altDeg)        / 6.0); }
+        if (altDeg >= -12.0) { return MathUtil.blendColor(Colours.SUN_PURPLE, Colours.SUN_BLUE,   (-6.0 - altDeg)  / 6.0); }
+        return Colours.SUN_BLUE;
     }
 
+    // Whiten sunColor by (1 - saturation) for the AMOLED minute text.
     function brightSunColor(sunColor, saturation) {
-        return MathUtil.blendColor(WHITE, sunColor, MathUtil.clamp(saturation, 0.0, 1.0));
+        return MathUtil.blendColor(Colours.WHITE, sunColor, MathUtil.clamp(saturation, 0.0, 1.0));
     }
 
     function sunsetAccentScale(sunAltDeg) {
         return MathUtil.clamp(1.0 - MathUtil.abs(sunAltDeg) / SUNSET_ACCENT_ALT_DEG, 0.0, 1.0);
     }
-
-    // Public alias kept for Drawing's existing `Solar.blendColor` call sites.
-    function blendColor(c0, c1, t) { return MathUtil.blendColor(c0, c1, t); }
 
     function scaleColor(color, s) {
         s = MathUtil.clamp(s, 0.0, 1.0);

@@ -2,8 +2,8 @@
 <resources>
     <properties>
         <!-- Data fields -->
-        <property id="topField"    type="number">11</property>  
-        <property id="leftField"   type="number">2</property>  
+        <property id="topField"    type="number">0</property>  
+        <property id="leftField"   type="number">3</property>  
         <property id="rightField"  type="number">1</property> 
 
         <!-- Units: 0 = Metric, 1 = Imperial -->
@@ -19,7 +19,7 @@
         <property id="starCount"   type="number">100</property>
 
         <!-- Location: 1 = use device GPS, 0 = use home coordinates -->
-        <property id="useGps"      type="number">1</property>
+        <property id="useGps"      type="number">0</property>
         <property id="latDeg"      type="float">49.29</property>
         <property id="lonDeg"      type="float">-123.12</property>
 
