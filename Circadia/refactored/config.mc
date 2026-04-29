@@ -14,9 +14,8 @@ module config {
     const FIELD_HEART_RATE   = 3;
     const FIELD_STEPS        = 4;
     const FIELD_BATTERY      = 5;
-    const FIELD_SUNRISE      = 6;
-    const FIELD_SUNSET       = 7;
-    const FIELD_STRESS       = 8;
+    const FIELD_NEXT_SUN_EVENT = 6;
+    const FIELD_STRESS       = 7;
 
     const UNIT_METRIC   = 0;
     const UNIT_IMPERIAL = 1;
@@ -34,9 +33,9 @@ module config {
 
     // ── Cached property values ───────────────────────────────────────────────
 
-    var _topField         = FIELD_DATE;
+    var _topField         = FIELD_BATTERY;
     var _leftField        = FIELD_HEART_RATE;
-    var _rightField       = FIELD_STEPS;
+    var _rightField       = FIELD_NEXT_SUN_EVENT;
     var _tempUnits        = UNIT_METRIC;
     var _mipMode          = 0;       // 0 = AMOLED, 1 = MIP
     var _showSeconds      = false;

@@ -11,9 +11,8 @@
                 <listEntry value="2">@Strings.fieldTemperature</listEntry>
                 <listEntry value="1">@Strings.fieldBodyBattery</listEntry>
                 <listEntry value="5">@Strings.fieldBattery</listEntry>
-                <listEntry value="6">@Strings.fieldSunrise</listEntry>
-                <listEntry value="7">@Strings.fieldSunset</listEntry>
-                <listEntry value="8">@Strings.fieldStress</listEntry>
+                <listEntry value="6">@Strings.fieldNextSunEvent</listEntry>
+                <listEntry value="7">@Strings.fieldStress</listEntry>
             </settingConfig>
         </setting>
 
@@ -25,9 +24,8 @@
                 <listEntry value="2">@Strings.fieldTemperature</listEntry>
                 <listEntry value="1">@Strings.fieldBodyBattery</listEntry>
                 <listEntry value="5">@Strings.fieldBattery</listEntry>
-                <listEntry value="6">@Strings.fieldSunrise</listEntry>
-                <listEntry value="7">@Strings.fieldSunset</listEntry>
-                <listEntry value="8">@Strings.fieldStress</listEntry>
+                <listEntry value="6">@Strings.fieldNextSunEvent</listEntry>
+                <listEntry value="7">@Strings.fieldStress</listEntry>
             </settingConfig>
         </setting>
 
@@ -39,9 +37,8 @@
                 <listEntry value="2">@Strings.fieldTemperature</listEntry>
                 <listEntry value="1">@Strings.fieldBodyBattery</listEntry>
                 <listEntry value="5">@Strings.fieldBattery</listEntry>
-                <listEntry value="6">@Strings.fieldSunrise</listEntry>
-                <listEntry value="7">@Strings.fieldSunset</listEntry>
-                <listEntry value="8">@Strings.fieldStress</listEntry>
+                <listEntry value="6">@Strings.fieldNextSunEvent</listEntry>
+                <listEntry value="7">@Strings.fieldStress</listEntry>
             </settingConfig>
         </setting>
 

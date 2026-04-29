@@ -21,9 +21,8 @@ class CircadiaView extends WatchUi.WatchFace {
     var _bodyBatteryText = NO_DATA;
     var _stressText      = NO_DATA;
     var _batteryPctText  = NO_DATA;   // "87%" — refreshed once per minute
-    var _sunriseText     = NO_DATA;
-    var _sunsetText      = NO_DATA;
-    var _sunTimesDay     = -1;       // day-of-month for which sunrise/sunset were last computed
+    var _nextSunEventText = NO_DATA;
+    var _nextSunEventAt   = null;    // Time.Moment when the cached event occurs
     var _isSleeping = false;
 
     // Minute-level cache keys
@@ -76,11 +75,11 @@ class CircadiaView extends WatchUi.WatchFace {
 
     // Called by CircadiaApp.onSettingsChanged after config.refresh().
     // We invalidate the minute cache so all derived values re-compute on
-    // the next onUpdate. Also drop the sunrise/sunset day-cache, since the
+    // the next onUpdate. Also drop the next-sun-event cache, since the
     // user may have just changed home coordinates.
     function onSettingsChanged() {
         _cacheMin = -1;
-        _sunTimesDay = -1;
+        _nextSunEventAt = null;
         updateLocation();
     }
 
@@ -232,8 +231,8 @@ class CircadiaView extends WatchUi.WatchFace {
         if (fieldIsVisible(config.FIELD_BATTERY)) {
             refreshBatteryPercent();
         }
-        if (fieldIsVisible(config.FIELD_SUNRISE) || fieldIsVisible(config.FIELD_SUNSET)) {
-            updateSunTimesIfNeeded(now, g);
+        if (fieldIsVisible(config.FIELD_NEXT_SUN_EVENT)) {
+            updateNextSunEventIfNeeded(now);
         }
 
         _topFieldText   = getFieldText(config.topField());
@@ -241,10 +240,13 @@ class CircadiaView extends WatchUi.WatchFace {
         _rightFieldText = getFieldText(config.rightField());
     }
 
-    // Sunrise/sunset times for the current day. Cached and only re-fetched
-    // when the calendar day changes.
-    function updateSunTimesIfNeeded(now, g) {
-        if (g.day == _sunTimesDay) { return; }
+    // The next sunrise or sunset, whichever comes first. Cached as a
+    // Time.Moment; recomputed only when "now" reaches the cached event.
+    // Sunrise text gets a "+" prefix; sunset gets a "-".
+    function updateNextSunEventIfNeeded(now) {
+        if (_nextSunEventAt != null && now.lessThan(_nextSunEventAt)) {
+            return;
+        }
 
         var loc = new Position.Location({
             :latitude  => _latDeg,
@@ -255,9 +257,37 @@ class CircadiaView extends WatchUi.WatchFace {
         var sr = Weather.getSunrise(loc, now);
         var ss = Weather.getSunset(loc, now);
 
-        _sunriseText = (sr != null) ? "+" + formatMoment(sr) : NO_DATA;
-        _sunsetText  = (ss != null) ? "-" + formatMoment(ss) : NO_DATA;
-        _sunTimesDay = g.day;
+        // If either event is in the future, the next one is the earlier of
+        // those two. Otherwise both are past — query tomorrow's sunrise.
+        var prefix = null;
+        var moment = null;
+
+        if (sr != null && now.lessThan(sr)) {
+            prefix = "+";
+            moment = sr;
+        }
+        if (ss != null && now.lessThan(ss) && (moment == null || ss.lessThan(moment))) {
+            prefix = "-";
+            moment = ss;
+        }
+
+        if (moment == null) {
+            // Both today's events are past — try tomorrow's sunrise.
+            var tomorrow = now.add(new Time.Duration(Gregorian.SECONDS_PER_DAY));
+            var srNext = Weather.getSunrise(loc, tomorrow);
+            if (srNext != null) {
+                prefix = "+";
+                moment = srNext;
+            }
+        }
+
+        if (moment == null) {
+            _nextSunEventText = NO_DATA;
+            _nextSunEventAt   = null;
+        } else {
+            _nextSunEventText = prefix + formatMoment(moment);
+            _nextSunEventAt   = moment;
+        }
     }
 
     function formatMoment(moment) {
@@ -347,8 +377,7 @@ class CircadiaView extends WatchUi.WatchFace {
         if (kind == config.FIELD_BODY_BATTERY) { return _bodyBatteryText; }
         if (kind == config.FIELD_BATTERY)      { return getBatteryDisplay(); }
         if (kind == config.FIELD_STRESS)       { return _stressText; }
-        if (kind == config.FIELD_SUNRISE)      { return _sunriseText; }
-        if (kind == config.FIELD_SUNSET)       { return _sunsetText; }
+        if (kind == config.FIELD_NEXT_SUN_EVENT) { return _nextSunEventText; }
         if (kind == config.FIELD_STEPS)        { return getStepsDisplay(); }
         if (kind == config.FIELD_HEART_RATE)   { return getHeartRateDisplay(); }
         return NO_DATA;

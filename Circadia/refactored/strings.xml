@@ -29,8 +29,7 @@
         <string id="fieldTemperature">Temperature</string>
         <string id="fieldBodyBattery">Body battery</string>
         <string id="fieldBattery">Device battery</string>
-        <string id="fieldSunrise">Sunrise</string>
-        <string id="fieldSunset">Sunset</string>
+        <string id="fieldNextSunEvent">Next sun event</string>
         <string id="fieldStress">Stress</string>
 
         <!-- Unit choices -->
