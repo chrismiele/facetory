@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<resources>
+    <properties>
+        <!-- Data fields -->
+        <property id="topField"    type="number">0</property>  <!-- FIELD_DATE -->
+        <property id="leftField"   type="number">3</property>  <!-- FIELD_HEART_RATE -->
+        <property id="rightField"  type="number">4</property>  <!-- FIELD_STEPS -->
+
+        <!-- Units: 0 = Metric, 1 = Imperial -->
+        <property id="tempUnits"   type="number">0</property>  <!-- UNIT_METRIC -->
+
+        <!-- Display type: 0 = default (AMOLED), 1 = simplified (MIP) -->
+        <property id="mipMode"     type="number">0</property>
+
+        <!-- Visual toggles -->
+        <property id="showSeconds" type="boolean">false</property>
+        <property id="showMoon"    type="boolean">true</property>
+        <property id="showSun"     type="boolean">true</property>
+
+        <!-- Star count: 0 = none, 100 = some, 200 = lots -->
+        <property id="starCount"   type="number">100</property>
+
+        <!-- Location: 1 = use device GPS, 0 = use home coordinates -->
+        <property id="useGps"      type="number">1</property>
+        <property id="latDeg"      type="float">49.29</property>
+        <property id="lonDeg"      type="float">-123.12</property>
+
+        <!-- Minutes-display saturation 0.0–1.0 -->
+        <property id="minuteSaturation" type="float">0.7</property>
+
+        <!-- AOD behaviour: 0 = time only, 1 = sky only, 2 = show all -->
+        <property id="aodBehaviour" type="number">1</property>
+
+        <!-- Time format: 0 = 24h, 1 = 12h -->
+        <property id="timeFormat"  type="number">0</property>
+
+        <!-- Date format: 0 = "Day Number", 1 = "Month Day", 2 = "Day Month" -->
+        <property id="dateFormat"  type="number">0</property>
+    </properties>
+</resources>
