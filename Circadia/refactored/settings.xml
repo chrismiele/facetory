@@ -8,11 +8,15 @@
                 <listEntry value="0">@Strings.fieldDate</listEntry>
                 <listEntry value="3">@Strings.fieldHeartRate</listEntry>
                 <listEntry value="4">@Strings.fieldSteps</listEntry>
+                <listEntry value="8">@Strings.fieldCalories</listEntry>
                 <listEntry value="2">@Strings.fieldTemperature</listEntry>
                 <listEntry value="1">@Strings.fieldBodyBattery</listEntry>
                 <listEntry value="5">@Strings.fieldBattery</listEntry>
                 <listEntry value="6">@Strings.fieldNextSunEvent</listEntry>
                 <listEntry value="7">@Strings.fieldStress</listEntry>
+                <listEntry value="9">@Strings.fieldFloors</listEntry>
+                <listEntry value="10">@Strings.fieldDistance</listEntry>
+                <listEntry value="11">@Strings.fieldRecovery</listEntry>
             </settingConfig>
         </setting>
 
@@ -21,11 +25,15 @@
                 <listEntry value="0">@Strings.fieldDate</listEntry>
                 <listEntry value="3">@Strings.fieldHeartRate</listEntry>
                 <listEntry value="4">@Strings.fieldSteps</listEntry>
+                <listEntry value="8">@Strings.fieldCalories</listEntry>
                 <listEntry value="2">@Strings.fieldTemperature</listEntry>
                 <listEntry value="1">@Strings.fieldBodyBattery</listEntry>
                 <listEntry value="5">@Strings.fieldBattery</listEntry>
                 <listEntry value="6">@Strings.fieldNextSunEvent</listEntry>
                 <listEntry value="7">@Strings.fieldStress</listEntry>
+                <listEntry value="9">@Strings.fieldFloors</listEntry>
+                <listEntry value="10">@Strings.fieldDistance</listEntry>
+                <listEntry value="11">@Strings.fieldRecovery</listEntry>
             </settingConfig>
         </setting>
 
@@ -34,11 +42,15 @@
                 <listEntry value="0">@Strings.fieldDate</listEntry>
                 <listEntry value="3">@Strings.fieldHeartRate</listEntry>
                 <listEntry value="4">@Strings.fieldSteps</listEntry>
+                <listEntry value="8">@Strings.fieldCalories</listEntry>
                 <listEntry value="2">@Strings.fieldTemperature</listEntry>
                 <listEntry value="1">@Strings.fieldBodyBattery</listEntry>
                 <listEntry value="5">@Strings.fieldBattery</listEntry>
                 <listEntry value="6">@Strings.fieldNextSunEvent</listEntry>
                 <listEntry value="7">@Strings.fieldStress</listEntry>
+                <listEntry value="9">@Strings.fieldFloors</listEntry>
+                <listEntry value="10">@Strings.fieldDistance</listEntry>
+                <listEntry value="11">@Strings.fieldRecovery</listEntry>
             </settingConfig>
         </setting>
 
@@ -79,14 +91,6 @@
             <settingConfig type="boolean" />
         </setting>
 
-        <setting propertyKey="@Properties.showMoon" title="@Strings.showMoonTitle">
-            <settingConfig type="boolean" />
-        </setting>
-
-        <setting propertyKey="@Properties.showSun" title="@Strings.showSunTitle">
-            <settingConfig type="boolean" />
-        </setting>
-
         <!-- ─── Stars ──────────────────────────────────────────────────── -->
         <setting propertyKey="@Properties.starCount" title="@Strings.starCountTitle">
             <settingConfig type="list">
@@ -110,11 +114,6 @@
 
         <setting propertyKey="@Properties.lonDeg" title="@Strings.lonDegTitle">
             <settingConfig type="numeric" min="-180.0" max="180.0" />
-        </setting>
-
-        <!-- ─── Saturation ─────────────────────────────────────────────── -->
-        <setting propertyKey="@Properties.minuteSaturation" title="@Strings.minuteSaturationTitle">
-            <settingConfig type="numeric" min="0.0" max="1.0" />
         </setting>
 
         <!-- ─── AOD ────────────────────────────────────────────────────── -->

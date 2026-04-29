@@ -15,9 +15,6 @@ module Lunar {
     const PHASE_WANING_THICK_CRESCENT     = 10;
     const PHASE_WANING_THIN_CRESCENT      = 11;
 
-    const BLACK              = 0x000000;
-    const MIP_NEW_MOON_BRIGHT = 0x000055;
-
     const GIBBOUS_TERM_FRAC_NEAR_HALF = 0.5;
     const GIBBOUS_TERM_FRAC_NEAR_FULL = 0.8;
 

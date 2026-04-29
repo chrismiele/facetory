@@ -26,8 +26,6 @@ module Drawing {
     const MIP_MOON_BRIGHT    = 0xFFFFFF;
     const MIP_MOON_MEDIUM    = 0xAAAAAA;
     const MIP_MOON_DARK      = 0x555555;
-    const MIP_NEW_MOON_BRIGHT = 0x000055;
-
     const STAR_SMALL  = 0;
     const STAR_MEDIUM = 1;
     const STAR_LARGE  = 2;
@@ -79,11 +77,10 @@ module Drawing {
     const TOP_FIELD_RADIUS_FRAC    = 0.67;
     const BOTTOM_FIELD_RADIUS_FRAC = 0.5;
     const TOP_FIELD_AZ_DEG         = 0.0;
-    const SIDE_FIELD_OFFSET_DEG     = 35.0;
+    const SIDE_FIELD_OFFSET_DEG     = 45.0;
     const BOTTOM_RIGHT_FIELD_AZ_DEG = 180.0 - SIDE_FIELD_OFFSET_DEG;
     const BOTTOM_LEFT_FIELD_AZ_DEG  = 180.0 + SIDE_FIELD_OFFSET_DEG;
 
-    const SECOND_TICK_OUTSET_FRAC     = 0.0;
     const SECOND_TICK_LENGTH_FRAC     = 0.0449438202;
     const SECOND_TICK_HALF_WIDTH_FRAC = 0.0084269663;
 
@@ -260,8 +257,8 @@ module Drawing {
     function secondTickPolygon(cx, cy, R, i) {
         ensureSecondTickTable();
 
-        var rOuter = R*(1.0 - SECOND_TICK_OUTSET_FRAC);
-        var rInner = rOuter - R*SECOND_TICK_LENGTH_FRAC;
+        var rOuter = R;
+        var rInner = R - R*SECOND_TICK_LENGTH_FRAC;
         var hw     = R*SECOND_TICK_HALF_WIDTH_FRAC;
 
         var ux =  _secSin[i];
@@ -586,10 +583,6 @@ module Drawing {
             );
             return;
         }
-    }
-
-    function drawMipHaloBody(dc, x, y, R, bodyDeg, glowDeg, brightColor, innerColor, outerColor) {
-        drawMipHaloBodyScaled(dc, x, y, R, R*(bodyDeg/90.0)/2.0, glowDeg, 1.0, brightColor, innerColor, outerColor);
     }
 
     function drawMipHaloBodyScaled(dc, x, y, R, bodyR, glowDeg, scale, brightColor, innerColor, outerColor) {

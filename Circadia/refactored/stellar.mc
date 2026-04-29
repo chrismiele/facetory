@@ -4,8 +4,6 @@ using Toybox.Math;
 
 module Stellar {
 
-    const BLACK = 0x000000;
-
     const STAR_SEED = 26.0;
 
     const NIGHT_START_ALT_DEG = -6.0;

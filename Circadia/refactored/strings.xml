@@ -11,13 +11,10 @@
         <string id="tempUnitsTitle">Units</string>
         <string id="mipModeTitle">Display type</string>
         <string id="showSecondsTitle">Show seconds</string>
-        <string id="showMoonTitle">Show moon</string>
-        <string id="showSunTitle">Show sun</string>
         <string id="starCountTitle">Number of stars</string>
         <string id="useGpsTitle">Location</string>
         <string id="latDegTitle">Home latitude (decimal degrees, positive = N)</string>
         <string id="lonDegTitle">Home longitude (decimal degrees, positive = E)</string>
-        <string id="minuteSaturationTitle">Minute colour saturation (0.0 - 1.0)</string>
         <string id="aodBehaviourTitle">Always-on display</string>
         <string id="timeFormatTitle">Time format</string>
         <string id="dateFormatTitle">Date format</string>
@@ -31,6 +28,10 @@
         <string id="fieldBattery">Device battery</string>
         <string id="fieldNextSunEvent">Next sun event</string>
         <string id="fieldStress">Stress</string>
+        <string id="fieldCalories">Calories</string>
+        <string id="fieldFloors">Floors climbed</string>
+        <string id="fieldDistance">Distance</string>
+        <string id="fieldRecovery">Recovery time</string>
 
         <!-- Unit choices -->
         <string id="unitMetric">Metric</string>
@@ -59,8 +60,8 @@
         <string id="timeFormat12h">12 hour</string>
 
         <!-- Date format choices -->
-        <string id="dateFormatDayNumber">Day  Number</string>
-        <string id="dateFormatMonthDay">Month Day</string>
-        <string id="dateFormatDayMonth">Day Month</string>
+        <string id="dateFormatDayNumber">Fri 13</string>
+        <string id="dateFormatMonthDay">Jan 13</string>
+        <string id="dateFormatDayMonth">13 Jan</string>
     </strings>
 </resources>

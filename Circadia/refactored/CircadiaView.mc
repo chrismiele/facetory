@@ -55,7 +55,11 @@ class CircadiaView extends WatchUi.WatchFace {
     var _topFieldText      = NO_DATA;
     var _leftFieldText     = NO_DATA;
     var _rightFieldText    = NO_DATA;
-    var _cachedStepsText   = NO_DATA;
+    var _cachedStepsText    = NO_DATA;
+    var _cachedCaloriesText = NO_DATA;
+    var _cachedFloorsText   = NO_DATA;
+    var _cachedDistanceText = NO_DATA;
+    var _cachedRecoveryText = NO_DATA;
 
     function initialize() {
         WatchFace.initialize();
@@ -358,6 +362,9 @@ class CircadiaView extends WatchUi.WatchFace {
     function fieldNeedsFastRefresh(kind) {
         return kind == config.FIELD_HEART_RATE
             || kind == config.FIELD_STEPS
+            || kind == config.FIELD_CALORIES
+            || kind == config.FIELD_FLOORS
+            || kind == config.FIELD_DISTANCE
             || kind == config.FIELD_BATTERY;
     }
 
@@ -379,6 +386,10 @@ class CircadiaView extends WatchUi.WatchFace {
         if (kind == config.FIELD_STRESS)       { return _stressText; }
         if (kind == config.FIELD_NEXT_SUN_EVENT) { return _nextSunEventText; }
         if (kind == config.FIELD_STEPS)        { return getStepsDisplay(); }
+        if (kind == config.FIELD_CALORIES)     { return getCaloriesDisplay(); }
+        if (kind == config.FIELD_FLOORS)       { return getFloorsDisplay(); }
+        if (kind == config.FIELD_DISTANCE)     { return getDistanceDisplay(); }
+        if (kind == config.FIELD_RECOVERY)     { return getRecoveryDisplay(); }
         if (kind == config.FIELD_HEART_RATE)   { return getHeartRateDisplay(); }
         return NO_DATA;
     }
@@ -469,6 +480,46 @@ class CircadiaView extends WatchUi.WatchFace {
             _cachedStepsText = oneDecimalString(info.steps.toNumber() / 1000.0) + "k";
         }
         return _cachedStepsText;
+    }
+
+    function getCaloriesDisplay() {
+        var info = ActivityMonitor.getInfo();
+        if (info != null && info.calories != null) {
+            _cachedCaloriesText = oneDecimalString(info.calories.toFloat()) + " k";
+        }
+        return _cachedCaloriesText;
+    }
+
+    function getFloorsDisplay() {
+        var info = ActivityMonitor.getInfo();
+        if (info != null && info.floorsClimbed != null) {
+            _cachedFloorsText = info.floorsClimbed.toNumber().toString();
+        }
+        return _cachedFloorsText;
+    }
+
+    function getDistanceDisplay() {
+        var info = ActivityMonitor.getInfo();
+        if (info != null && info.distance != null) {
+            var dist = info.distance.toFloat();
+            var suffix;
+            if (config.tempUnits() == config.UNIT_IMPERIAL) {
+                dist = dist / 160934.4;
+                suffix = " mi";
+            } else {
+                dist = dist / 100000.0;
+                suffix = " km";
+            }
+            _cachedDistanceText = oneDecimalString(dist) + suffix;
+        }
+        return _cachedDistanceText;
+    }
+
+    function getRecoveryDisplay() {
+        var info = ActivityMonitor.getInfo();
+        return (info != null && (info has :timeToRecovery) && info.timeToRecovery != null)
+            ? info.timeToRecovery.toString() + 'h'
+            : NO_DATA;
     }
 
     // ── Formatting helpers ───────────────────────────────────────────────────

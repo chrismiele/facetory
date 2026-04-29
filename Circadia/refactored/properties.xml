@@ -2,10 +2,9 @@
 <resources>
     <properties>
         <!-- Data fields -->
-        <!-- Field mapping: 0=date, 1=body battery, 2=temperature, 3=heart rate, 4=steps, 5=battery, 6=next sun event, 7=stress -->
-        <property id="topField"    type="number">5</property>  
-        <property id="leftField"   type="number">3</property>  
-        <property id="rightField"  type="number">6</property> 
+        <property id="topField"    type="number">11</property>  
+        <property id="leftField"   type="number">2</property>  
+        <property id="rightField"  type="number">1</property> 
 
         <!-- Units: 0 = Metric, 1 = Imperial -->
         <property id="tempUnits"   type="number">0</property>  <!-- UNIT_METRIC -->
@@ -15,8 +14,6 @@
 
         <!-- Visual toggles -->
         <property id="showSeconds" type="boolean">false</property>
-        <property id="showMoon"    type="boolean">true</property>
-        <property id="showSun"     type="boolean">true</property>
 
         <!-- Star count: 0 = none, 100 = some, 200 = lots -->
         <property id="starCount"   type="number">100</property>
@@ -25,9 +22,6 @@
         <property id="useGps"      type="number">1</property>
         <property id="latDeg"      type="float">49.29</property>
         <property id="lonDeg"      type="float">-123.12</property>
-
-        <!-- Minutes-display saturation 0.0–1.0 -->
-        <property id="minuteSaturation" type="float">0.7</property>
 
         <!-- AOD behaviour: 0 = time only, 1 = sky only, 2 = show all -->
         <property id="aodBehaviour" type="number">1</property>

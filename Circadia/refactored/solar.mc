@@ -9,8 +9,6 @@ module Solar {
     const RED    = 0xFF0000;
     const PURPLE = 0xFF55FF;
     const BLUE   = 0x0000FF;
-    const GREY   = 0x8C939C;
-    const BLACK  = 0x000000;
     const WHITE  = 0xFFFFFF;
 
     const MIP_SUN_BRIGHT    = 0xFFFF00;
@@ -29,7 +27,6 @@ module Solar {
     const MIP_ORANGE_MEDIUM = 0xAA5500;
     const MIP_ORANGE_DARK   = 0x553000;
 
-    const SUNSET_ACCENT_COLOR   = 0xFF8A00;
     const SUNSET_ACCENT_ALT_DEG = 1.5;
 
     function solarAltAzApprox(year, month, day, clockHour, offsetSec, latDeg, lonDeg) {

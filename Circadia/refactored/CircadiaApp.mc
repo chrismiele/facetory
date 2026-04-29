@@ -31,7 +31,3 @@ class CircadiaApp extends Application.AppBase {
         WatchUi.requestUpdate();
     }
 }
-
-function getApp() as CircadiaApp {
-    return Application.getApp() as CircadiaApp;
-}

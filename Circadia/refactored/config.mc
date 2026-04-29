@@ -16,6 +16,10 @@ module config {
     const FIELD_BATTERY      = 5;
     const FIELD_NEXT_SUN_EVENT = 6;
     const FIELD_STRESS       = 7;
+    const FIELD_CALORIES     = 8;
+    const FIELD_FLOORS       = 9;
+    const FIELD_DISTANCE     = 10;
+    const FIELD_RECOVERY     = 11;
 
     const UNIT_METRIC   = 0;
     const UNIT_IMPERIAL = 1;
@@ -39,13 +43,10 @@ module config {
     var _tempUnits        = UNIT_METRIC;
     var _mipMode          = 0;       // 0 = AMOLED, 1 = MIP
     var _showSeconds      = false;
-    var _showMoon         = true;
-    var _showSun          = true;
     var _starCount        = 100;
     var _useGps           = 1;       // 1 = device GPS, 0 = home coordinates
     var _latDeg           = 49.29;
     var _lonDeg           = -123.12;
-    var _minuteSaturation = 0.7;
     var _aodBehaviour     = AOD_SKY_ONLY;
     var _timeFormat       = TIME_FORMAT_24H;
     var _dateFormat       = DATE_FORMAT_DAY_NUMBER;
@@ -91,13 +92,10 @@ module config {
         _tempUnits        = readNumber("tempUnits",        _tempUnits);
         _mipMode          = readNumber("mipMode",          _mipMode);
         _showSeconds      = readBool(  "showSeconds",      _showSeconds);
-        _showMoon         = readBool(  "showMoon",         _showMoon);
-        _showSun          = readBool(  "showSun",          _showSun);
         _starCount        = readNumber("starCount",        _starCount);
         _useGps           = readNumber("useGps",           _useGps);
         _latDeg           = readFloat( "latDeg",           _latDeg);
         _lonDeg           = readFloat( "lonDeg",           _lonDeg);
-        _minuteSaturation = readFloat( "minuteSaturation", _minuteSaturation);
         _aodBehaviour     = readNumber("aodBehaviour",     _aodBehaviour);
         _timeFormat       = readNumber("timeFormat",       _timeFormat);
         _dateFormat       = readNumber("dateFormat",       _dateFormat);
@@ -111,13 +109,13 @@ module config {
     function tempUnits()        { return _tempUnits;        }
     function mipMode()          { return _mipMode > 0;      }
     function showSeconds()      { return _showSeconds;      }
-    function showMoon()         { return _showMoon;         }
-    function showSun()          { return _showSun;          }
+    function showMoon()         { return true;              }
+    function showSun()          { return true;              }
     function starCount()        { return _starCount;        }
     function useGps()           { return _useGps > 0;       }
     function latDeg()           { return _latDeg;           }
     function lonDeg()           { return _lonDeg;           }
-    function minuteSaturation() { return _minuteSaturation; }
+    function minuteSaturation() { return 0.7;               }
     function aodBehaviour()     { return _aodBehaviour;     }
     function timeFormat()       { return _timeFormat;       }
     function dateFormat()       { return _dateFormat;       }
