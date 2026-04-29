@@ -4,23 +4,32 @@ import Toybox.WatchUi;
 
 class CircadiaApp extends Application.AppBase {
 
+    var _view;
+
     function initialize() {
         AppBase.initialize();
+        config.refresh();
     }
 
-    // onStart() is called on application start up
     function onStart(state as Dictionary?) as Void {
     }
 
-    // onStop() is called when your application is exiting
     function onStop(state as Dictionary?) as Void {
     }
 
-    // Return the initial view of your application here
     function getInitialView() as [Views] or [Views, InputDelegates] {
-        return [ new CircadiaView() ];
+        _view = new CircadiaView();
+        return [ _view ];
     }
 
+    // Called when the user changes settings via Garmin Connect / Express.
+    function onSettingsChanged() as Void {
+        config.refresh();
+        if (_view != null) {
+            _view.onSettingsChanged();
+        }
+        WatchUi.requestUpdate();
+    }
 }
 
 function getApp() as CircadiaApp {

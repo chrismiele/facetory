@@ -79,7 +79,7 @@ module Drawing {
     const TOP_FIELD_RADIUS_FRAC    = 0.67;
     const BOTTOM_FIELD_RADIUS_FRAC = 0.5;
     const TOP_FIELD_AZ_DEG         = 0.0;
-    const SIDE_FIELD_OFFSET_DEG     = 27.279612736;
+    const SIDE_FIELD_OFFSET_DEG     = 35.0;
     const BOTTOM_RIGHT_FIELD_AZ_DEG = 180.0 - SIDE_FIELD_OFFSET_DEG;
     const BOTTOM_LEFT_FIELD_AZ_DEG  = 180.0 + SIDE_FIELD_OFFSET_DEG;
 
@@ -126,6 +126,18 @@ module Drawing {
 
     function moonDiameterPx(moonDiameterDeg, R) {
         return R*(moonDiameterDeg/90.0);
+    }
+
+    // Clear the whole screen to black. Used when AOD shows time-only
+    // (i.e. sky drawing is suppressed but we still need to wipe stale pixels).
+    function clearScreen(dc, cache) {
+        var cx = cache[0];
+        var cy = cache[1];
+        var R  = cache[2];
+
+        dc.setColor(BLACK, BLACK);
+        dc.clear();
+        dc.fillCircle(cx.toNumber(), cy.toNumber(), R.toNumber());
     }
 
     function drawSky(dc, cache, sunColor, showSun, showMoon, showStars, mipMode) {
@@ -210,6 +222,12 @@ module Drawing {
         var x = p[0].toNumber();
         var y = p[1].toNumber();
 
+        var color = WHITE;
+        if (text.length() > 0 && text.substring(0, 1).equals("*")) {
+            color = Solar.YELLOW;
+            text = text.substring(1, text.length());
+        }
+
         var font = Graphics.FONT_SYSTEM_TINY;
         var w = dc.getTextWidthInPixels(text, font);
         var h = dc.getFontHeight(font);
@@ -218,7 +236,7 @@ module Drawing {
         var padY = 1;
 
         dc.setClip(x - w/2 - padX, y - h/2 - padY, w + 2*padX, h + 2*padY);
-        dc.setColor(WHITE, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(color, Graphics.COLOR_TRANSPARENT);
         dc.drawText(x, y, font, text, Graphics.TEXT_JUSTIFY_CENTER);
         dc.clearClip();
     }
@@ -294,13 +312,17 @@ module Drawing {
 
     function drawTopField(dc, cx, cy, R, topText) {
         var p = polarPoint(cx, cy, R, TOP_FIELD_RADIUS_FRAC, TOP_FIELD_AZ_DEG);
-        dc.setColor(WHITE, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(p[0].toNumber(), p[1].toNumber(), Graphics.FONT_SYSTEM_TINY, topText, Graphics.TEXT_JUSTIFY_CENTER);
+        drawFieldText(dc, p[0].toNumber(), p[1].toNumber(), topText);
     }
 
     function drawDigitalClock(dc, cx, cy, R, hour, min, sunsetAccent, sunColor, leftText, rightText) {
         var font  = Graphics.FONT_SYSTEM_NUMBER_THAI_HOT;
-        var hText = twoDigits(hour);
+        var displayHour = hour;
+        if (config.timeFormat() == config.TIME_FORMAT_12H) {
+            displayHour = hour % 12;
+            if (displayHour == 0) { displayHour = 12; }
+        }
+        var hText = twoDigits(displayHour);
         var mText = twoDigits(min);
 
         var clockCenter = polarPoint(cx, cy, R, CLOCK_RADIUS_FRAC, CLOCK_AZ_DEG);
@@ -328,9 +350,20 @@ module Drawing {
         var pL = polarPoint(cx, cy, R, BOTTOM_FIELD_RADIUS_FRAC, BOTTOM_LEFT_FIELD_AZ_DEG);
         var pR = polarPoint(cx, cy, R, BOTTOM_FIELD_RADIUS_FRAC, BOTTOM_RIGHT_FIELD_AZ_DEG);
 
-        dc.setColor(WHITE, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(pL[0].toNumber(), pL[1].toNumber(), Graphics.FONT_SYSTEM_TINY, leftText, Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(pR[0].toNumber(), pR[1].toNumber(), Graphics.FONT_SYSTEM_TINY, rightText, Graphics.TEXT_JUSTIFY_CENTER);
+        drawFieldText(dc, pL[0].toNumber(), pL[1].toNumber(), leftText);
+        drawFieldText(dc, pR[0].toNumber(), pR[1].toNumber(), rightText);
+    }
+
+    // Render a field's text. A leading "+" is the "charging" marker — we
+    // strip it and colour the remaining text yellow.
+    function drawFieldText(dc, x, y, text) {
+        var color = WHITE;
+        if (text.length() > 0 && text.substring(0, 1).equals("*")) {
+            color = Solar.YELLOW;
+            text = text.substring(1, text.length());
+        }
+        dc.setColor(color, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(x, y, Graphics.FONT_SYSTEM_TINY, text, Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     // Map a sun colour to a glow-cache slot, or -1 if no cache exists for it.

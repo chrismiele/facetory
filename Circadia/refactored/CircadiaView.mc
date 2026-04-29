@@ -1,6 +1,7 @@
 using Toybox.Activity;
 using Toybox.ActivityMonitor;
 using Toybox.Math;
+using Toybox.Position;
 using Toybox.SensorHistory;
 using Toybox.System;
 using Toybox.Time;
@@ -8,13 +9,21 @@ using Toybox.Time.Gregorian;
 using Toybox.WatchUi;
 using Toybox.Weather;
 
+// "No data" placeholder shown in any field whose value cannot be retrieved.
+const NO_DATA = "\u221E";   // ∞
+
 class CircadiaView extends WatchUi.WatchFace {
 
     var _latDeg;
     var _lonDeg;
 
     var _sunColor = Drawing.WHITE;
-    var _bodyBatteryText = "--";
+    var _bodyBatteryText = NO_DATA;
+    var _stressText      = NO_DATA;
+    var _batteryPctText  = NO_DATA;   // "87%" — refreshed once per minute
+    var _sunriseText     = NO_DATA;
+    var _sunsetText      = NO_DATA;
+    var _sunTimesDay     = -1;       // day-of-month for which sunrise/sunset were last computed
     var _isSleeping = false;
 
     // Minute-level cache keys
@@ -26,14 +35,14 @@ class CircadiaView extends WatchUi.WatchFace {
     var _cacheMipMode = false;
 
     // Pre-computed per-minute values
-    var _cachedClockHourNow  = 0.0;
-    var _cachedOffsetSec     = 0;
-    var _cachedMoonDiameterDeg  = Drawing.NEW_MOON_DIAMETER_DEG;
-    var _cachedMoonPhaseAngle   = 0.0;
-    var _cachedMoonPhaseBin     = Lunar.PHASE_NEW;
-    var _cachedMoonAltAz    = [0.0, 0.0];
-    var _cachedSunAltAz     = [0.0, 0.0];
-    var _cachedSunsetAccent = 0.0;
+    var _cachedClockHourNow    = 0.0;
+    var _cachedOffsetSec       = 0;
+    var _cachedMoonDiameterDeg = Drawing.NEW_MOON_DIAMETER_DEG;
+    var _cachedMoonPhaseAngle  = 0.0;
+    var _cachedMoonPhaseBin    = Lunar.PHASE_NEW;
+    var _cachedMoonAltAz       = [0.0, 0.0];
+    var _cachedSunAltAz        = [0.0, 0.0];
+    var _cachedSunsetAccent    = 0.0;
 
     // Layout cache (invalidated on screen-size change only)
     var _cachedLayoutW = -1.0;
@@ -42,12 +51,12 @@ class CircadiaView extends WatchUi.WatchFace {
     var _skyCache      = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Lunar.PHASE_NEW];
 
     // Text caches
-    var _cachedDateText    = "--";
-    var _cachedWeatherText = "--";
-    var _topFieldText      = "--";
-    var _leftFieldText     = "--";
-    var _rightFieldText    = "--";
-    var _cachedStepsText   = "--";
+    var _cachedDateText    = NO_DATA;
+    var _cachedWeatherText = NO_DATA;
+    var _topFieldText      = NO_DATA;
+    var _leftFieldText     = NO_DATA;
+    var _rightFieldText    = NO_DATA;
+    var _cachedStepsText   = NO_DATA;
 
     function initialize() {
         WatchFace.initialize();
@@ -62,8 +71,18 @@ class CircadiaView extends WatchUi.WatchFace {
         updateLocation();
     }
 
-    function onExitSleep() { _isSleeping = false; }
+    function onExitSleep()  { _isSleeping = false; }
     function onEnterSleep() { _isSleeping = true; }
+
+    // Called by CircadiaApp.onSettingsChanged after config.refresh().
+    // We invalidate the minute cache so all derived values re-compute on
+    // the next onUpdate. Also drop the sunrise/sunset day-cache, since the
+    // user may have just changed home coordinates.
+    function onSettingsChanged() {
+        _cacheMin = -1;
+        _sunTimesDay = -1;
+        updateLocation();
+    }
 
     function updateLocation() {
         var loc = LocationService.getBest();
@@ -78,13 +97,9 @@ class CircadiaView extends WatchUi.WatchFace {
         var g = Gregorian.info(now, Time.FORMAT_SHORT);
         var t = System.getClockTime();
 
-        // Read config flags once — avoids repeated function calls below
-        var showMoon    = config.showMoon();
-        var showStars   = config.showStars();
-        var showSun     = config.showSun();
-        var showFace    = config.showFace();
-        var showSeconds = config.showSeconds();
-        var mipMode     = config.mipMode() || (_isSleeping && config.sleepMipMode());
+        var showSky  = config.showSky(_isSleeping);
+        var showFace = config.showFace(_isSleeping);
+        var mipMode  = config.mipMode();
 
         if (g.year != _cacheYear || g.month != _cacheMonth || g.day != _cacheDay ||
             t.hour != _cacheHour || t.min != _cacheMin || mipMode != _cacheMipMode) {
@@ -100,26 +115,31 @@ class CircadiaView extends WatchUi.WatchFace {
         }
 
         refreshLiveFields();
-        updateSkyCache(g, t);
 
-        Drawing.drawSky(dc, _skyCache, _sunColor, showSun, showMoon, showStars, mipMode);
+        if (showSky) {
+            updateSkyCache(g, t);
+            Drawing.drawSky(
+                dc, _skyCache, _sunColor,
+                config.showSun(), config.showMoon(), config.showStars(),
+                mipMode
+            );
+        } else {
+            Drawing.clearScreen(dc, _layoutCache);
+        }
 
-        if (showFace && !_isSleeping) {
+        if (showFace) {
             Drawing.drawFace(
                 dc, _layoutCache,
                 t.hour, t.min, t.sec,
-                showSeconds, _cachedSunsetAccent, _sunColor,
+                config.showSeconds(), _cachedSunsetAccent, _sunColor,
                 _topFieldText, _leftFieldText, _rightFieldText
             );
         }
     }
 
     function onPartialUpdate(dc) {
-        if (!config.showFace() || _isSleeping) {
-            return;
-        }
+        if (!config.showFace(_isSleeping)) { return; }
 
-        // Read field config once
         var topField    = config.topField();
         var leftField   = config.leftField();
         var rightField  = config.rightField();
@@ -187,9 +207,17 @@ class CircadiaView extends WatchUi.WatchFace {
             );
         }
 
-        // Date text — FORMAT_MEDIUM only needed for day_of_week
+        // Date text — formatted per user preference. FORMAT_MEDIUM gives month as
+        // a 3-letter String ("Apr"); FORMAT_SHORT gives month as Number.
         var gMed = Gregorian.info(now, Time.FORMAT_MEDIUM);
-        _cachedDateText = gMed.day_of_week + " " + g.day.toString();
+        var df = config.dateFormat();
+        if (df == config.DATE_FORMAT_MONTH_DAY) {
+            _cachedDateText = gMed.month + " " + g.day.toString();
+        } else if (df == config.DATE_FORMAT_DAY_MONTH) {
+            _cachedDateText = g.day.toString() + " " + gMed.month;
+        } else {
+            _cachedDateText = gMed.day_of_week + " " + g.day.toString();
+        }
 
         // Only fetch data for fields that are actually displayed
         if (fieldIsVisible(config.FIELD_TEMPERATURE)) {
@@ -198,10 +226,60 @@ class CircadiaView extends WatchUi.WatchFace {
         if (fieldIsVisible(config.FIELD_BODY_BATTERY)) {
             _bodyBatteryText = getBodyBatteryDisplay();
         }
+        if (fieldIsVisible(config.FIELD_STRESS)) {
+            _stressText = getStressDisplay();
+        }
+        if (fieldIsVisible(config.FIELD_BATTERY)) {
+            refreshBatteryPercent();
+        }
+        if (fieldIsVisible(config.FIELD_SUNRISE) || fieldIsVisible(config.FIELD_SUNSET)) {
+            updateSunTimesIfNeeded(now, g);
+        }
 
         _topFieldText   = getFieldText(config.topField());
         _leftFieldText  = getFieldText(config.leftField());
         _rightFieldText = getFieldText(config.rightField());
+    }
+
+    // Sunrise/sunset times for the current day. Cached and only re-fetched
+    // when the calendar day changes.
+    function updateSunTimesIfNeeded(now, g) {
+        if (g.day == _sunTimesDay) { return; }
+
+        var loc = new Position.Location({
+            :latitude  => _latDeg,
+            :longitude => _lonDeg,
+            :format    => :degrees
+        });
+
+        var sr = Weather.getSunrise(loc, now);
+        var ss = Weather.getSunset(loc, now);
+
+        _sunriseText = (sr != null) ? "+" + formatMoment(sr) : NO_DATA;
+        _sunsetText  = (ss != null) ? "-" + formatMoment(ss) : NO_DATA;
+        _sunTimesDay = g.day;
+    }
+
+    function formatMoment(moment) {
+        var info = Gregorian.info(moment, Time.FORMAT_SHORT);
+        return formatHourMin(info.hour, info.min);
+    }
+
+    // Format a time as "HH:MM" honouring config.timeFormat().
+    // Always two-digit minute; hour leading zero stripped in 12h mode.
+    function formatHourMin(hour, min) {
+        var h = hour;
+        if (config.timeFormat() == config.TIME_FORMAT_12H) {
+            h = hour % 12;
+            if (h == 0) { h = 12; }
+            return h.toString() + ":" + twoDigits(min);
+        }
+        return twoDigits(h) + ":" + twoDigits(min);
+    }
+
+    function twoDigits(n) {
+        if (n < 10) { return "0" + n.toString(); }
+        return n.toString();
     }
 
     function updateSkyCache(g, t) {
@@ -248,10 +326,11 @@ class CircadiaView extends WatchUi.WatchFace {
     }
 
     function fieldNeedsFastRefresh(kind) {
-        return kind == config.FIELD_HEART_RATE || kind == config.FIELD_STEPS;
+        return kind == config.FIELD_HEART_RATE
+            || kind == config.FIELD_STEPS
+            || kind == config.FIELD_BATTERY;
     }
 
-    // Only refreshes fields that change faster than once per minute
     function refreshLiveFields() {
         var topField   = config.topField();
         var leftField  = config.leftField();
@@ -266,31 +345,73 @@ class CircadiaView extends WatchUi.WatchFace {
         if (kind == config.FIELD_DATE)         { return _cachedDateText; }
         if (kind == config.FIELD_TEMPERATURE)  { return _cachedWeatherText; }
         if (kind == config.FIELD_BODY_BATTERY) { return _bodyBatteryText; }
+        if (kind == config.FIELD_BATTERY)      { return getBatteryDisplay(); }
+        if (kind == config.FIELD_STRESS)       { return _stressText; }
+        if (kind == config.FIELD_SUNRISE)      { return _sunriseText; }
+        if (kind == config.FIELD_SUNSET)       { return _sunsetText; }
         if (kind == config.FIELD_STEPS)        { return getStepsDisplay(); }
         if (kind == config.FIELD_HEART_RATE)   { return getHeartRateDisplay(); }
-        return "--";
+        return NO_DATA;
     }
 
     // ── Data fetchers ────────────────────────────────────────────────────────
 
     function getHeartRateDisplay() {
         var info = Activity.getActivityInfo();
-        if (info == null || info.currentHeartRate == null) { return "--"; }
+        if (info == null || info.currentHeartRate == null) { return NO_DATA; }
         return info.currentHeartRate.toNumber().toString();
+    }
+
+    // Re-reads the battery percentage. Called once per minute from
+    // updateMinuteCache. Cheap, but no need to do more often than that.
+    function refreshBatteryPercent() {
+        var stats = System.getSystemStats();
+        if (stats == null || stats.battery == null) {
+            _batteryPctText = NO_DATA;
+            return;
+        }
+        _batteryPctText = stats.battery.toNumber().toString() + "%";
+    }
+
+    // Composes the battery field text from the cached percent and a fresh
+    // read of the charging flag. Cheap enough to call every second from
+    // onPartialUpdate so the colour flips immediately on plug/unplug.
+    function getBatteryDisplay() {
+        if (_batteryPctText.equals(NO_DATA)) { return NO_DATA; }
+        var stats = System.getSystemStats();
+        var charging = (stats != null && stats has :charging && stats.charging);
+        return charging ? "*" + _batteryPctText : _batteryPctText;
+    }
+
+    function getStressDisplay() {
+        if (!(Toybox has :SensorHistory) || !(SensorHistory has :getStressHistory)) {
+            return NO_DATA;
+        }
+        var it = SensorHistory.getStressHistory({
+            :period => 5,
+            :order  => SensorHistory.ORDER_NEWEST_FIRST
+        });
+        if (it == null) { return _stressText; }
+
+        for (var i = 0; i < 5; i += 1) {
+            var sample = it.next();
+            if (sample == null) { break; }
+            if (sample.data != null) {
+                _stressText = sample.data.toNumber().toString() + "%";
+                break;
+            }
+        }
+        return _stressText;
     }
 
     function getWeatherTempText() {
         var cc = Weather.getCurrentConditions();
-        if (cc == null || cc.temperature == null) { return "--"; }
+        if (cc == null || cc.temperature == null) { return NO_DATA; }
 
-        var temp  = cc.temperature.toFloat();
-        var units = config.tempUnits();
+        var temp = cc.temperature.toFloat();
 
-        if (units == config.UNIT_IMPERIAL) {
-            return roundToIntString(temp * 9.0 / 5.0 + 32.0) + "\u00B0F";
-        }
-        if (units == config.UNIT_METRIC) {
-            return roundToIntString(temp) + "\u00B0C";
+        if (config.tempUnits() == config.UNIT_IMPERIAL) {
+            return roundToIntString(temp * 9.0 / 5.0 + 32.0) + "\u00B0";
         }
         return roundToIntString(temp) + "\u00B0";
     }
