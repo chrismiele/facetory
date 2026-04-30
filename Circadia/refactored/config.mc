@@ -21,8 +21,12 @@ module config {
     const FIELD_DISTANCE     = 10;
     const FIELD_RECOVERY     = 11;
 
-    const UNIT_METRIC   = 0;
-    const UNIT_IMPERIAL = 1;
+    const TEMP_C = 0;
+    const TEMP_F = 1;
+    const TEMP_K = 2;
+
+    const DIST_KM = 0;
+    const DIST_MI = 1;
 
     const AOD_TIME_ONLY = 0;
     const AOD_SKY_ONLY  = 1;
@@ -40,7 +44,8 @@ module config {
     var _topField         = FIELD_BATTERY;
     var _leftField        = FIELD_HEART_RATE;
     var _rightField       = FIELD_NEXT_SUN_EVENT;
-    var _tempUnits        = UNIT_METRIC;
+    var _tempUnits        = TEMP_C;
+    var _distanceUnits    = DIST_KM;
     var _mipMode          = 0;       // 0 = AMOLED, 1 = MIP
     var _showSeconds      = false;
     var _starCount        = 100;
@@ -50,6 +55,7 @@ module config {
     var _aodBehaviour     = AOD_SKY_ONLY;
     var _timeFormat       = TIME_FORMAT_24H;
     var _dateFormat       = DATE_FORMAT_DAY_NUMBER;
+    var _minuteSaturation = 3;       // 0-5 step index, mapped to 0.0-1.0 in step of 0.2
 
     // Helpers — getValue throws if a key is missing from properties.xml,
     // so wrap each read in a try/catch and fall back to the current value.
@@ -90,6 +96,7 @@ module config {
         _leftField        = readNumber("leftField",        _leftField);
         _rightField       = readNumber("rightField",       _rightField);
         _tempUnits        = readNumber("tempUnits",        _tempUnits);
+        _distanceUnits    = readNumber("distanceUnits",    _distanceUnits);
         _mipMode          = readNumber("mipMode",          _mipMode);
         _showSeconds      = readBool(  "showSeconds",      _showSeconds);
         _starCount        = readNumber("starCount",        _starCount);
@@ -99,6 +106,7 @@ module config {
         _aodBehaviour     = readNumber("aodBehaviour",     _aodBehaviour);
         _timeFormat       = readNumber("timeFormat",       _timeFormat);
         _dateFormat       = readNumber("dateFormat",       _dateFormat);
+        _minuteSaturation = readNumber("minuteSaturation", _minuteSaturation);
     }
 
     // ── Accessors (zero-cost reads of cached values) ─────────────────────────
@@ -107,6 +115,7 @@ module config {
     function leftField()        { return _leftField;        }
     function rightField()       { return _rightField;       }
     function tempUnits()        { return _tempUnits;        }
+    function distanceUnits()    { return _distanceUnits;    }
     function mipMode()          { return _mipMode > 0;      }
     function showSeconds()      { return _showSeconds;      }
     function showMoon()         { return true;              }
@@ -115,7 +124,7 @@ module config {
     function useGps()           { return _useGps > 0;       }
     function latDeg()           { return _latDeg;           }
     function lonDeg()           { return _lonDeg;           }
-    function minuteSaturation() { return 0.7;               }
+    function minuteSaturation() { return _minuteSaturation / 5.0; }
     function aodBehaviour()     { return _aodBehaviour;     }
     function timeFormat()       { return _timeFormat;       }
     function dateFormat()       { return _dateFormat;       }

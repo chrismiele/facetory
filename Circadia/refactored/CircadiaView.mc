@@ -446,12 +446,15 @@ class CircadiaView extends WatchUi.WatchFace {
         var cc = Weather.getCurrentConditions();
         if (cc == null || cc.temperature == null) { return NO_DATA; }
 
-        var temp = cc.temperature.toFloat();
+        var tempC = cc.temperature.toFloat();
 
-        if (config.tempUnits() == config.UNIT_IMPERIAL) {
-            return roundToIntString(temp * 9.0 / 5.0 + 32.0) + "\u00B0";
+        if (config.tempUnits() == config.TEMP_F) {
+            return roundToIntString(tempC * 9.0 / 5.0 + 32.0) + "\u00B0";
         }
-        return roundToIntString(temp) + "\u00B0";
+        if (config.tempUnits() == config.TEMP_K) {
+            return roundToIntString(tempC + 273.15) + "K";
+        }
+        return roundToIntString(tempC) + "\u00B0";
     }
 
     function getBodyBatteryDisplay() {
@@ -501,7 +504,7 @@ class CircadiaView extends WatchUi.WatchFace {
         if (info != null && info.distance != null) {
             var dist = info.distance.toFloat();
             var suffix;
-            if (config.tempUnits() == config.UNIT_IMPERIAL) {
+            if (config.distanceUnits() == config.DIST_MI) {
                 dist = dist / 160934.4;
                 suffix = " mi";
             } else {

@@ -8,7 +8,8 @@
         <string id="topFieldTitle">Top data field</string>
         <string id="leftFieldTitle">Bottom-left data field</string>
         <string id="rightFieldTitle">Bottom-right data field</string>
-        <string id="tempUnitsTitle">Units</string>
+        <string id="tempUnitsTitle">Temperature units</string>
+        <string id="distanceUnitsTitle">Distance units</string>
         <string id="mipModeTitle">Display type</string>
         <string id="showSecondsTitle">Show seconds</string>
         <string id="starCountTitle">Number of stars</string>
@@ -18,6 +19,7 @@
         <string id="aodBehaviourTitle">Always-on display</string>
         <string id="timeFormatTitle">Time format</string>
         <string id="dateFormatTitle">Date format</string>
+        <string id="minuteSaturationTitle">Minute colour saturation</string>
 
         <!-- Field choices -->
         <string id="fieldDate">Date</string>
@@ -34,8 +36,14 @@
         <string id="fieldRecovery">Recovery time</string>
 
         <!-- Unit choices -->
-        <string id="unitMetric">Metric</string>
-        <string id="unitImperial">Imperial</string>
+        <!-- Temperature unit choices -->
+        <string id="tempCelsius">Celsius (°C)</string>
+        <string id="tempFahrenheit">Fahrenheit (°F)</string>
+        <string id="tempKelvin">Kelvin (K)</string>
+
+        <!-- Distance unit choices -->
+        <string id="distanceKm">Kilometres</string>
+        <string id="distanceMi">Miles</string>
 
         <!-- Display choices -->
         <string id="displayAmoled">Default (full colour)</string>
@@ -63,5 +71,13 @@
         <string id="dateFormatDayNumber">Fri 13</string>
         <string id="dateFormatMonthDay">Jan 13</string>
         <string id="dateFormatDayMonth">13 Jan</string>
+
+        <!-- Saturation choices -->
+        <string id="saturation0">0% (pure white)</string>
+        <string id="saturation1">20%</string>
+        <string id="saturation2">40%</string>
+        <string id="saturation3">60%</string>
+        <string id="saturation4">80%</string>
+        <string id="saturation5">100% (full hue)</string>
     </strings>
 </resources>

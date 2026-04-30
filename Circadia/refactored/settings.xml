@@ -54,11 +54,20 @@
             </settingConfig>
         </setting>
 
-        <!-- ─── Units ──────────────────────────────────────────────────── -->
+        <!-- ─── Temperature Units ──────────────────────────────────────── -->
         <setting propertyKey="@Properties.tempUnits" title="@Strings.tempUnitsTitle">
             <settingConfig type="list">
-                <listEntry value="0">@Strings.unitMetric</listEntry>
-                <listEntry value="1">@Strings.unitImperial</listEntry>
+                <listEntry value="0">@Strings.tempCelsius</listEntry>
+                <listEntry value="2">@Strings.tempKelvin</listEntry>
+                <listEntry value="1">@Strings.tempFahrenheit</listEntry>
+            </settingConfig>
+        </setting>
+
+        <!-- ─── Distance Units ─────────────────────────────────────────── -->
+        <setting propertyKey="@Properties.distanceUnits" title="@Strings.distanceUnitsTitle">
+            <settingConfig type="list">
+                <listEntry value="0">@Strings.distanceKm</listEntry>
+                <listEntry value="1">@Strings.distanceMi</listEntry>
             </settingConfig>
         </setting>
 
@@ -122,6 +131,18 @@
                 <listEntry value="0">@Strings.aodTimeOnly</listEntry>
                 <listEntry value="1">@Strings.aodSkyOnly</listEntry>
                 <listEntry value="2">@Strings.aodShowAll</listEntry>
+            </settingConfig>
+        </setting>
+
+        <!-- ─── Saturation ─────────────────────────────────────────────── -->
+        <setting propertyKey="@Properties.minuteSaturation" title="@Strings.minuteSaturationTitle">
+            <settingConfig type="list">
+                <listEntry value="0">@Strings.saturation0</listEntry>
+                <listEntry value="1">@Strings.saturation1</listEntry>
+                <listEntry value="2">@Strings.saturation2</listEntry>
+                <listEntry value="3">@Strings.saturation3</listEntry>
+                <listEntry value="4">@Strings.saturation4</listEntry>
+                <listEntry value="5">@Strings.saturation5</listEntry>
             </settingConfig>
         </setting>
 

@@ -24,23 +24,19 @@ module Colours {
 
     // ── MIP solar palette ──────────────────────────────────────────────
     // The MIP sun draws three concentric rings (outer → middle → core).
+    // Each band's outer and middle come from its own MEDIUM/BRIGHT, and
+    // the core is the BRIGHT shade of the *next-warmer* band:
     //
-    // Daytime band (sun ≥ 6°) is a classic three-shade yellow ramp:
-    //   outer = SUN_DARK, middle = SUN_MEDIUM, core = SUN_BRIGHT.
+    //   Sun (≥ 6°)    : SUN_MEDIUM     SUN_BRIGHT     WHITE
+    //   Orange (≥ 0°) : ORANGE_MEDIUM  ORANGE_BRIGHT  SUN_BRIGHT
+    //   Red    (≥-6°) : RED_MEDIUM     RED_BRIGHT     ORANGE_BRIGHT
+    //   Purple (≥-12°): PURPLE_MEDIUM  PURPLE_BRIGHT  RED_BRIGHT
+    //   Blue   (else) : BLUE_MEDIUM    BLUE_BRIGHT    BLUE_BRIGHT
     //
-    // Transition bands (orange / red / purple / blue) use two shades from
-    // the band itself plus one carried over from the previous (warmer)
-    // phase: outer = MEDIUM, middle = BRIGHT, core = the previous band's
-    // BRIGHT (with one exception: the orange band's core is SUN_BRIGHT
-    // rather than SUN_MEDIUM, so the centre stays luminous through the
-    // sunset transition). The result is a glowing ember of the prior phase
-    // surrounded by the new atmosphere.
-    //
-    // Minute text matches the current band's BRIGHT (whitened by the
-    // saturation slider). All values are on the 64-colour MIP palette.
+    // Minute text matches the band's BRIGHT, whitened by the saturation
+    // slider. All values are on the 64-colour MIP palette.
     const MIP_SUN_BRIGHT    = 0xFFFF00;   // pure yellow
     const MIP_SUN_MEDIUM    = 0xAAAA00;   // ochre
-    const MIP_SUN_DARK      = 0x555500;   // dark olive
 
     const MIP_ORANGE_BRIGHT = 0xFFAA00;   // pure on-palette orange
     const MIP_ORANGE_MEDIUM = 0xAA5500;   // burnt amber

@@ -62,16 +62,17 @@ module Solar {
     // Three MIP shades for the sun's halo at altitude, returned as
     // [OUTER, MIDDLE, CORE] in paint order (outer drawn first, core last).
     //
-    // Daytime is a pure yellow dark→medium→bright ramp. Each transition
-    // band uses two shades from itself (MEDIUM outer, BRIGHT middle) plus
-    // a CORE carried over from the warmer phase, giving a "glowing ember"
-    // centre that trails one band behind the surrounding atmosphere.
+    // Each band's outer/middle ring is its own MEDIUM/BRIGHT, and the core
+    // is the BRIGHT shade of the *next-warmer* band. The daytime band's
+    // core is WHITE since there's no warmer band, giving the noon sun a
+    // bright white centre. The deepest-night band reuses BLUE_BRIGHT for
+    // the core — the centre is below the horizon by then anyway.
     function mipSunColorsForAlt(altDeg) {
-        if (altDeg >= 6.0)   { return [Colours.MIP_SUN_DARK,      Colours.MIP_SUN_MEDIUM,    Colours.MIP_SUN_BRIGHT];     }
+        if (altDeg >= 6.0)   { return [Colours.MIP_SUN_MEDIUM,    Colours.MIP_SUN_BRIGHT,    Colours.WHITE];              }
         if (altDeg >= 0.0)   { return [Colours.MIP_ORANGE_MEDIUM, Colours.MIP_ORANGE_BRIGHT, Colours.MIP_SUN_BRIGHT];     }
         if (altDeg >= -6.0)  { return [Colours.MIP_RED_MEDIUM,    Colours.MIP_RED_BRIGHT,    Colours.MIP_ORANGE_BRIGHT];  }
         if (altDeg >= -12.0) { return [Colours.MIP_PURPLE_MEDIUM, Colours.MIP_PURPLE_BRIGHT, Colours.MIP_RED_BRIGHT];     }
-        return [Colours.MIP_BLUE_MEDIUM, Colours.MIP_BLUE_BRIGHT, Colours.MIP_PURPLE_BRIGHT];
+        return [Colours.MIP_BLUE_MEDIUM, Colours.MIP_BLUE_BRIGHT, Colours.MIP_BLUE_BRIGHT];
     }
 
     // The band's BRIGHT shade — used as the MIP minute-text colour.

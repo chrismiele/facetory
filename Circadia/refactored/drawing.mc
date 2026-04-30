@@ -456,16 +456,14 @@ module Drawing {
     }
 
     function drawMipSun(dc, x, y, R, altDeg) {
-        // Three concentric rings, painted outer → middle → core. Sizes:
-        //   outer  — radius at SUN_GLOW_DEG (18 deg)
-        //   middle — radius at MOON_DIAMETER_DEG/2 (6 deg)
-        //   core   — radius at NEW_MOON_DIAMETER_DEG/2 (2.5 deg)
-        // Colours come from mipSunColorsForAlt; see Solar for the full table.
+        // Three concentric rings with evenly-spaced radii at 6°, 12°, 18° of
+        // sky-disc angle (core, middle, outer). Painted outermost first so
+        // the white/ember core lands on top.
         var colors = Solar.mipSunColorsForAlt(altDeg);
 
-        var outerR  = R * (SUN_GLOW_DEG          / 90.0);
-        var middleR = R * (MOON_DIAMETER_DEG     / 90.0) / 2.0;
-        var coreR   = R * (NEW_MOON_DIAMETER_DEG / 90.0) / 2.0;
+        var outerR  = R * (18.0 / 90.0);
+        var middleR = R * (12.0 / 90.0);
+        var coreR   = R * ( 6.0 / 90.0);
 
         var xi = x.toNumber();
         var yi = y.toNumber();
@@ -488,7 +486,7 @@ module Drawing {
     function drawFullMoon(dc, xi, yi, moonRadiusPx, phaseAngle, sunAltDeg, litColor, skyRadiusPx, mipMode) {
         if (mipMode) {
             var scale = moonGlowNightScale(sunAltDeg)*closenessToFullMoon(phaseAngle);
-            drawMipHaloBodyScaled(dc, xi, yi, skyRadiusPx, moonRadiusPx, MOON_GLOW_DEG, scale, Colours.MIP_MOON_BRIGHT, Colours.MIP_MOON_DARK, Colours.MIP_MOON_MEDIUM);
+            drawMipHaloBodyScaled(dc, xi, yi, skyRadiusPx, moonRadiusPx, MOON_GLOW_DEG, scale, Colours.WHITE, Colours.MIP_MOON_DARK, Colours.MIP_MOON_MEDIUM);
             return;
         }
 
@@ -505,7 +503,7 @@ module Drawing {
         var ri = MathUtil.roundNearest(r);
 
         if (mipMode) {
-            litColor = Colours.MIP_MOON_BRIGHT;
+            litColor = (bin == Lunar.PHASE_FULL) ? Colours.WHITE : Colours.MIP_MOON_BRIGHT;
         }
 
         if (bin == Lunar.PHASE_NEW) {

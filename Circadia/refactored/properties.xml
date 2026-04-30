@@ -3,11 +3,14 @@
     <properties>
         <!-- Data fields -->
         <property id="topField"    type="number">0</property>  
-        <property id="leftField"   type="number">3</property>  
+        <property id="leftField"   type="number">2</property>  
         <property id="rightField"  type="number">1</property> 
 
-        <!-- Units: 0 = Metric, 1 = Imperial -->
-        <property id="tempUnits"   type="number">0</property>  <!-- UNIT_METRIC -->
+        <!-- Temperature units: 0 = Celsius, 1 = Fahrenheit, 2 = Kelvin -->
+        <property id="tempUnits"   type="number">0</property>
+
+        <!-- Distance units: 0 = kilometres, 1 = miles -->
+        <property id="distanceUnits" type="number">0</property>
 
         <!-- Display type: 0 = default (AMOLED), 1 = simplified (MIP) -->
         <property id="mipMode"     type="number">0</property>
@@ -19,7 +22,7 @@
         <property id="starCount"   type="number">100</property>
 
         <!-- Location: 1 = use device GPS, 0 = use home coordinates -->
-        <property id="useGps"      type="number">0</property>
+        <property id="useGps"      type="number">1</property>
         <property id="latDeg"      type="float">49.29</property>
         <property id="lonDeg"      type="float">-123.12</property>
 
@@ -31,5 +34,8 @@
 
         <!-- Date format: 0 = "Day Number", 1 = "Month Day", 2 = "Day Month" -->
         <property id="dateFormat"  type="number">0</property>
+
+        <!-- Minute colour saturation step: 0-5 (mapped to 0.0, 0.2, ... 1.0) -->
+        <property id="minuteSaturation" type="number">3</property>
     </properties>
 </resources>
