@@ -354,6 +354,11 @@ module Drawing {
     }
 
     function drawFieldText(dc, x, y, text) {
+        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(x -1, y, Graphics.FONT_SYSTEM_TINY, text, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(x +1, y, Graphics.FONT_SYSTEM_TINY, text, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(x, y -1, Graphics.FONT_SYSTEM_TINY, text, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(x, y +1, Graphics.FONT_SYSTEM_TINY, text, Graphics.TEXT_JUSTIFY_CENTER);
         dc.setColor(fieldTextColor(), Graphics.COLOR_TRANSPARENT);
         dc.drawText(x, y, Graphics.FONT_SYSTEM_TINY, text, Graphics.TEXT_JUSTIFY_CENTER);
     }
