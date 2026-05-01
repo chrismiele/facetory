@@ -134,14 +134,6 @@
             </settingConfig>
         </setting>
 
-        <!-- ─── Halo Style ─────────────────────────────────────────────── -->
-        <setting propertyKey="@Properties.haloStyle" title="@Strings.haloStyleTitle">
-            <settingConfig type="list">
-                <listEntry value="0">@Strings.haloRing</listEntry>
-                <listEntry value="1">@Strings.haloDisc</listEntry>
-            </settingConfig>
-        </setting>
-
         <!-- ─── Saturation ─────────────────────────────────────────────── -->
         <setting propertyKey="@Properties.minuteSaturation" title="@Strings.minuteSaturationTitle">
             <settingConfig type="list">

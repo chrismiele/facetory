@@ -1,0 +1,947 @@
+[ @file = "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc"; @line = 1; @symbol_usingdef<0> = [Toybox,1,6,12]; @symbol_usingdef<1> = [Activity,1,13,21]; ]
+using Toybox.Activity;
+[ @file = "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc"; @line = 2; @symbol_usingdef<0> = [Toybox,2,6,12]; @symbol_usingdef<1> = [Application,2,13,24]; ]
+using Toybox.Application;
+[ @file = "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc"; @line = 3; @symbol_usingdef<0> = [Toybox,3,6,12]; @symbol_usingdef<1> = [Position,3,13,21]; ]
+using Toybox.Position;
+[ @file = "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc"; @line = 4; @symbol_usingdef<0> = [Toybox,4,6,12]; @symbol_usingdef<1> = [Time,4,13,17]; ]
+using Toybox.Time;
+[ @file = "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc"; @line = 5; @symbol_usingdef<0> = [Toybox,5,6,12]; @symbol_usingdef<1> = [Weather,5,13,20]; ]
+using Toybox.Weather;
+[ @file = "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc"; @line = 7; @symbol_moduledef = [LocationService,7,7,22]; ]
+module LocationService {
+    [ @file = "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc"; @line = 7; ]
+    <init> {
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 12 10 ]
+        %tmp.1 = 30;
+        %tmp.2 = 24;
+        %tmp.3 = mul %tmp.1 %tmp.2;
+        %tmp.4 = 60;
+        %tmp.5 = mul %tmp.3 %tmp.4;
+        %tmp.6 = 60;
+        %tmp.7 = mul %tmp.5 %tmp.6;
+        putv self :MAX_CACHE_AGE_SEC %tmp.7;
+    }
+    [ @file = "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc"; @line = 9; @position = 10; @symbol_constdef = [CACHE_LAT_KEY,9,10,23]; ]
+    const CACHE_LAT_KEY = "trusted_lat_deg";
+    [ @file = "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc"; @line = 10; @position = 10; @symbol_constdef = [CACHE_LON_KEY,10,10,23]; ]
+    const CACHE_LON_KEY = "trusted_lon_deg";
+    [ @file = "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc"; @line = 11; @position = 10; @symbol_constdef = [CACHE_TIME_KEY,11,10,24]; ]
+    const CACHE_TIME_KEY = "trusted_location_time";
+    [ @file = "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc"; @line = 12; @position = 10; @symbol_constdef = [MAX_CACHE_AGE_SEC,12,10,27]; ]
+    const MAX_CACHE_AGE_SEC;
+    [ @file = "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc"; @line = 16; @position = 10; @symbol_constdef = [WRITE_THRESHOLD_DEG,16,10,29]; ]
+    const WRITE_THRESHOLD_DEG = 0.01;
+    [ @file = "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc"; @line = 18; @symbol_functiondef = [getBest,18,13,20]; ]
+    function getBest() {
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_18_23_36_4_start:
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 19 8 ]
+        [ "C__Users_Chris_CIRCADIA_Circadia_source_location_mc_18_23_36_4_start" "C__Users_Chris_CIRCADIA_Circadia_source_location_mc_18_23_36_4_stop" ]
+        %fallback.1 = local;
+        symbol [ fallback %fallback.1 19 12 20 ];
+        %tmp.1 = newa 2;
+        symbol [ config %tmp.3 19 24 30 ];
+        %tmp.3 = getv ? :config;
+        symbol [ latDeg %tmp.4 19 31 37 ];
+        %tmp.4 = getv function %tmp.3 :latDeg;
+        %tmp.5 = invoke %tmp.3 %tmp.4();
+        %tmp.6 = dup %tmp.1;
+        %tmp.7 = aputv %tmp.6 0 %tmp.5;
+        symbol [ config %tmp.9 19 41 47 ];
+        %tmp.9 = getv ? :config;
+        symbol [ lonDeg %tmp.10 19 48 54 ];
+        %tmp.10 = getv function %tmp.9 :lonDeg;
+        %tmp.11 = invoke %tmp.9 %tmp.10();
+        %tmp.12 = dup %tmp.7;
+        %tmp.13 = aputv %tmp.12 1 %tmp.11;
+        lputv %fallback.1 %tmp.13;
+        symbol [ fallback %fallback.1 19 12 20 ];
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 21 8 ]
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_21_8_21_49_if_stmt:
+        symbol [ config %tmp.15 21 13 19 ];
+        %tmp.15 = getv ? :config;
+        symbol [ useGps %tmp.16 21 20 26 ];
+        %tmp.16 = getv function %tmp.15 :useGps;
+        %tmp.17 = invoke %tmp.15 %tmp.16();
+        %tmp.18 = not %tmp.17;
+        bf %tmp.18 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_21_8_21_49_if_end;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_21_8_21_49_if_true:
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_21_30_21_49_start:
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 21 32 ]
+        %tmp.19 = lgetv %fallback.1;
+        symbol [ fallback %tmp.19 21 39 47 ];
+        ret %tmp.19;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_21_30_21_49_stop:
+        goto @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_21_8_21_49_if_end;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_21_8_21_49_if_end:
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 23 8 ]
+        [ "C__Users_Chris_CIRCADIA_Circadia_source_location_mc_18_23_36_4_start" "C__Users_Chris_CIRCADIA_Circadia_source_location_mc_18_23_36_4_stop" ]
+        %pos.2 = local;
+        symbol [ pos %pos.2 23 12 15 ];
+        %tmp.20 = self;
+        symbol [ getPositionLocation %tmp.21 23 18 37 ];
+        %tmp.21 = getv function %tmp.20 :getPositionLocation;
+        %tmp.22 = invoke %tmp.20 %tmp.21();
+        lputv %pos.2 %tmp.22;
+        symbol [ pos %pos.2 23 12 15 ];
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 24 8 ]
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_24_8_24_52_if_stmt:
+        %tmp.23 = lgetv %pos.2;
+        symbol [ pos %tmp.23 24 12 15 ];
+        %tmp.24 = null;
+        %tmp.25 = ne %tmp.23 %tmp.24;
+        bf %tmp.25 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_24_8_24_52_if_end;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_24_8_24_52_if_true:
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_24_25_24_52_start:
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 24 27 ]
+        %tmp.26 = self;
+        symbol [ useAndCache %tmp.27 24 34 45 ];
+        %tmp.27 = getv function %tmp.26 :useAndCache;
+        %tmp.28 = lgetv %pos.2;
+        symbol [ pos %tmp.28 24 46 49 ];
+        %tmp.29 = as %tmp.28 { (!Null) };
+        %tmp.30 = invoke %tmp.26 %tmp.27(%tmp.29);
+        ret %tmp.30;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_24_25_24_52_stop:
+        goto @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_24_8_24_52_if_end;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_24_8_24_52_if_end:
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 26 8 ]
+        [ "C__Users_Chris_CIRCADIA_Circadia_source_location_mc_18_23_36_4_start" "C__Users_Chris_CIRCADIA_Circadia_source_location_mc_18_23_36_4_stop" ]
+        %act.3 = local;
+        symbol [ act %act.3 26 12 15 ];
+        %tmp.31 = self;
+        symbol [ getActivityLocation %tmp.32 26 18 37 ];
+        %tmp.32 = getv function %tmp.31 :getActivityLocation;
+        %tmp.33 = invoke %tmp.31 %tmp.32();
+        lputv %act.3 %tmp.33;
+        symbol [ act %act.3 26 12 15 ];
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 27 8 ]
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_27_8_27_52_if_stmt:
+        %tmp.34 = lgetv %act.3;
+        symbol [ act %tmp.34 27 12 15 ];
+        %tmp.35 = null;
+        %tmp.36 = ne %tmp.34 %tmp.35;
+        bf %tmp.36 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_27_8_27_52_if_end;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_27_8_27_52_if_true:
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_27_25_27_52_start:
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 27 27 ]
+        %tmp.37 = self;
+        symbol [ useAndCache %tmp.38 27 34 45 ];
+        %tmp.38 = getv function %tmp.37 :useAndCache;
+        %tmp.39 = lgetv %act.3;
+        symbol [ act %tmp.39 27 46 49 ];
+        %tmp.40 = as %tmp.39 { (!Null) };
+        %tmp.41 = invoke %tmp.37 %tmp.38(%tmp.40);
+        ret %tmp.41;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_27_25_27_52_stop:
+        goto @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_27_8_27_52_if_end;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_27_8_27_52_if_end:
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 29 8 ]
+        [ "C__Users_Chris_CIRCADIA_Circadia_source_location_mc_18_23_36_4_start" "C__Users_Chris_CIRCADIA_Circadia_source_location_mc_18_23_36_4_stop" ]
+        %cached.4 = local;
+        symbol [ cached %cached.4 29 12 18 ];
+        %tmp.42 = self;
+        symbol [ getCachedLocation %tmp.43 29 21 38 ];
+        %tmp.43 = getv function %tmp.42 :getCachedLocation;
+        %tmp.44 = invoke %tmp.42 %tmp.43();
+        lputv %cached.4 %tmp.44;
+        symbol [ cached %cached.4 29 12 18 ];
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 30 8 ]
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_30_8_30_45_if_stmt:
+        %tmp.45 = lgetv %cached.4;
+        symbol [ cached %tmp.45 30 12 18 ];
+        %tmp.46 = null;
+        %tmp.47 = ne %tmp.45 %tmp.46;
+        bf %tmp.47 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_30_8_30_45_if_end;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_30_8_30_45_if_true:
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_30_28_30_45_start:
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 30 30 ]
+        %tmp.48 = lgetv %cached.4;
+        symbol [ cached %tmp.48 30 37 43 ];
+        %tmp.49 = as %tmp.48 { (!Null) };
+        ret %tmp.49;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_30_28_30_45_stop:
+        goto @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_30_8_30_45_if_end;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_30_8_30_45_if_end:
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 32 8 ]
+        [ "C__Users_Chris_CIRCADIA_Circadia_source_location_mc_18_23_36_4_start" "C__Users_Chris_CIRCADIA_Circadia_source_location_mc_18_23_36_4_stop" ]
+        %weather.5 = local;
+        symbol [ weather %weather.5 32 12 19 ];
+        %tmp.50 = self;
+        symbol [ getWeatherLocation %tmp.51 32 22 40 ];
+        %tmp.51 = getv function %tmp.50 :getWeatherLocation;
+        %tmp.52 = invoke %tmp.50 %tmp.51();
+        lputv %weather.5 %tmp.52;
+        symbol [ weather %weather.5 32 12 19 ];
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 33 8 ]
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_33_8_33_47_if_stmt:
+        %tmp.53 = lgetv %weather.5;
+        symbol [ weather %tmp.53 33 12 19 ];
+        %tmp.54 = null;
+        %tmp.55 = ne %tmp.53 %tmp.54;
+        bf %tmp.55 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_33_8_33_47_if_end;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_33_8_33_47_if_true:
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_33_29_33_47_start:
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 33 31 ]
+        %tmp.56 = lgetv %weather.5;
+        symbol [ weather %tmp.56 33 38 45 ];
+        %tmp.57 = as %tmp.56 { (!Null) };
+        ret %tmp.57;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_33_29_33_47_stop:
+        goto @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_33_8_33_47_if_end;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_33_8_33_47_if_end:
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 35 8 ]
+        %tmp.58 = lgetv %fallback.1;
+        symbol [ fallback %tmp.58 35 15 23 ];
+        ret %tmp.58;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_18_23_36_4_stop:
+    }
+    [ @file = "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc"; @line = 38; @symbol_functiondef = [getPositionLocation,38,13,32]; ]
+    function getPositionLocation() {
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_38_35_42_4_start:
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 39 8 ]
+        [ "C__Users_Chris_CIRCADIA_Circadia_source_location_mc_38_35_42_4_start" "C__Users_Chris_CIRCADIA_Circadia_source_location_mc_38_35_42_4_stop" ]
+        %info.1 = local;
+        symbol [ info %info.1 39 12 16 ];
+        symbol [ Position %tmp.1 39 19 27 ];
+        %tmp.1 = getm $.Toybox.Position;
+        symbol [ getInfo %tmp.2 39 28 35 ];
+        %tmp.2 = getv function %tmp.1 :getInfo;
+        %tmp.3 = invoke %tmp.1 %tmp.2();
+        lputv %info.1 %tmp.3;
+        symbol [ info %info.1 39 12 16 ];
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 40 8 ]
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_40_8_40_66_if_stmt:
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_40_12_40_45_begin:
+        %tmp.4 = lgetv %info.1;
+        symbol [ info %tmp.4 40 12 16 ];
+        %tmp.5 = null;
+        %tmp.6 = eq %tmp.4 %tmp.5;
+        bt %tmp.6 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_40_8_40_66_if_true;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_40_28_40_45_false:
+        %tmp.7 = lgetv %info.1;
+        symbol [ info %tmp.7 40 28 32 ];
+        %tmp.8 = as %tmp.7 { (!Null) };
+        symbol [ position %tmp.9 40 33 41 ];
+        %tmp.9 = getv %tmp.8 :position;
+        %tmp.10 = null;
+        %tmp.11 = eq %tmp.9 %tmp.10;
+        push %tmp.11;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_40_28_40_45_end:
+        %tmp.12 = phi [%tmp.6 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_40_12_40_45_begin] [%tmp.11 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_40_28_40_45_false] [%tmp.12 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_40_28_40_45_end];
+        bf %tmp.12 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_40_8_40_66_if_end;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_40_8_40_66_if_true:
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_40_51_40_66_start:
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 40 53 ]
+        %tmp.13 = null;
+        ret %tmp.13;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_40_51_40_66_stop:
+        goto @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_40_8_40_66_if_end;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_40_8_40_66_if_end:
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 41 8 ]
+        %tmp.14 = self;
+        symbol [ degreesIfValid %tmp.15 41 15 29 ];
+        %tmp.15 = getv function %tmp.14 :degreesIfValid;
+        %tmp.16 = lgetv %info.1;
+        symbol [ info %tmp.16 41 30 34 ];
+        symbol [ position %tmp.17 41 35 43 ];
+        %tmp.17 = getv %tmp.16 :position;
+        %tmp.18 = invoke %tmp.14 %tmp.15(%tmp.17);
+        ret %tmp.18;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_38_35_42_4_stop:
+    }
+    [ @file = "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc"; @line = 44; @symbol_functiondef = [getActivityLocation,44,13,32]; ]
+    function getActivityLocation() {
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_44_35_48_4_start:
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 45 8 ]
+        [ "C__Users_Chris_CIRCADIA_Circadia_source_location_mc_44_35_48_4_start" "C__Users_Chris_CIRCADIA_Circadia_source_location_mc_44_35_48_4_stop" ]
+        %info.1 = local;
+        symbol [ info %info.1 45 12 16 ];
+        symbol [ Activity %tmp.1 45 19 27 ];
+        %tmp.1 = getm $.Toybox.Activity;
+        symbol [ getActivityInfo %tmp.2 45 28 43 ];
+        %tmp.2 = getv function %tmp.1 :getActivityInfo;
+        %tmp.3 = invoke %tmp.1 %tmp.2();
+        lputv %info.1 %tmp.3;
+        symbol [ info %info.1 45 12 16 ];
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 46 8 ]
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_46_8_46_73_if_stmt:
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_46_12_46_52_begin:
+        %tmp.4 = lgetv %info.1;
+        symbol [ info %tmp.4 46 12 16 ];
+        %tmp.5 = null;
+        %tmp.6 = eq %tmp.4 %tmp.5;
+        bt %tmp.6 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_46_8_46_73_if_true;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_46_28_46_52_false:
+        %tmp.7 = lgetv %info.1;
+        symbol [ info %tmp.7 46 28 32 ];
+        %tmp.8 = as %tmp.7 { (!Null) };
+        symbol [ currentLocation %tmp.9 46 33 48 ];
+        %tmp.9 = getv %tmp.8 :currentLocation;
+        %tmp.10 = null;
+        %tmp.11 = eq %tmp.9 %tmp.10;
+        push %tmp.11;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_46_28_46_52_end:
+        %tmp.12 = phi [%tmp.6 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_46_12_46_52_begin] [%tmp.11 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_46_28_46_52_false] [%tmp.12 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_46_28_46_52_end];
+        bf %tmp.12 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_46_8_46_73_if_end;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_46_8_46_73_if_true:
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_46_58_46_73_start:
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 46 60 ]
+        %tmp.13 = null;
+        ret %tmp.13;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_46_58_46_73_stop:
+        goto @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_46_8_46_73_if_end;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_46_8_46_73_if_end:
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 47 8 ]
+        %tmp.14 = self;
+        symbol [ degreesIfValid %tmp.15 47 15 29 ];
+        %tmp.15 = getv function %tmp.14 :degreesIfValid;
+        %tmp.16 = lgetv %info.1;
+        symbol [ info %tmp.16 47 30 34 ];
+        symbol [ currentLocation %tmp.17 47 35 50 ];
+        %tmp.17 = getv %tmp.16 :currentLocation;
+        %tmp.18 = invoke %tmp.14 %tmp.15(%tmp.17);
+        ret %tmp.18;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_44_35_48_4_stop:
+    }
+    [ @file = "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc"; @line = 50; @symbol_functiondef = [getWeatherLocation,50,13,31]; ]
+    function getWeatherLocation() {
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_50_34_54_4_start:
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 51 8 ]
+        [ "C__Users_Chris_CIRCADIA_Circadia_source_location_mc_50_34_54_4_start" "C__Users_Chris_CIRCADIA_Circadia_source_location_mc_50_34_54_4_stop" ]
+        %cc.1 = local;
+        symbol [ cc %cc.1 51 12 14 ];
+        symbol [ Weather %tmp.1 51 17 24 ];
+        %tmp.1 = getm $.Toybox.Weather;
+        symbol [ getCurrentConditions %tmp.2 51 25 45 ];
+        %tmp.2 = getv function %tmp.1 :getCurrentConditions;
+        %tmp.3 = invoke %tmp.1 %tmp.2();
+        lputv %cc.1 %tmp.3;
+        symbol [ cc %cc.1 51 12 14 ];
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 52 8 ]
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_52_8_52_81_if_stmt:
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_52_12_52_60_begin:
+        %tmp.4 = lgetv %cc.1;
+        symbol [ cc %tmp.4 52 12 14 ];
+        %tmp.5 = null;
+        %tmp.6 = eq %tmp.4 %tmp.5;
+        bt %tmp.6 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_52_8_52_81_if_true;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_52_26_52_60_false:
+        %tmp.7 = lgetv %cc.1;
+        symbol [ cc %tmp.7 52 26 28 ];
+        %tmp.8 = as %tmp.7 { (!Null) };
+        symbol [ observationLocationPosition %tmp.9 52 29 56 ];
+        %tmp.9 = getv %tmp.8 :observationLocationPosition;
+        %tmp.10 = null;
+        %tmp.11 = eq %tmp.9 %tmp.10;
+        push %tmp.11;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_52_26_52_60_end:
+        %tmp.12 = phi [%tmp.6 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_52_12_52_60_begin] [%tmp.11 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_52_26_52_60_false] [%tmp.12 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_52_26_52_60_end];
+        bf %tmp.12 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_52_8_52_81_if_end;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_52_8_52_81_if_true:
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_52_66_52_81_start:
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 52 68 ]
+        %tmp.13 = null;
+        ret %tmp.13;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_52_66_52_81_stop:
+        goto @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_52_8_52_81_if_end;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_52_8_52_81_if_end:
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 53 8 ]
+        %tmp.14 = self;
+        symbol [ degreesIfValid %tmp.15 53 15 29 ];
+        %tmp.15 = getv function %tmp.14 :degreesIfValid;
+        %tmp.16 = lgetv %cc.1;
+        symbol [ cc %tmp.16 53 30 32 ];
+        symbol [ observationLocationPosition %tmp.17 53 33 60 ];
+        %tmp.17 = getv %tmp.16 :observationLocationPosition;
+        %tmp.18 = invoke %tmp.14 %tmp.15(%tmp.17);
+        ret %tmp.18;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_50_34_54_4_stop:
+    }
+    [ @file = "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc"; @line = 60; @symbol_functiondef = [useAndCache,60,13,24]; @symbol_param<0> = [loc,60,25,28]; ]
+    function useAndCache(loc) {
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_60_30_80_4_start:
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 61 8 ]
+        [ "C__Users_Chris_CIRCADIA_Circadia_source_location_mc_60_30_80_4_start" "C__Users_Chris_CIRCADIA_Circadia_source_location_mc_60_30_80_4_stop" ]
+        %lat.1 = local;
+        symbol [ lat %lat.1 61 12 15 ];
+        symbol [ Application %tmp.1 61 18 29 ];
+        %tmp.1 = getm $.Toybox.Application;
+        symbol [ Storage %tmp.2 61 30 37 ];
+        %tmp.2 = getv %tmp.1 :Storage;
+        symbol [ getValue %tmp.3 61 38 46 ];
+        %tmp.3 = getv function %tmp.2 :getValue;
+        symbol [ CACHE_LAT_KEY %tmp.5 61 47 60 ];
+        %tmp.5 = getv ? :CACHE_LAT_KEY;
+        %tmp.6 = invoke %tmp.2 %tmp.3(%tmp.5);
+        lputv %lat.1 %tmp.6;
+        symbol [ lat %lat.1 61 12 15 ];
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 62 8 ]
+        [ "C__Users_Chris_CIRCADIA_Circadia_source_location_mc_60_30_80_4_start" "C__Users_Chris_CIRCADIA_Circadia_source_location_mc_60_30_80_4_stop" ]
+        %lon.2 = local;
+        symbol [ lon %lon.2 62 12 15 ];
+        symbol [ Application %tmp.7 62 18 29 ];
+        %tmp.7 = getm $.Toybox.Application;
+        symbol [ Storage %tmp.8 62 30 37 ];
+        %tmp.8 = getv %tmp.7 :Storage;
+        symbol [ getValue %tmp.9 62 38 46 ];
+        %tmp.9 = getv function %tmp.8 :getValue;
+        symbol [ CACHE_LON_KEY %tmp.11 62 47 60 ];
+        %tmp.11 = getv ? :CACHE_LON_KEY;
+        %tmp.12 = invoke %tmp.8 %tmp.9(%tmp.11);
+        lputv %lon.2 %tmp.12;
+        symbol [ lon %lon.2 62 12 15 ];
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 64 8 ]
+        [ "C__Users_Chris_CIRCADIA_Circadia_source_location_mc_60_30_80_4_start" "C__Users_Chris_CIRCADIA_Circadia_source_location_mc_60_30_80_4_stop" ]
+        %needsWrite.3 = local;
+        symbol [ needsWrite %needsWrite.3 64 12 22 ];
+        %tmp.13 = true;
+        lputv %needsWrite.3 %tmp.13;
+        symbol [ needsWrite %needsWrite.3 64 12 22 ];
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 65 8 ]
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_65_8_71_8_if_stmt:
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_65_12_65_34_begin:
+        %tmp.14 = lgetv %lat.1;
+        symbol [ lat %tmp.14 65 12 15 ];
+        %tmp.15 = null;
+        %tmp.16 = ne %tmp.14 %tmp.15;
+        bf %tmp.16 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_65_8_71_8_if_end;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_65_27_65_34_true:
+        %tmp.17 = lgetv %lon.2;
+        symbol [ lon %tmp.17 65 27 30 ];
+        %tmp.18 = null;
+        %tmp.19 = ne %tmp.17 %tmp.18;
+        push %tmp.19;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_65_27_65_34_end:
+        %tmp.20 = phi [%tmp.16 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_65_12_65_34_begin] [%tmp.19 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_65_27_65_34_true] [%tmp.20 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_65_27_65_34_end];
+        bf %tmp.20 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_65_8_71_8_if_end;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_65_8_71_8_if_true:
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_65_40_71_8_start:
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 66 12 ]
+        [ "C__Users_Chris_CIRCADIA_Circadia_source_location_mc_65_40_71_8_start" "C__Users_Chris_CIRCADIA_Circadia_source_location_mc_65_40_71_8_stop" ]
+        %dLat.4 = local;
+        symbol [ dLat %dLat.4 66 16 20 ];
+        %tmp.21 = lgetv %loc;
+        symbol [ loc %tmp.21 66 23 26 ];
+        %tmp.22 = 0;
+        %tmp.23 = agetv %tmp.21 %tmp.22;
+        %tmp.24 = lgetv %lat.1;
+        symbol [ lat %tmp.24 66 32 35 ];
+        %tmp.25 = as %tmp.24 { (!Null) };
+        symbol [ toFloat %tmp.26 66 36 43 ];
+        %tmp.26 = getv function %tmp.25 :toFloat;
+        %tmp.27 = invoke %tmp.25 %tmp.26();
+        %tmp.28 = sub %tmp.23 %tmp.27;
+        lputv %dLat.4 %tmp.28;
+        symbol [ dLat %dLat.4 66 16 20 ];
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 67 12 ]
+        [ "C__Users_Chris_CIRCADIA_Circadia_source_location_mc_65_40_71_8_start" "C__Users_Chris_CIRCADIA_Circadia_source_location_mc_65_40_71_8_stop" ]
+        %dLon.5 = local;
+        symbol [ dLon %dLon.5 67 16 20 ];
+        %tmp.29 = lgetv %loc;
+        symbol [ loc %tmp.29 67 23 26 ];
+        %tmp.30 = 1;
+        %tmp.31 = agetv %tmp.29 %tmp.30;
+        %tmp.32 = lgetv %lon.2;
+        symbol [ lon %tmp.32 67 32 35 ];
+        %tmp.33 = as %tmp.32 { (!Null) };
+        symbol [ toFloat %tmp.34 67 36 43 ];
+        %tmp.34 = getv function %tmp.33 :toFloat;
+        %tmp.35 = invoke %tmp.33 %tmp.34();
+        %tmp.36 = sub %tmp.31 %tmp.35;
+        lputv %dLon.5 %tmp.36;
+        symbol [ dLon %dLon.5 67 16 20 ];
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 68 12 ]
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_68_12_68_44_if_stmt:
+        %tmp.37 = lgetv %dLat.4;
+        symbol [ dLat %tmp.37 68 16 20 ];
+        %tmp.38 = 0.0;
+        %tmp.39 = lt %tmp.37 %tmp.38;
+        bf %tmp.39 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_68_12_68_44_if_end;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_68_12_68_44_if_true:
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_68_28_68_44_start:
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 68 30 ]
+        %tmp.40 = lgetv %dLat.4;
+        symbol [ dLat %tmp.40 68 38 42 ];
+        %tmp.41 = sub 0 %tmp.40;
+        lputv %dLat.4 %tmp.41;
+        symbol [ dLat %dLat.4 68 30 34 ];
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_68_28_68_44_stop:
+        goto @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_68_12_68_44_if_end;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_68_12_68_44_if_end:
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 69 12 ]
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_69_12_69_44_if_stmt:
+        %tmp.42 = lgetv %dLon.5;
+        symbol [ dLon %tmp.42 69 16 20 ];
+        %tmp.43 = 0.0;
+        %tmp.44 = lt %tmp.42 %tmp.43;
+        bf %tmp.44 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_69_12_69_44_if_end;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_69_12_69_44_if_true:
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_69_28_69_44_start:
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 69 30 ]
+        %tmp.45 = lgetv %dLon.5;
+        symbol [ dLon %tmp.45 69 38 42 ];
+        %tmp.46 = sub 0 %tmp.45;
+        lputv %dLon.5 %tmp.46;
+        symbol [ dLon %dLon.5 69 30 34 ];
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_69_28_69_44_stop:
+        goto @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_69_12_69_44_if_end;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_69_12_69_44_if_end:
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 70 12 ]
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_70_26_70_63_begin:
+        %tmp.47 = lgetv %dLat.4;
+        symbol [ dLat %tmp.47 70 26 30 ];
+        symbol [ WRITE_THRESHOLD_DEG %tmp.49 70 33 52 ];
+        %tmp.49 = getv ? :WRITE_THRESHOLD_DEG;
+        %tmp.50 = gt %tmp.47 %tmp.49;
+        %tmp.51 = dup %tmp.50;
+        bt %tmp.51 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_70_56_70_63_end;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_70_56_70_63_false:
+        %tmp.52 = lgetv %dLon.5;
+        symbol [ dLon %tmp.52 70 56 60 ];
+        symbol [ WRITE_THRESHOLD_DEG %tmp.54 70 63 82 ];
+        %tmp.54 = getv ? :WRITE_THRESHOLD_DEG;
+        %tmp.55 = gt %tmp.52 %tmp.54;
+        %tmp.56 = or %tmp.50 %tmp.55;
+        push %tmp.56;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_70_56_70_63_end:
+        %tmp.57 = phi [%tmp.51 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_70_26_70_63_begin] [%tmp.56 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_70_56_70_63_false] [%tmp.57 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_70_56_70_63_end];
+        lputv %needsWrite.3 %tmp.57;
+        symbol [ needsWrite %needsWrite.3 70 12 22 ];
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_65_40_71_8_stop:
+        goto @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_65_8_71_8_if_end;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_65_8_71_8_if_end:
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 73 8 ]
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_73_8_77_8_if_stmt:
+        %tmp.58 = lgetv %needsWrite.3;
+        symbol [ needsWrite %tmp.58 73 12 22 ];
+        bf %tmp.58 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_73_8_77_8_if_end;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_73_8_77_8_if_true:
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_73_24_77_8_start:
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 74 12 ]
+        symbol [ Application %tmp.59 74 12 23 ];
+        %tmp.59 = getm $.Toybox.Application;
+        symbol [ Storage %tmp.60 74 24 31 ];
+        %tmp.60 = getv %tmp.59 :Storage;
+        symbol [ setValue %tmp.61 74 32 40 ];
+        %tmp.61 = getv function %tmp.60 :setValue;
+        symbol [ CACHE_LAT_KEY %tmp.63 74 41 54 ];
+        %tmp.63 = getv ? :CACHE_LAT_KEY;
+        %tmp.64 = lgetv %loc;
+        symbol [ loc %tmp.64 74 57 60 ];
+        %tmp.65 = 0;
+        %tmp.66 = agetv %tmp.64 %tmp.65;
+        invoke %tmp.60 %tmp.61(%tmp.63, %tmp.66);
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 75 12 ]
+        symbol [ Application %tmp.67 75 12 23 ];
+        %tmp.67 = getm $.Toybox.Application;
+        symbol [ Storage %tmp.68 75 24 31 ];
+        %tmp.68 = getv %tmp.67 :Storage;
+        symbol [ setValue %tmp.69 75 32 40 ];
+        %tmp.69 = getv function %tmp.68 :setValue;
+        symbol [ CACHE_LON_KEY %tmp.71 75 41 54 ];
+        %tmp.71 = getv ? :CACHE_LON_KEY;
+        %tmp.72 = lgetv %loc;
+        symbol [ loc %tmp.72 75 57 60 ];
+        %tmp.73 = 1;
+        %tmp.74 = agetv %tmp.72 %tmp.73;
+        invoke %tmp.68 %tmp.69(%tmp.71, %tmp.74);
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 76 12 ]
+        symbol [ Application %tmp.75 76 12 23 ];
+        %tmp.75 = getm $.Toybox.Application;
+        symbol [ Storage %tmp.76 76 24 31 ];
+        %tmp.76 = getv %tmp.75 :Storage;
+        symbol [ setValue %tmp.77 76 32 40 ];
+        %tmp.77 = getv function %tmp.76 :setValue;
+        symbol [ CACHE_TIME_KEY %tmp.79 76 41 55 ];
+        %tmp.79 = getv ? :CACHE_TIME_KEY;
+        symbol [ Time %tmp.80 76 57 61 ];
+        %tmp.80 = getm $.Toybox.Time;
+        symbol [ now %tmp.81 76 62 65 ];
+        %tmp.81 = getv function %tmp.80 :now;
+        %tmp.82 = invoke %tmp.80 %tmp.81();
+        symbol [ value %tmp.83 76 68 73 ];
+        %tmp.83 = getv function %tmp.82 :value;
+        %tmp.84 = invoke %tmp.82 %tmp.83();
+        invoke %tmp.76 %tmp.77(%tmp.79, %tmp.84);
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_73_24_77_8_stop:
+        goto @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_73_8_77_8_if_end;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_73_8_77_8_if_end:
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 79 8 ]
+        %tmp.85 = lgetv %loc;
+        symbol [ loc %tmp.85 79 15 18 ];
+        ret %tmp.85;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_60_30_80_4_stop:
+    }
+    [ @file = "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc"; @line = 82; @symbol_functiondef = [getCachedLocation,82,13,30]; ]
+    function getCachedLocation() {
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_82_33_95_4_start:
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 83 8 ]
+        [ "C__Users_Chris_CIRCADIA_Circadia_source_location_mc_82_33_95_4_start" "C__Users_Chris_CIRCADIA_Circadia_source_location_mc_82_33_95_4_stop" ]
+        %lat.1 = local;
+        symbol [ lat %lat.1 83 12 15 ];
+        symbol [ Application %tmp.1 83 18 29 ];
+        %tmp.1 = getm $.Toybox.Application;
+        symbol [ Storage %tmp.2 83 30 37 ];
+        %tmp.2 = getv %tmp.1 :Storage;
+        symbol [ getValue %tmp.3 83 38 46 ];
+        %tmp.3 = getv function %tmp.2 :getValue;
+        symbol [ CACHE_LAT_KEY %tmp.5 83 47 60 ];
+        %tmp.5 = getv ? :CACHE_LAT_KEY;
+        %tmp.6 = invoke %tmp.2 %tmp.3(%tmp.5);
+        lputv %lat.1 %tmp.6;
+        symbol [ lat %lat.1 83 12 15 ];
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 84 8 ]
+        [ "C__Users_Chris_CIRCADIA_Circadia_source_location_mc_82_33_95_4_start" "C__Users_Chris_CIRCADIA_Circadia_source_location_mc_82_33_95_4_stop" ]
+        %lon.2 = local;
+        symbol [ lon %lon.2 84 12 15 ];
+        symbol [ Application %tmp.7 84 18 29 ];
+        %tmp.7 = getm $.Toybox.Application;
+        symbol [ Storage %tmp.8 84 30 37 ];
+        %tmp.8 = getv %tmp.7 :Storage;
+        symbol [ getValue %tmp.9 84 38 46 ];
+        %tmp.9 = getv function %tmp.8 :getValue;
+        symbol [ CACHE_LON_KEY %tmp.11 84 47 60 ];
+        %tmp.11 = getv ? :CACHE_LON_KEY;
+        %tmp.12 = invoke %tmp.8 %tmp.9(%tmp.11);
+        lputv %lon.2 %tmp.12;
+        symbol [ lon %lon.2 84 12 15 ];
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 85 8 ]
+        [ "C__Users_Chris_CIRCADIA_Circadia_source_location_mc_82_33_95_4_start" "C__Users_Chris_CIRCADIA_Circadia_source_location_mc_82_33_95_4_stop" ]
+        %t.3 = local;
+        symbol [ t %t.3 85 12 13 ];
+        symbol [ Application %tmp.13 85 18 29 ];
+        %tmp.13 = getm $.Toybox.Application;
+        symbol [ Storage %tmp.14 85 30 37 ];
+        %tmp.14 = getv %tmp.13 :Storage;
+        symbol [ getValue %tmp.15 85 38 46 ];
+        %tmp.15 = getv function %tmp.14 :getValue;
+        symbol [ CACHE_TIME_KEY %tmp.17 85 47 61 ];
+        %tmp.17 = getv ? :CACHE_TIME_KEY;
+        %tmp.18 = invoke %tmp.14 %tmp.15(%tmp.17);
+        lputv %t.3 %tmp.18;
+        symbol [ t %t.3 85 12 13 ];
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 87 8 ]
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_87_8_87_68_if_stmt:
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_87_12_87_47_begin:
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_87_12_87_34_begin:
+        %tmp.19 = lgetv %lat.1;
+        symbol [ lat %tmp.19 87 12 15 ];
+        %tmp.20 = null;
+        %tmp.21 = eq %tmp.19 %tmp.20;
+        bt %tmp.21 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_87_8_87_68_if_true;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_87_27_87_34_false:
+        %tmp.22 = lgetv %lon.2;
+        symbol [ lon %tmp.22 87 27 30 ];
+        %tmp.23 = null;
+        %tmp.24 = eq %tmp.22 %tmp.23;
+        push %tmp.24;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_87_27_87_34_end:
+        %tmp.25 = phi [%tmp.21 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_87_12_87_34_begin] [%tmp.24 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_87_27_87_34_false] [%tmp.25 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_87_27_87_34_end];
+        bt %tmp.25 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_87_8_87_68_if_true;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_87_42_87_47_false:
+        %tmp.26 = lgetv %t.3;
+        symbol [ t %tmp.26 87 42 43 ];
+        %tmp.27 = null;
+        %tmp.28 = eq %tmp.26 %tmp.27;
+        push %tmp.28;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_87_42_87_47_end:
+        %tmp.29 = phi [%tmp.25 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_87_12_87_47_begin] [%tmp.28 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_87_42_87_47_false] [%tmp.29 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_87_42_87_47_end];
+        bf %tmp.29 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_87_8_87_68_if_end;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_87_8_87_68_if_true:
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_87_53_87_68_start:
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 87 55 ]
+        %tmp.30 = null;
+        ret %tmp.30;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_87_53_87_68_stop:
+        goto @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_87_8_87_68_if_end;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_87_8_87_68_if_end:
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 88 8 ]
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_88_8_88_71_if_stmt:
+        symbol [ Time %tmp.31 88 12 16 ];
+        %tmp.31 = getm $.Toybox.Time;
+        symbol [ now %tmp.32 88 17 20 ];
+        %tmp.32 = getv function %tmp.31 :now;
+        %tmp.33 = invoke %tmp.31 %tmp.32();
+        symbol [ value %tmp.34 88 23 28 ];
+        %tmp.34 = getv function %tmp.33 :value;
+        %tmp.35 = invoke %tmp.33 %tmp.34();
+        %tmp.36 = lgetv %t.3;
+        symbol [ t %tmp.36 88 33 34 ];
+        %tmp.37 = sub %tmp.35 %tmp.36;
+        symbol [ MAX_CACHE_AGE_SEC %tmp.39 88 37 54 ];
+        %tmp.39 = getv ? :MAX_CACHE_AGE_SEC;
+        %tmp.40 = gt %tmp.37 %tmp.39;
+        bf %tmp.40 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_88_8_88_71_if_end;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_88_8_88_71_if_true:
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_88_56_88_71_start:
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 88 58 ]
+        %tmp.41 = null;
+        ret %tmp.41;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_88_56_88_71_stop:
+        goto @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_88_8_88_71_if_end;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_88_8_88_71_if_end:
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 90 8 ]
+        [ "C__Users_Chris_CIRCADIA_Circadia_source_location_mc_82_33_95_4_start" "C__Users_Chris_CIRCADIA_Circadia_source_location_mc_82_33_95_4_stop" ]
+        %latF.4 = local;
+        symbol [ latF %latF.4 90 12 16 ];
+        %tmp.42 = lgetv %lat.1;
+        symbol [ lat %tmp.42 90 19 22 ];
+        symbol [ toFloat %tmp.43 90 23 30 ];
+        %tmp.43 = getv function %tmp.42 :toFloat;
+        %tmp.44 = invoke %tmp.42 %tmp.43();
+        lputv %latF.4 %tmp.44;
+        symbol [ latF %latF.4 90 12 16 ];
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 91 8 ]
+        [ "C__Users_Chris_CIRCADIA_Circadia_source_location_mc_82_33_95_4_start" "C__Users_Chris_CIRCADIA_Circadia_source_location_mc_82_33_95_4_stop" ]
+        %lonF.5 = local;
+        symbol [ lonF %lonF.5 91 12 16 ];
+        %tmp.45 = lgetv %lon.2;
+        symbol [ lon %tmp.45 91 19 22 ];
+        symbol [ toFloat %tmp.46 91 23 30 ];
+        %tmp.46 = getv function %tmp.45 :toFloat;
+        %tmp.47 = invoke %tmp.45 %tmp.46();
+        lputv %lonF.5 %tmp.47;
+        symbol [ lonF %lonF.5 91 12 16 ];
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 92 8 ]
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_92_8_92_55_if_stmt:
+        %tmp.48 = self;
+        symbol [ isValidLatLon %tmp.49 92 13 26 ];
+        %tmp.49 = getv function %tmp.48 :isValidLatLon;
+        %tmp.50 = lgetv %latF.4;
+        symbol [ latF %tmp.50 92 27 31 ];
+        %tmp.51 = lgetv %lonF.5;
+        symbol [ lonF %tmp.51 92 33 37 ];
+        %tmp.52 = invoke %tmp.48 %tmp.49(%tmp.50, %tmp.51);
+        %tmp.53 = not %tmp.52;
+        bf %tmp.53 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_92_8_92_55_if_end;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_92_8_92_55_if_true:
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_92_40_92_55_start:
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 92 42 ]
+        %tmp.54 = null;
+        ret %tmp.54;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_92_40_92_55_stop:
+        goto @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_92_8_92_55_if_end;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_92_8_92_55_if_end:
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 94 8 ]
+        %tmp.55 = newa 2;
+        %tmp.56 = lgetv %latF.4;
+        symbol [ latF %tmp.56 94 16 20 ];
+        %tmp.57 = dup %tmp.55;
+        %tmp.58 = aputv %tmp.57 0 %tmp.56;
+        %tmp.59 = lgetv %lonF.5;
+        symbol [ lonF %tmp.59 94 22 26 ];
+        %tmp.60 = dup %tmp.58;
+        %tmp.61 = aputv %tmp.60 1 %tmp.59;
+        ret %tmp.61;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_82_33_95_4_stop:
+    }
+    [ @file = "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc"; @line = 97; @symbol_functiondef = [degreesIfValid,97,13,27]; @symbol_param<0> = [position,97,28,36]; ]
+    function degreesIfValid(position) {
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_97_38_106_4_start:
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 98 8 ]
+        [ "C__Users_Chris_CIRCADIA_Circadia_source_location_mc_97_38_106_4_start" "C__Users_Chris_CIRCADIA_Circadia_source_location_mc_97_38_106_4_stop" ]
+        %deg.1 = local;
+        symbol [ deg %deg.1 98 12 15 ];
+        %tmp.1 = lgetv %position;
+        symbol [ position %tmp.1 98 18 26 ];
+        symbol [ toDegrees %tmp.2 98 27 36 ];
+        %tmp.2 = getv function %tmp.1 :toDegrees;
+        %tmp.3 = invoke %tmp.1 %tmp.2();
+        lputv %deg.1 %tmp.3;
+        symbol [ deg %deg.1 98 12 15 ];
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 99 8 ]
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_99_8_99_58_if_stmt:
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_99_12_99_40_begin:
+        %tmp.4 = lgetv %deg.1;
+        symbol [ deg %tmp.4 99 12 15 ];
+        %tmp.5 = null;
+        %tmp.6 = eq %tmp.4 %tmp.5;
+        bt %tmp.6 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_99_8_99_58_if_true;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_99_27_99_40_false:
+        %tmp.7 = lgetv %deg.1;
+        symbol [ deg %tmp.7 99 27 30 ];
+        %tmp.8 = as %tmp.7 { (!Null) };
+        symbol [ size %tmp.9 99 31 35 ];
+        %tmp.9 = getv function %tmp.8 :size;
+        %tmp.10 = invoke %tmp.8 %tmp.9();
+        %tmp.11 = 2;
+        %tmp.12 = lt %tmp.10 %tmp.11;
+        push %tmp.12;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_99_27_99_40_end:
+        %tmp.13 = phi [%tmp.6 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_99_12_99_40_begin] [%tmp.12 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_99_27_99_40_false] [%tmp.13 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_99_27_99_40_end];
+        bf %tmp.13 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_99_8_99_58_if_end;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_99_8_99_58_if_true:
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_99_43_99_58_start:
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 99 45 ]
+        %tmp.14 = null;
+        ret %tmp.14;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_99_43_99_58_stop:
+        goto @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_99_8_99_58_if_end;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_99_8_99_58_if_end:
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 101 8 ]
+        [ "C__Users_Chris_CIRCADIA_Circadia_source_location_mc_97_38_106_4_start" "C__Users_Chris_CIRCADIA_Circadia_source_location_mc_97_38_106_4_stop" ]
+        %lat.2 = local;
+        symbol [ lat %lat.2 101 12 15 ];
+        %tmp.15 = lgetv %deg.1;
+        symbol [ deg %tmp.15 101 18 21 ];
+        %tmp.16 = 0;
+        %tmp.17 = agetv %tmp.15 %tmp.16;
+        symbol [ toFloat %tmp.18 101 25 32 ];
+        %tmp.18 = getv function %tmp.17 :toFloat;
+        %tmp.19 = invoke %tmp.17 %tmp.18();
+        lputv %lat.2 %tmp.19;
+        symbol [ lat %lat.2 101 12 15 ];
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 102 8 ]
+        [ "C__Users_Chris_CIRCADIA_Circadia_source_location_mc_97_38_106_4_start" "C__Users_Chris_CIRCADIA_Circadia_source_location_mc_97_38_106_4_stop" ]
+        %lon.3 = local;
+        symbol [ lon %lon.3 102 12 15 ];
+        %tmp.20 = lgetv %deg.1;
+        symbol [ deg %tmp.20 102 18 21 ];
+        %tmp.21 = 1;
+        %tmp.22 = agetv %tmp.20 %tmp.21;
+        symbol [ toFloat %tmp.23 102 25 32 ];
+        %tmp.23 = getv function %tmp.22 :toFloat;
+        %tmp.24 = invoke %tmp.22 %tmp.23();
+        lputv %lon.3 %tmp.24;
+        symbol [ lon %lon.3 102 12 15 ];
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 103 8 ]
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_103_8_103_53_if_stmt:
+        %tmp.25 = self;
+        symbol [ isValidLatLon %tmp.26 103 13 26 ];
+        %tmp.26 = getv function %tmp.25 :isValidLatLon;
+        %tmp.27 = lgetv %lat.2;
+        symbol [ lat %tmp.27 103 27 30 ];
+        %tmp.28 = lgetv %lon.3;
+        symbol [ lon %tmp.28 103 32 35 ];
+        %tmp.29 = invoke %tmp.25 %tmp.26(%tmp.27, %tmp.28);
+        %tmp.30 = not %tmp.29;
+        bf %tmp.30 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_103_8_103_53_if_end;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_103_8_103_53_if_true:
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_103_38_103_53_start:
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 103 40 ]
+        %tmp.31 = null;
+        ret %tmp.31;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_103_38_103_53_stop:
+        goto @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_103_8_103_53_if_end;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_103_8_103_53_if_end:
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 105 8 ]
+        %tmp.32 = newa 2;
+        %tmp.33 = lgetv %lat.2;
+        symbol [ lat %tmp.33 105 16 19 ];
+        %tmp.34 = dup %tmp.32;
+        %tmp.35 = aputv %tmp.34 0 %tmp.33;
+        %tmp.36 = lgetv %lon.3;
+        symbol [ lon %tmp.36 105 21 24 ];
+        %tmp.37 = dup %tmp.35;
+        %tmp.38 = aputv %tmp.37 1 %tmp.36;
+        ret %tmp.38;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_97_38_106_4_stop:
+    }
+    [ @file = "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc"; @line = 108; @symbol_functiondef = [isValidLatLon,108,13,26]; @symbol_param<0> = [lat,108,27,30]; @symbol_param<1> = [lon,108,32,35]; ]
+    function isValidLatLon(lat, lon) {
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_108_37_113_4_start:
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 109 8 ]
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_109_8_109_56_if_stmt:
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_109_12_109_34_begin:
+        %tmp.1 = lgetv %lat;
+        symbol [ lat %tmp.1 109 12 15 ];
+        %tmp.2 = null;
+        %tmp.3 = eq %tmp.1 %tmp.2;
+        bt %tmp.3 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_109_8_109_56_if_true;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_109_27_109_34_false:
+        %tmp.4 = lgetv %lon;
+        symbol [ lon %tmp.4 109 27 30 ];
+        %tmp.5 = null;
+        %tmp.6 = eq %tmp.4 %tmp.5;
+        push %tmp.6;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_109_27_109_34_end:
+        %tmp.7 = phi [%tmp.3 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_109_12_109_34_begin] [%tmp.6 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_109_27_109_34_false] [%tmp.7 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_109_27_109_34_end];
+        bf %tmp.7 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_109_8_109_56_if_end;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_109_8_109_56_if_true:
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_109_40_109_56_start:
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 109 42 ]
+        %tmp.8 = false;
+        ret %tmp.8;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_109_40_109_56_stop:
+        goto @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_109_8_109_56_if_end;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_109_8_109_56_if_end:
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 110 8 ]
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_110_8_110_86_if_stmt:
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_110_12_110_63_begin:
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_110_12_110_48_begin:
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_110_12_110_33_begin:
+        %tmp.9 = lgetv %lat;
+        symbol [ lat %tmp.9 110 12 15 ];
+        %tmp.10 = -90.0;
+        %tmp.11 = lt %tmp.9 %tmp.10;
+        bt %tmp.11 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_110_8_110_86_if_true;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_110_27_110_33_false:
+        %tmp.12 = lgetv %lat;
+        symbol [ lat %tmp.12 110 27 30 ];
+        %tmp.13 = 90.0;
+        %tmp.14 = gt %tmp.12 %tmp.13;
+        push %tmp.14;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_110_27_110_33_end:
+        %tmp.15 = phi [%tmp.11 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_110_12_110_33_begin] [%tmp.14 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_110_27_110_33_false] [%tmp.15 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_110_27_110_33_end];
+        bt %tmp.15 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_110_8_110_86_if_true;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_110_41_110_48_false:
+        %tmp.16 = lgetv %lon;
+        symbol [ lon %tmp.16 110 41 44 ];
+        %tmp.17 = -180.0;
+        %tmp.18 = lt %tmp.16 %tmp.17;
+        push %tmp.18;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_110_41_110_48_end:
+        %tmp.19 = phi [%tmp.15 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_110_12_110_48_begin] [%tmp.18 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_110_41_110_48_false] [%tmp.19 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_110_41_110_48_end];
+        bt %tmp.19 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_110_8_110_86_if_true;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_110_57_110_63_false:
+        %tmp.20 = lgetv %lon;
+        symbol [ lon %tmp.20 110 57 60 ];
+        %tmp.21 = 180.0;
+        %tmp.22 = gt %tmp.20 %tmp.21;
+        push %tmp.22;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_110_57_110_63_end:
+        %tmp.23 = phi [%tmp.19 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_110_12_110_63_begin] [%tmp.22 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_110_57_110_63_false] [%tmp.23 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_110_57_110_63_end];
+        bf %tmp.23 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_110_8_110_86_if_end;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_110_8_110_86_if_true:
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_110_70_110_86_start:
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 110 72 ]
+        %tmp.24 = false;
+        ret %tmp.24;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_110_70_110_86_stop:
+        goto @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_110_8_110_86_if_end;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_110_8_110_86_if_end:
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 111 8 ]
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_111_8_111_54_if_stmt:
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_111_12_111_33_begin:
+        %tmp.25 = lgetv %lat;
+        symbol [ lat %tmp.25 111 12 15 ];
+        %tmp.26 = 0.0;
+        %tmp.27 = eq %tmp.25 %tmp.26;
+        bf %tmp.27 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_111_8_111_54_if_end;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_111_26_111_33_true:
+        %tmp.28 = lgetv %lon;
+        symbol [ lon %tmp.28 111 26 29 ];
+        %tmp.29 = 0.0;
+        %tmp.30 = eq %tmp.28 %tmp.29;
+        push %tmp.30;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_111_26_111_33_end:
+        %tmp.31 = phi [%tmp.27 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_111_12_111_33_begin] [%tmp.30 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_111_26_111_33_true] [%tmp.31 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_111_26_111_33_end];
+        bf %tmp.31 @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_111_8_111_54_if_end;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_111_8_111_54_if_true:
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_111_38_111_54_start:
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 111 40 ]
+        %tmp.32 = false;
+        ret %tmp.32;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_111_38_111_54_stop:
+        goto @C__Users_Chris_CIRCADIA_Circadia_source_location_mc_111_8_111_54_if_end;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_111_8_111_54_if_end:
+[ "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc" 112 8 ]
+        %tmp.33 = true;
+        ret %tmp.33;
+C__Users_Chris_CIRCADIA_Circadia_source_location_mc_108_37_113_4_stop:
+    }
+}
+[ @file = "C:\Users\Chris\CIRCADIA\Circadia\source\location.mc"; @line = 1; ]
+<init> {
+}

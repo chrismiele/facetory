@@ -35,9 +35,6 @@ module config {
     const TIME_FORMAT_24H = 0;
     const TIME_FORMAT_12H = 1;
 
-    const HALO_RING = 0;
-    const HALO_DISC = 1;
-
     const DATE_FORMAT_DAY_NUMBER = 0;   // e.g. "Mon 5"
     const DATE_FORMAT_MONTH_DAY  = 1;   // e.g. "Apr 5"
     const DATE_FORMAT_DAY_MONTH  = 2;   // e.g. "5 Apr"
@@ -59,8 +56,7 @@ module config {
     var _timeFormat       = TIME_FORMAT_24H;
     var _dateFormat       = DATE_FORMAT_DAY_NUMBER;
     var _minuteSaturation = 3;       // 0-5 step index, mapped to 0.0-1.0 in step of 0.2
-    var _fieldSaturation  = 0;       // 0-5 step index for data-field text
-    var _haloStyle        = HALO_RING;
+    var _fieldSaturation  = 0;       // 0-5 step index for data-field text (and second ticks)
 
     // Helpers — getValue throws if a key is missing from properties.xml,
     // so wrap each read in a try/catch and fall back to the current value.
@@ -113,7 +109,6 @@ module config {
         _dateFormat       = readNumber("dateFormat",       _dateFormat);
         _minuteSaturation = readNumber("minuteSaturation", _minuteSaturation);
         _fieldSaturation  = readNumber("fieldSaturation",  _fieldSaturation);
-        _haloStyle        = readNumber("haloStyle",        _haloStyle);
     }
 
     // ── Accessors (zero-cost reads of cached values) ─────────────────────────
@@ -133,7 +128,6 @@ module config {
     function lonDeg()           { return _lonDeg;           }
     function minuteSaturation() { return _minuteSaturation / 5.0; }
     function fieldSaturation()  { return _fieldSaturation  / 5.0; }
-    function haloStyle()        { return _haloStyle;        }
     function aodBehaviour()     { return _aodBehaviour;     }
     function timeFormat()       { return _timeFormat;       }
     function dateFormat()       { return _dateFormat;       }

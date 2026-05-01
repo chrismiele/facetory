@@ -17,7 +17,6 @@
         <string id="latDegTitle">Heimatbreitengrad (Dezimalgrad, positiv = N)</string>
         <string id="lonDegTitle">Heimatlängengrad (Dezimalgrad, positiv = O)</string>
         <string id="aodBehaviourTitle">Always-On-Display</string>
-        <string id="haloStyleTitle">Sonnenhof-Stil (AMOLED)</string>
         <string id="timeFormatTitle">Zeitformat</string>
         <string id="dateFormatTitle">Datumsformat</string>
         <string id="minuteSaturationTitle">Farbsättigung der Minuten</string>
@@ -63,10 +62,6 @@
         <string id="aodTimeOnly">Nur Uhrzeit</string>
         <string id="aodSkyOnly">Nur Himmel</string>
         <string id="aodShowAll">Alles anzeigen</string>
-
-        <!-- Halo style choices -->
-        <string id="haloRing">Ring</string>
-        <string id="haloDisc">Scheibe</string>
 
         <!-- Time format choices -->
         <string id="timeFormat24h">24 Stunden</string>

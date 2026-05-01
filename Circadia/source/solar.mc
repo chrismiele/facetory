@@ -98,6 +98,17 @@ module Solar {
         return Colours.SUN_BLUE;
     }
 
+    // AMOLED ember/ring core colour. Above 18° the core is pure white;
+    // between 12° and 18° it blends from white to yellow; from 12°
+    // downward the core simply matches the halo colour so the whole sun
+    // reads as a single hue (the "white core" feature is reserved for
+    // genuinely high daylight). Below 12° this delegates to sunColorForAlt.
+    function sunCoreColorForAlt(altDeg) {
+        if (altDeg >= 18.0) { return Colours.WHITE; }
+        if (altDeg >= 12.0) { return MathUtil.blendColor(Colours.WHITE, Colours.SUN_YELLOW, (18.0 - altDeg) / 6.0); }
+        return sunColorForAlt(altDeg);
+    }
+
     // Whiten sunColor by (1 - saturation) for the AMOLED minute text.
     function brightSunColor(sunColor, saturation) {
         return MathUtil.blendColor(Colours.WHITE, sunColor, MathUtil.clamp(saturation, 0.0, 1.0));

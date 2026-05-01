@@ -1,0 +1,65 @@
+[ @file = "C:\Users\Chris\CIRCADIA\Circadia\source\colours.mc"; @line = 12; @symbol_moduledef = [Colours,12,7,14]; ]
+module Colours {
+    [ @file = "C:\Users\Chris\CIRCADIA\Circadia\source\colours.mc"; @line = 12; ]
+    <init> {
+    }
+    [ @file = "C:\Users\Chris\CIRCADIA\Circadia\source\colours.mc"; @line = 15; @position = 10; @symbol_constdef = [BLACK,15,10,15]; ]
+    const BLACK = 0x000000;
+    [ @file = "C:\Users\Chris\CIRCADIA\Circadia\source\colours.mc"; @line = 16; @position = 10; @symbol_constdef = [WHITE,16,10,15]; ]
+    const WHITE = 0xFFFFFF;
+    [ @file = "C:\Users\Chris\CIRCADIA\Circadia\source\colours.mc"; @line = 19; @position = 10; @symbol_constdef = [SUN_YELLOW,19,10,20]; ]
+    const SUN_YELLOW = 0xFFFF00;
+    [ @file = "C:\Users\Chris\CIRCADIA\Circadia\source\colours.mc"; @line = 20; @position = 10; @symbol_constdef = [SUN_ORANGE,20,10,20]; ]
+    const SUN_ORANGE = 0xFFAA00;
+    [ @file = "C:\Users\Chris\CIRCADIA\Circadia\source\colours.mc"; @line = 21; @position = 10; @symbol_constdef = [SUN_RED,21,10,17]; ]
+    const SUN_RED = 0xFF0000;
+    [ @file = "C:\Users\Chris\CIRCADIA\Circadia\source\colours.mc"; @line = 22; @position = 10; @symbol_constdef = [SUN_PURPLE,22,10,20]; ]
+    const SUN_PURPLE = 0xD060FF;
+    [ @file = "C:\Users\Chris\CIRCADIA\Circadia\source\colours.mc"; @line = 23; @position = 10; @symbol_constdef = [SUN_BLUE,23,10,18]; ]
+    const SUN_BLUE = 0x5F6FFF;
+    [ @file = "C:\Users\Chris\CIRCADIA\Circadia\source\colours.mc"; @line = 38; @position = 10; @symbol_constdef = [MIP_SUN_BRIGHT,38,10,24]; ]
+    const MIP_SUN_BRIGHT = 0xFFFF00;
+    [ @file = "C:\Users\Chris\CIRCADIA\Circadia\source\colours.mc"; @line = 39; @position = 10; @symbol_constdef = [MIP_SUN_MEDIUM,39,10,24]; ]
+    const MIP_SUN_MEDIUM = 0xAAAA00;
+    [ @file = "C:\Users\Chris\CIRCADIA\Circadia\source\colours.mc"; @line = 41; @position = 10; @symbol_constdef = [MIP_ORANGE_BRIGHT,41,10,27]; ]
+    const MIP_ORANGE_BRIGHT = 0xFFAA00;
+    [ @file = "C:\Users\Chris\CIRCADIA\Circadia\source\colours.mc"; @line = 42; @position = 10; @symbol_constdef = [MIP_ORANGE_MEDIUM,42,10,27]; ]
+    const MIP_ORANGE_MEDIUM = 0xAA5500;
+    [ @file = "C:\Users\Chris\CIRCADIA\Circadia\source\colours.mc"; @line = 44; @position = 10; @symbol_constdef = [MIP_RED_BRIGHT,44,10,24]; ]
+    const MIP_RED_BRIGHT = 0xFF0000;
+    [ @file = "C:\Users\Chris\CIRCADIA\Circadia\source\colours.mc"; @line = 45; @position = 10; @symbol_constdef = [MIP_RED_MEDIUM,45,10,24]; ]
+    const MIP_RED_MEDIUM = 0xAA0000;
+    [ @file = "C:\Users\Chris\CIRCADIA\Circadia\source\colours.mc"; @line = 47; @position = 10; @symbol_constdef = [MIP_PURPLE_BRIGHT,47,10,27]; ]
+    const MIP_PURPLE_BRIGHT = 0xFF55FF;
+    [ @file = "C:\Users\Chris\CIRCADIA\Circadia\source\colours.mc"; @line = 48; @position = 10; @symbol_constdef = [MIP_PURPLE_MEDIUM,48,10,27]; ]
+    const MIP_PURPLE_MEDIUM = 0xAA00AA;
+    [ @file = "C:\Users\Chris\CIRCADIA\Circadia\source\colours.mc"; @line = 50; @position = 10; @symbol_constdef = [MIP_BLUE_BRIGHT,50,10,25]; ]
+    const MIP_BLUE_BRIGHT = 0x55AAFF;
+    [ @file = "C:\Users\Chris\CIRCADIA\Circadia\source\colours.mc"; @line = 51; @position = 10; @symbol_constdef = [MIP_BLUE_MEDIUM,51,10,25]; ]
+    const MIP_BLUE_MEDIUM = 0x0055AA;
+    [ @file = "C:\Users\Chris\CIRCADIA\Circadia\source\colours.mc"; @line = 54; @position = 10; @symbol_constdef = [MOON_AMOLED,54,10,21]; ]
+    const MOON_AMOLED = 0xC8CDD3;
+    [ @file = "C:\Users\Chris\CIRCADIA\Circadia\source\colours.mc"; @line = 55; @position = 10; @symbol_constdef = [MIP_MOON_BRIGHT,55,10,25]; ]
+    const MIP_MOON_BRIGHT = 0xAAAAAA;
+    [ @file = "C:\Users\Chris\CIRCADIA\Circadia\source\colours.mc"; @line = 56; @position = 10; @symbol_constdef = [MIP_MOON_MEDIUM,56,10,25]; ]
+    const MIP_MOON_MEDIUM = 0x808080;
+    [ @file = "C:\Users\Chris\CIRCADIA\Circadia\source\colours.mc"; @line = 57; @position = 10; @symbol_constdef = [MIP_MOON_DARK,57,10,23]; ]
+    const MIP_MOON_DARK = 0x555555;
+    [ @file = "C:\Users\Chris\CIRCADIA\Circadia\source\colours.mc"; @line = 60; @position = 10; @symbol_constdef = [STAR_YELLOW,60,10,21]; ]
+    const STAR_YELLOW = 0xFDEBD2;
+    [ @file = "C:\Users\Chris\CIRCADIA\Circadia\source\colours.mc"; @line = 61; @position = 10; @symbol_constdef = [STAR_SOFT_YELLOW,61,10,26]; ]
+    const STAR_SOFT_YELLOW = 0xFFF6D8;
+    [ @file = "C:\Users\Chris\CIRCADIA\Circadia\source\colours.mc"; @line = 62; @position = 10; @symbol_constdef = [STAR_RED,62,10,18]; ]
+    const STAR_RED = 0xFFB08A;
+    [ @file = "C:\Users\Chris\CIRCADIA\Circadia\source\colours.mc"; @line = 63; @position = 10; @symbol_constdef = [STAR_BLUE,63,10,19]; ]
+    const STAR_BLUE = 0xC9D8FF;
+    [ @file = "C:\Users\Chris\CIRCADIA\Circadia\source\colours.mc"; @line = 64; @position = 10; @symbol_constdef = [STAR_WHITE,64,10,20]; ]
+    const STAR_WHITE = 0xF4F4FF;
+    [ @file = "C:\Users\Chris\CIRCADIA\Circadia\source\colours.mc"; @line = 67; @position = 10; @symbol_constdef = [SUNSET_ACCENT,67,10,23]; ]
+    const SUNSET_ACCENT = 0xFF8000;
+    [ @file = "C:\Users\Chris\CIRCADIA\Circadia\source\colours.mc"; @line = 68; @position = 10; @symbol_constdef = [CHARGING,68,10,18]; ]
+    const CHARGING = 0xFFFF00;
+}
+[ @file = "C:\Users\Chris\CIRCADIA\Circadia\source\colours.mc"; @line = 12; ]
+<init> {
+}

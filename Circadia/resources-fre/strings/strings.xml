@@ -17,7 +17,6 @@
         <string id="latDegTitle">Latitude du domicile (degrés décimaux, positif = N)</string>
         <string id="lonDegTitle">Longitude du domicile (degrés décimaux, positif = E)</string>
         <string id="aodBehaviourTitle">Affichage permanent</string>
-        <string id="haloStyleTitle">Style du halo solaire (AMOLED)</string>
         <string id="timeFormatTitle">Format de l'heure</string>
         <string id="dateFormatTitle">Format de la date</string>
         <string id="minuteSaturationTitle">Saturation des minutes</string>
@@ -63,10 +62,6 @@
         <string id="aodTimeOnly">Heure uniquement</string>
         <string id="aodSkyOnly">Ciel uniquement</string>
         <string id="aodShowAll">Tout afficher</string>
-
-        <!-- Halo style choices -->
-        <string id="haloRing">Anneau</string>
-        <string id="haloDisc">Disque</string>
 
         <!-- Time format choices -->
         <string id="timeFormat24h">24 heures</string>

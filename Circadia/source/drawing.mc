@@ -13,15 +13,11 @@ module Drawing {
     const GLOW_STEPS       = 18;
     const NEW_MOON_DIAMETER_DEG = 5.0;
     const MOON_DIAMETER_DEG     = 12.0;
-    const RING_THICKNESS_DEG    = 6.0;
     const MIP_RING_THICKNESS_DEG  = 3.0;
     const MOON_RING_THICKNESS_DEG = 15.0;
     const SUN_GLOW_CUTOFF_DEG     = 18.0;
     const MAX_MOON_GLOW_BRIGHTNESS         = 0.5;
     const INNER_MOON_GLOW_BRIGHTNESS_SCALE = 0.5;
-    const RING_OUTER_EDGE_SCALE = 0.1;
-    const RING_INNER_EDGE_SCALE = 0.2;
-    const RING_PEAK_SCALE       = 0.4;
 
     const STAR_SMALL  = 0;
     const STAR_MEDIUM = 1;
@@ -51,12 +47,12 @@ module Drawing {
     const GLOW_SLOT_YELLOW = 0;
     const GLOW_SLOT_BLUE   = 1;
 
-    var _glowBitmap   = [null, null];
-    var _glowR        = [-1.0, -1.0];
-    var _glowDeg      = [-1.0, -1.0];
-    var _glowSteps    = [-1, -1];
-    var _glowStyle    = [-1, -1];
-    var _glowRadiusPx = [0, 0];
+    var _glowBitmap    = [null, null];
+    var _glowR         = [-1.0, -1.0];
+    var _glowDeg       = [-1.0, -1.0];
+    var _glowSteps     = [-1, -1];
+    var _glowCoreColor = [-1, -1];
+    var _glowRadiusPx  = [0, 0];
 
     var _transparent;
 
@@ -128,7 +124,7 @@ module Drawing {
         dc.fillCircle(cx.toNumber(), cy.toNumber(), R.toNumber());
     }
 
-    function drawSky(dc, cache, sunColor, showSun, showMoon, showStars, mipMode) {
+    function drawSky(dc, cache, sunColor, sunCoreColor, showSun, showMoon, showStars, mipMode) {
         var cx = cache[0];
         var cy = cache[1];
         var R  = cache[2];
@@ -151,7 +147,7 @@ module Drawing {
             if (mipMode) {
                 drawMipSun(dc, sx, sy, R, sunAlt);
             } else {
-                drawSunGlow(dc, sx, sy, cx, cy, R, sunColor, SUN_GLOW_DEG, GLOW_STEPS);
+                drawSunGlow(dc, sx, sy, cx, cy, R, sunColor, sunCoreColor, SUN_GLOW_DEG, GLOW_STEPS);
             }
         }
 
@@ -267,7 +263,7 @@ module Drawing {
     }
 
     function drawSecondTicks(dc, cx, cy, R, sec) {
-        dc.setColor(Solar.brightSunColor(_currentSunColor, config.minuteSaturation()), BLACK);
+        dc.setColor(Solar.brightSunColor(_currentSunColor, config.fieldSaturation()), BLACK);
         for (var i = 0; i < sec; i += 1) {
             dc.fillPolygon(secondTickPolygon(cx, cy, R, i));
         }
@@ -289,7 +285,7 @@ module Drawing {
 
         var pad = 1;
         dc.setClip(minX - pad, minY - pad, maxX - minX + 2*pad, maxY - minY + 2*pad);
-        dc.setColor(Solar.brightSunColor(_currentSunColor, config.minuteSaturation()), BLACK);
+        dc.setColor(Solar.brightSunColor(_currentSunColor, config.fieldSaturation()), BLACK);
         dc.fillPolygon(p);
         dc.clearClip();
     }
@@ -369,28 +365,26 @@ module Drawing {
         return -1;
     }
 
-    function drawSunGlow(dc, x, y, cx, cy, R, sunColor, glowDeg, glowSteps) {
-        var haloStyle = config.haloStyle();
+    function drawSunGlow(dc, x, y, cx, cy, R, sunColor, sunCoreColor, glowDeg, glowSteps) {
         if (Toybox.Graphics has :createBufferedBitmap) {
             var slot = glowCacheSlot(sunColor);
             if (slot >= 0) {
-                var bmp = getGlowBitmap(slot, sunColor, R, glowDeg, glowSteps, haloStyle);
+                var bmp = getGlowBitmap(slot, sunColor, sunCoreColor, R, glowDeg, glowSteps);
                 if (bmp != null) {
                     dc.drawBitmap(x.toNumber() - _glowRadiusPx[slot], y.toNumber() - _glowRadiusPx[slot], bmp);
                     return;
                 }
             }
         }
-        drawSunGlowDirect(dc, x, y, cx, cy, R, sunColor, glowDeg, glowSteps, haloStyle);
+        drawSunGlowDirect(dc, x, y, cx, cy, R, sunColor, sunCoreColor, glowDeg, glowSteps);
     }
 
-    function drawSunGlowDirect(dc, x, y, cx, cy, R, sunColor, glowDeg, glowSteps, haloStyle) {
-        var glowPx = R*(glowDeg/90.0);
-        var thicknessPx = R*(RING_THICKNESS_DEG/90.0);
-        var innerPx = glowPx - thicknessPx;
-        if (innerPx < 0.0) { innerPx = 0.0; }
-
-        var midPx    = 0.5*(glowPx + innerPx);
+    // AMOLED ember halo — three radial zones (using f = ri/glowPx):
+    //   f < 0.15        : pure core colour
+    //   0.15 <= f < 0.30: linear blend core -> sunColor
+    //   f >= 0.30       : linear falloff sunColor -> sunColor*0.2 at the rim
+    function drawSunGlowDirect(dc, x, y, cx, cy, R, sunColor, sunCoreColor, glowDeg, glowSteps) {
+        var glowPx   = R*(glowDeg/90.0);
         var invSteps = 1.0/glowSteps.toFloat();
         var xi = x.toNumber();
         var yi = y.toNumber();
@@ -405,36 +399,29 @@ module Drawing {
 
             if (d - ri >= R) { continue; }
 
-            var brightness;
-
-            if (haloStyle == config.HALO_DISC) {
-                // Linear falloff: 1.0 at centre, 0.2 at outer edge
-                brightness = 1.0 - 0.8*f;
-            } else if (ri >= midPx) {
-                brightness = RING_PEAK_SCALE
-                    + (RING_OUTER_EDGE_SCALE - RING_PEAK_SCALE)*(ri - midPx)/(glowPx - midPx);
-            } else if (ri >= innerPx) {
-                brightness = RING_INNER_EDGE_SCALE
-                    + (RING_PEAK_SCALE - RING_INNER_EDGE_SCALE)*(ri - innerPx)/(midPx - innerPx);
-            } else if (innerPx > 0.0) {
-                brightness = 1.0
-                    + (RING_INNER_EDGE_SCALE - 1.0)*ri/innerPx;
+            var color;
+            if (f < 0.15) {
+                color = sunCoreColor;
+            } else if (f < 0.30) {
+                var s = (f - 0.15) / 0.15;
+                color = MathUtil.blendColor(sunCoreColor, sunColor, s);
             } else {
-                brightness = 1.0;
+                var s2 = (f - 0.30) / 0.70;
+                color = Solar.scaleColor(sunColor, 1.0 - 0.8*s2);
             }
 
-            dc.setColor(Solar.scaleColor(sunColor, brightness), BLACK);
+            dc.setColor(color, BLACK);
             dc.fillCircle(xi, yi, ri);
         }
     }
 
-    // Unified glow-bitmap getter — caches per (slot, R, glowDeg, glowSteps, haloStyle).
-    function getGlowBitmap(slot, sunColor, R, glowDeg, glowSteps, haloStyle) {
+    // Glow-bitmap cache: keyed on (slot, R, glowDeg, glowSteps, sunCoreColor).
+    function getGlowBitmap(slot, sunColor, sunCoreColor, R, glowDeg, glowSteps) {
         if (_glowBitmap[slot] != null
-            && _glowR[slot]     == R
-            && _glowDeg[slot]   == glowDeg
-            && _glowSteps[slot] == glowSteps
-            && _glowStyle[slot] == haloStyle) {
+            && _glowR[slot]         == R
+            && _glowDeg[slot]       == glowDeg
+            && _glowSteps[slot]     == glowSteps
+            && _glowCoreColor[slot] == sunCoreColor) {
             return _glowBitmap[slot];
         }
 
@@ -458,14 +445,14 @@ module Drawing {
         bdc.setColor(BLACK, _transparent);
         bdc.clear();
 
-        drawSunGlowDirect(bdc, radiusPx, radiusPx, radiusPx, radiusPx, R, sunColor, glowDeg, glowSteps, haloStyle);
+        drawSunGlowDirect(bdc, radiusPx, radiusPx, radiusPx, radiusPx, R, sunColor, sunCoreColor, glowDeg, glowSteps);
 
-        _glowBitmap[slot]   = bmp;
-        _glowR[slot]        = R;
-        _glowDeg[slot]      = glowDeg;
-        _glowSteps[slot]    = glowSteps;
-        _glowStyle[slot]    = haloStyle;
-        _glowRadiusPx[slot] = radiusPx;
+        _glowBitmap[slot]    = bmp;
+        _glowR[slot]         = R;
+        _glowDeg[slot]       = glowDeg;
+        _glowSteps[slot]     = glowSteps;
+        _glowCoreColor[slot] = sunCoreColor;
+        _glowRadiusPx[slot]  = radiusPx;
 
         return bmp;
     }

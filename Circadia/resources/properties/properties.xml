@@ -35,11 +35,8 @@
         <!-- Date format: 0 = "Day Number", 1 = "Month Day", 2 = "Day Month" -->
         <property id="dateFormat"  type="number">0</property>
 
-        <!-- AMOLED solar halo art: 0 = ring, 1 = disc (monotonic gradient) -->
-        <property id="haloStyle"   type="number">0</property>
-
         <!-- Minute colour saturation step: 0-5 (mapped to 0.0, 0.2, ... 1.0) -->
-        <property id="minuteSaturation" type="number">3</property>
+        <property id="minuteSaturation" type="number">4</property>
 
         <!-- Data-field colour saturation step: 0-5 (independent of minute saturation) -->
         <property id="fieldSaturation" type="number">0</property>

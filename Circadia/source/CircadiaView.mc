@@ -17,7 +17,8 @@ class CircadiaView extends WatchUi.WatchFace {
     var _latDeg;
     var _lonDeg;
 
-    var _sunColor = Colours.WHITE;
+    var _sunColor     = Colours.WHITE;
+    var _sunCoreColor = Colours.WHITE;
     var _bodyBatteryText = NO_DATA;
     var _stressText      = NO_DATA;
     var _batteryPctText  = NO_DATA;   // "87%" — refreshed once per minute
@@ -121,7 +122,7 @@ class CircadiaView extends WatchUi.WatchFace {
         if (showSky) {
             updateSkyCache(g, t);
             Drawing.drawSky(
-                dc, _skyCache, _sunColor,
+                dc, _skyCache, _sunColor, _sunCoreColor,
                 config.showSun(), config.showMoon(), config.showStars(),
                 mipMode
             );
@@ -200,6 +201,7 @@ class CircadiaView extends WatchUi.WatchFace {
         _sunColor = mipMode
             ? Solar.mipBrightSunColorForAlt(_cachedSunAltAz[0])
             : Solar.sunColorForAlt(_cachedSunAltAz[0]);
+        _sunCoreColor = Solar.sunCoreColorForAlt(_cachedSunAltAz[0]);
 
         _cachedMoonAltAz = [0.0, 0.0];
         if (config.showMoon()) {
