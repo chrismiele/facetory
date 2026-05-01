@@ -62,9 +62,9 @@ module Drawing {
     const COLON_V_SHIFT_FRAC = 0.0561797753;
 
     const TOP_FIELD_RADIUS_FRAC    = 0.67;
-    const BOTTOM_FIELD_RADIUS_FRAC = 0.5;
+    const BOTTOM_FIELD_RADIUS_FRAC = 0.60;
     const TOP_FIELD_AZ_DEG         = 0.0;
-    const SIDE_FIELD_OFFSET_DEG     = 45.0;
+    const SIDE_FIELD_OFFSET_DEG     = 50.0;
     const BOTTOM_RIGHT_FIELD_AZ_DEG = 180.0 - SIDE_FIELD_OFFSET_DEG;
     const BOTTOM_LEFT_FIELD_AZ_DEG  = 180.0 + SIDE_FIELD_OFFSET_DEG;
 
