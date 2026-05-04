@@ -65,6 +65,5 @@ module Colours {
 
     // ── Accents ─────────────────────────────────────────────────────────
     const SUNSET_ACCENT     = 0xFF8000;   // tinges the hour text near sunrise/sunset
-    const CHARGING          = 0xFFFF00;   // battery field foreground when charging
 
 }

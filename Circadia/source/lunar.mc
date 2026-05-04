@@ -39,8 +39,10 @@ module Lunar {
     const ORIENT_UP    = 3;
 
     const SYNODIC_MONTH_DAYS     = 29.530588;
-    const FULL_MOON_WINDOW_HOURS = 48.0;
-    const FULL_MOON_WINDOW_DEG   = 360.0 * FULL_MOON_WINDOW_HOURS / (24.0 * SYNODIC_MONTH_DAYS);
+    // Full moon glow is active within 3% of the synodic cycle from true full moon
+    // (phase angle 180°). 3% of 360° = 10.8° — confines the glow to same-day events.
+    const FULL_MOON_WINDOW_FRAC = 0.034;
+    const FULL_MOON_WINDOW_DEG  = 360.0 * FULL_MOON_WINDOW_FRAC;
 
     var _prevGibbousBin  = -1;
     var _prevHalfBin     = -1;

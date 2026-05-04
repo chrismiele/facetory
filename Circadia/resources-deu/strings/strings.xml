@@ -20,7 +20,6 @@
         <string id="timeFormatTitle">Zeitformat</string>
         <string id="dateFormatTitle">Datumsformat</string>
         <string id="minuteSaturationTitle">Farbsättigung der Minuten</string>
-        <string id="fieldSaturationTitle">Farbsättigung der Datenfelder</string>
 
         <!-- Field choices -->
         <string id="fieldDate">Datum</string>

@@ -18,7 +18,6 @@ class CircadiaView extends WatchUi.WatchFace {
     var _lonDeg;
 
     var _sunColor     = Colours.WHITE;
-    var _sunCoreColor = Colours.WHITE;
     var _bodyBatteryText = NO_DATA;
     var _stressText      = NO_DATA;
     var _batteryPctText  = NO_DATA;   // "87%" — refreshed once per minute
@@ -117,17 +116,16 @@ class CircadiaView extends WatchUi.WatchFace {
         }
 
         refreshLiveFields();
-        Drawing.setCurrentSunColor(_sunColor);
 
         if (showSky) {
             updateSkyCache(g, t);
             Drawing.drawSky(
-                dc, _skyCache, _sunColor, _sunCoreColor,
+                dc, _skyCache, _sunColor,
                 config.showSun(), config.showMoon(), config.showStars(),
                 mipMode
             );
         } else {
-            Drawing.clearScreen(dc, _layoutCache);
+            Drawing.clearScreen(dc);
         }
 
         if (showFace) {
@@ -201,7 +199,6 @@ class CircadiaView extends WatchUi.WatchFace {
         _sunColor = mipMode
             ? Solar.mipBrightSunColorForAlt(_cachedSunAltAz[0])
             : Solar.sunColorForAlt(_cachedSunAltAz[0]);
-        _sunCoreColor = Solar.sunCoreColorForAlt(_cachedSunAltAz[0]);
 
         _cachedMoonAltAz = [0.0, 0.0];
         if (config.showMoon()) {
@@ -240,9 +237,11 @@ class CircadiaView extends WatchUi.WatchFace {
             updateNextSunEventIfNeeded(now);
         }
 
-        _topFieldText   = getFieldText(config.topField());
-        _leftFieldText  = getFieldText(config.leftField());
-        _rightFieldText = getFieldText(config.rightField());
+        // Activity-monitor fields share a single getInfo() call.
+        var amInfo = anyActivityMonitorFieldVisible() ? ActivityMonitor.getInfo() : null;
+        _topFieldText   = getFieldText(config.topField(),   amInfo);
+        _leftFieldText  = getFieldText(config.leftField(),  amInfo);
+        _rightFieldText = getFieldText(config.rightField(), amInfo);
     }
 
     // The next sunrise or sunset, whichever comes first. Cached as a
@@ -290,31 +289,10 @@ class CircadiaView extends WatchUi.WatchFace {
             _nextSunEventText = NO_DATA;
             _nextSunEventAt   = null;
         } else {
-            _nextSunEventText = prefix + formatMoment(moment);
+            var info = Gregorian.info(moment, Time.FORMAT_SHORT);
+            _nextSunEventText = prefix + MathUtil.formatHourMin(info.hour, info.min, config.is12hMode());
             _nextSunEventAt   = moment;
         }
-    }
-
-    function formatMoment(moment) {
-        var info = Gregorian.info(moment, Time.FORMAT_SHORT);
-        return formatHourMin(info.hour, info.min);
-    }
-
-    // Format a time as "HH:MM" honouring config.timeFormat().
-    // Always two-digit minute; hour leading zero stripped in 12h mode.
-    function formatHourMin(hour, min) {
-        var h = hour;
-        if (config.timeFormat() == config.TIME_FORMAT_12H) {
-            h = hour % 12;
-            if (h == 0) { h = 12; }
-            return h.toString() + ":" + twoDigits(min);
-        }
-        return twoDigits(h) + ":" + twoDigits(min);
-    }
-
-    function twoDigits(n) {
-        if (n < 10) { return "0" + n.toString(); }
-        return n.toString();
     }
 
     function updateSkyCache(g, t) {
@@ -368,28 +346,59 @@ class CircadiaView extends WatchUi.WatchFace {
             || kind == config.FIELD_DISTANCE;
     }
 
+    // True iff any displayed field is sourced from ActivityMonitor.getInfo().
+    // Used to gate the once-per-refresh getInfo() call.
+    function fieldUsesActivityMonitor(kind) {
+        return kind == config.FIELD_STEPS
+            || kind == config.FIELD_CALORIES
+            || kind == config.FIELD_FLOORS
+            || kind == config.FIELD_DISTANCE
+            || kind == config.FIELD_RECOVERY;
+    }
+
+    function anyActivityMonitorFieldVisible() {
+        return fieldUsesActivityMonitor(config.topField())
+            || fieldUsesActivityMonitor(config.leftField())
+            || fieldUsesActivityMonitor(config.rightField());
+    }
+
+    // Per-frame refresh for sub-minute fields. Fetches ActivityMonitor.getInfo()
+    // at most once even if multiple slots are activity-sourced.
     function refreshLiveFields() {
         var topField   = config.topField();
         var leftField  = config.leftField();
         var rightField = config.rightField();
 
-        if (fieldNeedsFastRefresh(topField))   { _topFieldText   = getFieldText(topField); }
-        if (fieldNeedsFastRefresh(leftField))  { _leftFieldText  = getFieldText(leftField); }
-        if (fieldNeedsFastRefresh(rightField)) { _rightFieldText = getFieldText(rightField); }
+        var topFast   = fieldNeedsFastRefresh(topField);
+        var leftFast  = fieldNeedsFastRefresh(leftField);
+        var rightFast = fieldNeedsFastRefresh(rightField);
+
+        if (!topFast && !leftFast && !rightFast) { return; }
+
+        var amInfo = null;
+        if ((topFast   && fieldUsesActivityMonitor(topField))   ||
+            (leftFast  && fieldUsesActivityMonitor(leftField))  ||
+            (rightFast && fieldUsesActivityMonitor(rightField))) {
+            amInfo = ActivityMonitor.getInfo();
+        }
+
+        if (topFast)   { _topFieldText   = getFieldText(topField,   amInfo); }
+        if (leftFast)  { _leftFieldText  = getFieldText(leftField,  amInfo); }
+        if (rightFast) { _rightFieldText = getFieldText(rightField, amInfo); }
     }
 
-    function getFieldText(kind) {
+    function getFieldText(kind, amInfo) {
         if (kind == config.FIELD_DATE)         { return _cachedDateText; }
         if (kind == config.FIELD_TEMPERATURE)  { return _cachedWeatherText; }
         if (kind == config.FIELD_BODY_BATTERY) { return _bodyBatteryText; }
-        if (kind == config.FIELD_BATTERY)      { return getBatteryDisplay(); }
+        if (kind == config.FIELD_BATTERY)      { return _batteryPctText; }
         if (kind == config.FIELD_STRESS)       { return _stressText; }
         if (kind == config.FIELD_NEXT_SUN_EVENT) { return _nextSunEventText; }
-        if (kind == config.FIELD_STEPS)        { return getStepsDisplay(); }
-        if (kind == config.FIELD_CALORIES)     { return getCaloriesDisplay(); }
-        if (kind == config.FIELD_FLOORS)       { return getFloorsDisplay(); }
-        if (kind == config.FIELD_DISTANCE)     { return getDistanceDisplay(); }
-        if (kind == config.FIELD_RECOVERY)     { return getRecoveryDisplay(); }
+        if (kind == config.FIELD_STEPS)        { return getStepsDisplay(amInfo); }
+        if (kind == config.FIELD_CALORIES)     { return getCaloriesDisplay(amInfo); }
+        if (kind == config.FIELD_FLOORS)       { return getFloorsDisplay(amInfo); }
+        if (kind == config.FIELD_DISTANCE)     { return getDistanceDisplay(amInfo); }
+        if (kind == config.FIELD_RECOVERY)     { return getRecoveryDisplay(amInfo); }
         if (kind == config.FIELD_HEART_RATE)   { return getHeartRateDisplay(); }
         return NO_DATA;
     }
@@ -411,10 +420,6 @@ class CircadiaView extends WatchUi.WatchFace {
             return;
         }
         _batteryPctText = stats.battery.toNumber().toString() + "%";
-    }
-
-    function getBatteryDisplay() {
-        return _batteryPctText;
     }
 
     function getStressDisplay() {
@@ -471,32 +476,28 @@ class CircadiaView extends WatchUi.WatchFace {
         return _bodyBatteryText;
     }
 
-    function getStepsDisplay() {
-        var info = ActivityMonitor.getInfo();
+    function getStepsDisplay(info) {
         if (info != null && info.steps != null) {
             _cachedStepsText = oneDecimalString(info.steps.toNumber() / 1000.0) + "k";
         }
         return _cachedStepsText;
     }
 
-    function getCaloriesDisplay() {
-        var info = ActivityMonitor.getInfo();
+    function getCaloriesDisplay(info) {
         if (info != null && info.calories != null) {
             _cachedCaloriesText = oneDecimalString(info.calories.toFloat()) + " k";
         }
         return _cachedCaloriesText;
     }
 
-    function getFloorsDisplay() {
-        var info = ActivityMonitor.getInfo();
+    function getFloorsDisplay(info) {
         if (info != null && info.floorsClimbed != null) {
             _cachedFloorsText = info.floorsClimbed.toNumber().toString();
         }
         return _cachedFloorsText;
     }
 
-    function getDistanceDisplay() {
-        var info = ActivityMonitor.getInfo();
+    function getDistanceDisplay(info) {
         if (info != null && info.distance != null) {
             var dist = info.distance.toFloat();
             var suffix;
@@ -512,11 +513,11 @@ class CircadiaView extends WatchUi.WatchFace {
         return _cachedDistanceText;
     }
 
-    function getRecoveryDisplay() {
-        var info = ActivityMonitor.getInfo();
-        return (info != null && (info has :timeToRecovery) && info.timeToRecovery != null)
-            ? info.timeToRecovery.toString() + 'h'
-            : NO_DATA;
+    function getRecoveryDisplay(info) {
+        if (info != null && (info has :timeToRecovery) && info.timeToRecovery != null) {
+            _cachedRecoveryText = info.timeToRecovery.toString() + 'h';
+        }
+        return _cachedRecoveryText;
     }
 
     // ── Formatting helpers ───────────────────────────────────────────────────

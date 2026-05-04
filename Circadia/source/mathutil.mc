@@ -1,9 +1,8 @@
 using Toybox.Lang;
 using Toybox.Math;
 
-// Shared helpers used by Solar, Lunar, Stellar, and Drawing.
-// Centralising these removes the four-way duplication of the same helpers
-// that previously existed across those modules.
+// Shared helpers used by Solar, Lunar, Stellar, Drawing, and CircadiaView.
+// Centralising these removes duplicated helpers across modules.
 
 module MathUtil {
 
@@ -127,6 +126,32 @@ module MathUtil {
             + day
             - 730530.0
             + utcHour / 24.0;
+    }
+
+    // ── Display formatting helpers ───────────────────────────────────────────
+
+    // Two-digit string with leading zero (e.g. 7 → "07", 12 → "12").
+    function twoDigits(n) {
+        if (n < 10) { return "0" + n.toString(); }
+        return n.toString();
+    }
+
+    // Convert a 24-hour clock hour to its displayed value, honouring the
+    // user's time-format preference. In 12h mode 0 maps to 12 and 13..23
+    // map to 1..11; in 24h mode the hour is returned unchanged.
+    function displayHour(hour24, is12hMode) {
+        if (!is12hMode) { return hour24; }
+        var h = hour24 % 12;
+        return (h == 0) ? 12 : h;
+    }
+
+    // Format an "HH:MM" clock string honouring the user's time-format
+    // preference. Minute is always two digits. Hour leading zero stripped
+    // in 12h mode only.
+    function formatHourMin(hour24, min, is12hMode) {
+        var h = displayHour(hour24, is12hMode);
+        var hStr = is12hMode ? h.toString() : twoDigits(h);
+        return hStr + ":" + twoDigits(min);
     }
 
 }

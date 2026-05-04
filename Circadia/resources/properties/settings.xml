@@ -146,16 +146,5 @@
             </settingConfig>
         </setting>
 
-        <setting propertyKey="@Properties.fieldSaturation" title="@Strings.fieldSaturationTitle">
-            <settingConfig type="list">
-                <listEntry value="0">@Strings.saturation0</listEntry>
-                <listEntry value="1">@Strings.saturation1</listEntry>
-                <listEntry value="2">@Strings.saturation2</listEntry>
-                <listEntry value="3">@Strings.saturation3</listEntry>
-                <listEntry value="4">@Strings.saturation4</listEntry>
-                <listEntry value="5">@Strings.saturation5</listEntry>
-            </settingConfig>
-        </setting>
-
     </settings>
 </resources>

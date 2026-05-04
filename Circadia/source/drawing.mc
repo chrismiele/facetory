@@ -8,9 +8,10 @@ module Drawing {
     const BLACK = 0x000000;
     const WHITE = 0xFFFFFF;
 
-    const SUN_GLOW_DEG     = 18.0;
+    const SUN_GLOW_DEG       = 25.0;  // cosine rim — chosen so halo is visually ~18° from centre
+    const SUN_OUTER_CORE_DEG =  8.0;  // outer core ring (WHITE → sunColor)
+    const SUN_INNER_CORE_DEG =  4.0;  // inner core (always white)
     const MOON_GLOW_DEG    = 45.0;
-    const GLOW_STEPS       = 18;
     const NEW_MOON_DIAMETER_DEG = 5.0;
     const MOON_DIAMETER_DEG     = 12.0;
     const MIP_RING_THICKNESS_DEG  = 3.0;
@@ -50,8 +51,6 @@ module Drawing {
     var _glowBitmap    = [null, null];
     var _glowR         = [-1.0, -1.0];
     var _glowDeg       = [-1.0, -1.0];
-    var _glowSteps     = [-1, -1];
-    var _glowCoreColor = [-1, -1];
     var _glowRadiusPx  = [0, 0];
 
     var _transparent;
@@ -62,7 +61,7 @@ module Drawing {
     const COLON_V_SHIFT_FRAC = 0.0561797753;
 
     const TOP_FIELD_RADIUS_FRAC    = 0.67;
-    const BOTTOM_FIELD_RADIUS_FRAC = 0.60;
+    const BOTTOM_FIELD_RADIUS_FRAC = 0.6;
     const TOP_FIELD_AZ_DEG         = 0.0;
     const SIDE_FIELD_OFFSET_DEG     = 50.0;
     const BOTTOM_RIGHT_FIELD_AZ_DEG = 180.0 - SIDE_FIELD_OFFSET_DEG;
@@ -93,11 +92,13 @@ module Drawing {
         }
     }
 
+    // Layout cache: just the polar coordinate origin and watch radius.
+    // The dc width/height aren't needed elsewhere — _layoutCache stays a 3-tuple.
     function layout(w, h) {
         var cx = w/2.0;
         var cy = h/2.0;
         var R  = ((w < h) ? w : h)/2.0 - 2.0;
-        return [cx, cy, R, w, h];
+        return [cx, cy, R];
     }
 
     function projectBody(altAz, cx, cy, R) {
@@ -114,17 +115,12 @@ module Drawing {
 
     // Clear the whole screen to black. Used when AOD shows time-only
     // (i.e. sky drawing is suppressed but we still need to wipe stale pixels).
-    function clearScreen(dc, cache) {
-        var cx = cache[0];
-        var cy = cache[1];
-        var R  = cache[2];
-
+    function clearScreen(dc) {
         dc.setColor(BLACK, BLACK);
         dc.clear();
-        dc.fillCircle(cx.toNumber(), cy.toNumber(), R.toNumber());
     }
 
-    function drawSky(dc, cache, sunColor, sunCoreColor, showSun, showMoon, showStars, mipMode) {
+    function drawSky(dc, cache, sunColor, showSun, showMoon, showStars, mipMode) {
         var cx = cache[0];
         var cy = cache[1];
         var R  = cache[2];
@@ -140,14 +136,13 @@ module Drawing {
 
         dc.setColor(BLACK, BLACK);
         dc.clear();
-        dc.fillCircle(cx.toNumber(), cy.toNumber(), R.toNumber());
 
-        var glowRadius = R*(SUN_GLOW_DEG/90.0);
+        var glowRadius = R*(SUN_GLOW_CUTOFF_DEG/90.0);
         if (showSun && intersectsSkyDisc(sx, sy, glowRadius, cx, cy, R)) {
             if (mipMode) {
                 drawMipSun(dc, sx, sy, R, sunAlt);
             } else {
-                drawSunGlow(dc, sx, sy, cx, cy, R, sunColor, sunCoreColor, SUN_GLOW_DEG, GLOW_STEPS);
+                drawSunGlow(dc, sx, sy, cx, cy, R, sunColor, SUN_GLOW_DEG);
             }
         }
 
@@ -206,17 +201,20 @@ module Drawing {
         var x = p[0].toNumber();
         var y = p[1].toNumber();
 
-        var color = fieldTextColor();
-
         var font = Graphics.FONT_SYSTEM_TINY;
         var w = dc.getTextWidthInPixels(text, font);
         var h = dc.getFontHeight(font);
 
-        var padX = 2;
-        var padY = 1;
+        var padX = 3;  // +1 vs. before to cover the outline's 1px expansion
+        var padY = 2;
 
         dc.setClip(x - w/2 - padX, y - h/2 - padY, w + 2*padX, h + 2*padY);
-        dc.setColor(color, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(BLACK, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(x - 1, y,     font, text, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(x + 1, y,     font, text, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(x,     y - 1, font, text, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(x,     y + 1, font, text, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.setColor(WHITE, Graphics.COLOR_TRANSPARENT);
         dc.drawText(x, y, font, text, Graphics.TEXT_JUSTIFY_CENTER);
         dc.clearClip();
     }
@@ -263,7 +261,7 @@ module Drawing {
     }
 
     function drawSecondTicks(dc, cx, cy, R, sec) {
-        dc.setColor(Solar.brightSunColor(_currentSunColor, config.fieldSaturation()), BLACK);
+        dc.setColor(WHITE, BLACK);
         for (var i = 0; i < sec; i += 1) {
             dc.fillPolygon(secondTickPolygon(cx, cy, R, i));
         }
@@ -285,7 +283,7 @@ module Drawing {
 
         var pad = 1;
         dc.setClip(minX - pad, minY - pad, maxX - minX + 2*pad, maxY - minY + 2*pad);
-        dc.setColor(Solar.brightSunColor(_currentSunColor, config.fieldSaturation()), BLACK);
+        dc.setColor(WHITE, BLACK);
         dc.fillPolygon(p);
         dc.clearClip();
     }
@@ -297,13 +295,9 @@ module Drawing {
 
     function drawDigitalClock(dc, cx, cy, R, hour, min, sunsetAccent, sunColor, leftText, rightText) {
         var font  = Graphics.FONT_SYSTEM_NUMBER_THAI_HOT;
-        var displayHour = hour;
-        if (config.timeFormat() == config.TIME_FORMAT_12H) {
-            displayHour = hour % 12;
-            if (displayHour == 0) { displayHour = 12; }
-        }
-        var hText = twoDigits(displayHour);
-        var mText = twoDigits(min);
+        var displayHour = MathUtil.displayHour(hour, config.is12hMode());
+        var hText = MathUtil.twoDigits(displayHour);
+        var mText = MathUtil.twoDigits(min);
 
         var clockCenter = polarPoint(cx, cy, R, CLOCK_RADIUS_FRAC, CLOCK_AZ_DEG);
         var clockCx = clockCenter[0];
@@ -334,33 +328,17 @@ module Drawing {
         drawFieldText(dc, pR[0].toNumber(), pR[1].toNumber(), rightText);
     }
 
-    // Field text colour: matches the AMOLED minute-text colour scheme but
-    // uses the independent fieldSaturation slider. On MIP, the text colour
-    // tracks the band's BRIGHT just like minutes do.
-    function fieldTextColor() {
-        // The current sun colour is owned by CircadiaView and passed into
-        // draw functions per-frame. Field text doesn't have it threaded
-        // through, so we re-derive it here from CircadiaApp's current view.
-        // Cleaner: just store it on a Drawing-local module var, which the
-        // view sets at the start of each frame.
-        return Solar.brightSunColor(_currentSunColor, config.fieldSaturation());
-    }
-
-    // Set by CircadiaView at the top of onUpdate / onPartialUpdate.
-    var _currentSunColor = WHITE;
-
-    function setCurrentSunColor(c) {
-        _currentSunColor = c;
-    }
-
+    // Field text is always white, with a 1px black outline for legibility
+    // against any sky background.
     function drawFieldText(dc, x, y, text) {
-        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(x -1, y, Graphics.FONT_SYSTEM_TINY, text, Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(x +1, y, Graphics.FONT_SYSTEM_TINY, text, Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(x, y -1, Graphics.FONT_SYSTEM_TINY, text, Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(x, y +1, Graphics.FONT_SYSTEM_TINY, text, Graphics.TEXT_JUSTIFY_CENTER);
-        dc.setColor(fieldTextColor(), Graphics.COLOR_TRANSPARENT);
-        dc.drawText(x, y, Graphics.FONT_SYSTEM_TINY, text, Graphics.TEXT_JUSTIFY_CENTER);
+        var font = Graphics.FONT_SYSTEM_TINY;
+        dc.setColor(BLACK, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(x - 1, y,     font, text, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(x + 1, y,     font, text, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(x,     y - 1, font, text, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(x,     y + 1, font, text, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.setColor(WHITE, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(x, y, font, text, Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     // Map a sun colour to a glow-cache slot, or -1 if no cache exists for it.
@@ -370,67 +348,81 @@ module Drawing {
         return -1;
     }
 
-    function drawSunGlow(dc, x, y, cx, cy, R, sunColor, sunCoreColor, glowDeg, glowSteps) {
+    function drawSunGlow(dc, x, y, cx, cy, R, sunColor, glowDeg) {
         if (Toybox.Graphics has :createBufferedBitmap) {
             var slot = glowCacheSlot(sunColor);
             if (slot >= 0) {
-                var bmp = getGlowBitmap(slot, sunColor, sunCoreColor, R, glowDeg, glowSteps);
+                var bmp = getGlowBitmap(slot, sunColor, R, glowDeg);
                 if (bmp != null) {
                     dc.drawBitmap(x.toNumber() - _glowRadiusPx[slot], y.toNumber() - _glowRadiusPx[slot], bmp);
                     return;
                 }
             }
         }
-        drawSunGlowDirect(dc, x, y, cx, cy, R, sunColor, sunCoreColor, glowDeg, glowSteps);
+        drawSunGlowDirect(dc, x, y, cx, cy, R, sunColor, glowDeg);
     }
 
-    // AMOLED ember halo — three radial zones (using f = ri/glowPx):
-    //   f < 0.15        : pure core colour
-    //   0.15 <= f < 0.30: linear blend core -> sunColor
-    //   f >= 0.30       : linear falloff sunColor -> sunColor*0.2 at the rim
-    function drawSunGlowDirect(dc, x, y, cx, cy, R, sunColor, sunCoreColor, glowDeg, glowSteps) {
-        var glowPx   = R*(glowDeg/90.0);
-        var invSteps = 1.0/glowSteps.toFloat();
+    // AMOLED sun — three concentric zones:
+    //   Inner core  [0,          SUN_INNER_CORE_DEG] : pure WHITE
+    //   Outer core  [INNER_CORE, SUN_OUTER_CORE_DEG] : WHITE → sunColor, cosine brightness
+    //   Halo        [OUTER_CORE, SUN_GLOW_DEG]       : sunColor, cosine brightness continued
+    //
+    // A single cosine brightness curve B(t) = 0.5*(1+cos(π*t)) spans both outer
+    // core and halo, where t=0 at the inner core edge and t=1 at SUN_GLOW_DEG.
+    // The cosine reaches exactly 0 at the rim, so the halo is visible to precisely
+    // SUN_GLOW_DEG — no artificial inflation needed.
+    function drawSunGlowDirect(dc, x, y, cx, cy, R, sunColor, glowDeg) {
+        var drawDeg     = (glowDeg < SUN_GLOW_CUTOFF_DEG + 3.0) ? glowDeg : SUN_GLOW_CUTOFF_DEG + 3.0;
+        var glowPx      = R * (glowDeg / 90.0);
+        var drawPx      = R * (drawDeg / 90.0);
+        var outerCorePx = R * (SUN_OUTER_CORE_DEG / 90.0);
+        var innerCorePx = R * (SUN_INNER_CORE_DEG / 90.0);
+        var bodySpan    = glowPx - innerCorePx;
+        var haloSteps   = (drawDeg - SUN_OUTER_CORE_DEG).toNumber();
+        var outerSteps  = (SUN_OUTER_CORE_DEG - SUN_INNER_CORE_DEG).toNumber();
         var xi = x.toNumber();
         var yi = y.toNumber();
 
         var dx = xi - cx.toNumber();
         var dy = yi - cy.toNumber();
-        var d = Math.sqrt(dx*dx + dy*dy);
+        var d  = Math.sqrt(dx*dx + dy*dy);
 
-        for (var i = glowSteps; i >= 1; i -= 1) {
-            var f  = i.toFloat()*invSteps;
-            var ri = (glowPx*f).toNumber();
-
+        // Halo: 1°/step, sunColor with cosine brightness
+        for (var i = haloSteps; i >= 1; i -= 1) {
+            var ri = outerCorePx + (drawPx - outerCorePx) * i.toFloat() / haloSteps;
             if (d - ri >= R) { continue; }
-
-            var color;
-            if (f < 0.15) {
-                color = sunCoreColor;
-            } else if (f < 0.30) {
-                var s = (f - 0.15) / 0.15;
-                color = MathUtil.blendColor(sunCoreColor, sunColor, s);
-            } else {
-                var s2 = (f - 0.30) / 0.70;
-                color = Solar.scaleColor(sunColor, 1.0 - 0.8*s2);
-            }
-
-            dc.setColor(color, BLACK);
-            dc.fillCircle(xi, yi, ri);
+            var t = (ri - innerCorePx) / bodySpan;
+            var b = 0.5 * (1.0 + Math.cos(Math.PI * t));
+            dc.setColor(Solar.scaleColor(sunColor, b), BLACK);
+            dc.fillCircle(xi, yi, ri.toNumber());
         }
+
+        // Outer core: WHITE → sunColor with same cosine brightness
+        for (var j = outerSteps; j >= 1; j -= 1) {
+            var rj = innerCorePx + (outerCorePx - innerCorePx) * j.toFloat() / outerSteps;
+            if (d - rj >= R) { continue; }
+            var t2 = (rj - innerCorePx) / bodySpan;
+            var b2 = 0.5 * (1.0 + Math.cos(Math.PI * t2));
+            var hue = MathUtil.blendColor(WHITE, sunColor, j.toFloat() / outerSteps);
+            dc.setColor(Solar.scaleColor(hue, b2), BLACK);
+            dc.fillCircle(xi, yi, rj.toNumber());
+        }
+
+        // Inner core: pure white
+        dc.setColor(WHITE, BLACK);
+        dc.fillCircle(xi, yi, innerCorePx.toNumber());
     }
 
-    // Glow-bitmap cache: keyed on (slot, R, glowDeg, glowSteps, sunCoreColor).
-    function getGlowBitmap(slot, sunColor, sunCoreColor, R, glowDeg, glowSteps) {
+    // Glow-bitmap cache: keyed on (slot, sunColor, R, glowDeg).
+    function getGlowBitmap(slot, sunColor, R, glowDeg) {
         if (_glowBitmap[slot] != null
-            && _glowR[slot]         == R
-            && _glowDeg[slot]       == glowDeg
-            && _glowSteps[slot]     == glowSteps
-            && _glowCoreColor[slot] == sunCoreColor) {
+            && _glowR[slot]   == R
+            && _glowDeg[slot] == glowDeg) {
             return _glowBitmap[slot];
         }
 
-        var glowPx   = R*(glowDeg/90.0);
+        var drawDeg  = (glowDeg < SUN_GLOW_CUTOFF_DEG + 3.0) ? glowDeg : SUN_GLOW_CUTOFF_DEG + 3.0;
+        var glowPx   = R * (drawDeg / 90.0);
         var radiusPx = glowPx.toNumber() + 2;
         var size     = 2*radiusPx + 1;
 
@@ -450,14 +442,12 @@ module Drawing {
         bdc.setColor(BLACK, _transparent);
         bdc.clear();
 
-        drawSunGlowDirect(bdc, radiusPx, radiusPx, radiusPx, radiusPx, R, sunColor, sunCoreColor, glowDeg, glowSteps);
+        drawSunGlowDirect(bdc, radiusPx, radiusPx, radiusPx, radiusPx, R, sunColor, glowDeg);
 
-        _glowBitmap[slot]    = bmp;
-        _glowR[slot]         = R;
-        _glowDeg[slot]       = glowDeg;
-        _glowSteps[slot]     = glowSteps;
-        _glowCoreColor[slot] = sunCoreColor;
-        _glowRadiusPx[slot]  = radiusPx;
+        _glowBitmap[slot]   = bmp;
+        _glowR[slot]        = R;
+        _glowDeg[slot]      = glowDeg;
+        _glowRadiusPx[slot] = radiusPx;
 
         return bmp;
     }
@@ -485,15 +475,16 @@ module Drawing {
         dc.fillCircle(xi, yi, MathUtil.roundNearest(coreR));
     }
 
-    function drawNewMoon(dc, xi, yi, ri, mipMode) {
+    function drawNewMoon(dc, xi, yi, ri) {
         dc.setColor(BLACK, BLACK);
         dc.fillCircle(xi, yi, ri);
     }
 
     function drawFullMoon(dc, xi, yi, moonRadiusPx, phaseAngle, sunAltDeg, litColor, skyRadiusPx, mipMode) {
         if (mipMode) {
-            var scale = moonGlowNightScale(sunAltDeg)*closenessToFullMoon(phaseAngle);
-            drawMipHaloBodyScaled(dc, xi, yi, skyRadiusPx, moonRadiusPx, MOON_GLOW_DEG, scale, Colours.WHITE, Colours.MIP_MOON_DARK, Colours.MIP_MOON_MEDIUM);
+            var radiusScale = closenessToFullMoon(phaseAngle);
+            var nightScale  = moonGlowNightScale(sunAltDeg);
+            drawMipHaloBodyScaled(dc, xi, yi, skyRadiusPx, moonRadiusPx, MOON_GLOW_DEG, radiusScale*nightScale, Colours.WHITE, Colours.MIP_MOON_DARK, Colours.MIP_MOON_MEDIUM);
             return;
         }
 
@@ -515,7 +506,7 @@ module Drawing {
 
         if (bin == Lunar.PHASE_NEW) {
             Lunar.resetOrientationBins();
-            drawNewMoon(dc, xi, yi, ri, mipMode);
+            drawNewMoon(dc, xi, yi, ri);
             return;
         }
 
@@ -608,20 +599,16 @@ module Drawing {
     }
 
     function drawMoonGlow(dc, xi, yi, moonRadiusPx, phaseAngle, sunAltDeg, litColor, skyRadiusPx) {
-        var fullMoonScale = closenessToFullMoon(phaseAngle);
-        if (fullMoonScale <= 0.0) { return; }
+        var radiusScale = closenessToFullMoon(phaseAngle) * moonGlowNightScale(sunAltDeg);
+        if (radiusScale <= 0.0) { return; }
 
-        var nightScale = moonGlowNightScale(sunAltDeg);
-        if (nightScale <= 0.0) { return; }
-
-        var outerR = skyRadiusPx*(MOON_GLOW_DEG/90.0)*fullMoonScale;
+        var outerR = skyRadiusPx*(MOON_GLOW_DEG/90.0)*radiusScale;
         if (outerR <= 0.5) { return; }
 
-        var glowBrightness = MAX_MOON_GLOW_BRIGHTNESS*nightScale*fullMoonScale;
-        var glowSteps = MathUtil.roundNearest(1.0*MOON_GLOW_DEG*fullMoonScale);
+        var glowSteps = MathUtil.roundNearest(1.0*MOON_GLOW_DEG*radiusScale);
         if (glowSteps < 1) { glowSteps = 1; }
 
-        drawOffsetMoonGlowCircle(dc, xi, yi, moonRadiusPx, outerR, litColor, glowBrightness, glowSteps);
+        drawOffsetMoonGlowCircle(dc, xi, yi, moonRadiusPx, outerR, litColor, MAX_MOON_GLOW_BRIGHTNESS, glowSteps);
     }
 
     function drawOffsetMoonGlowCircle(dc, xg, yg, moonRadiusPx, outerR, litColor, brightnessScale, glowSteps) {
@@ -782,10 +769,5 @@ module Drawing {
 
     function moonGlowNightScale(sunAltDeg) {
         return MathUtil.clamp((-sunAltDeg)/SUN_GLOW_CUTOFF_DEG, 0.0, 1.0);
-    }
-
-    function twoDigits(n) {
-        if (n < 10) { return "0" + n.toString(); }
-        return n.toString();
     }
 }

@@ -20,7 +20,6 @@
         <string id="timeFormatTitle">Format de l'heure</string>
         <string id="dateFormatTitle">Format de la date</string>
         <string id="minuteSaturationTitle">Saturation des minutes</string>
-        <string id="fieldSaturationTitle">Saturation des champs de données</string>
 
         <!-- Field choices -->
         <string id="fieldDate">Date</string>

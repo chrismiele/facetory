@@ -56,7 +56,6 @@ module config {
     var _timeFormat       = TIME_FORMAT_24H;
     var _dateFormat       = DATE_FORMAT_DAY_NUMBER;
     var _minuteSaturation = 3;       // 0-5 step index, mapped to 0.0-1.0 in step of 0.2
-    var _fieldSaturation  = 0;       // 0-5 step index for data-field text (and second ticks)
 
     // Helpers — getValue throws if a key is missing from properties.xml,
     // so wrap each read in a try/catch and fall back to the current value.
@@ -108,7 +107,6 @@ module config {
         _timeFormat       = readNumber("timeFormat",       _timeFormat);
         _dateFormat       = readNumber("dateFormat",       _dateFormat);
         _minuteSaturation = readNumber("minuteSaturation", _minuteSaturation);
-        _fieldSaturation  = readNumber("fieldSaturation",  _fieldSaturation);
     }
 
     // ── Accessors (zero-cost reads of cached values) ─────────────────────────
@@ -127,12 +125,12 @@ module config {
     function latDeg()           { return _latDeg;           }
     function lonDeg()           { return _lonDeg;           }
     function minuteSaturation() { return _minuteSaturation / 5.0; }
-    function fieldSaturation()  { return _fieldSaturation  / 5.0; }
     function aodBehaviour()     { return _aodBehaviour;     }
     function timeFormat()       { return _timeFormat;       }
     function dateFormat()       { return _dateFormat;       }
 
     function showStars()        { return _starCount > 0;    }
+    function is12hMode()        { return _timeFormat == TIME_FORMAT_12H; }
 
     // Whether to draw the digital clock + data fields right now, given AOD mode.
     function showFace(isSleeping) {
