@@ -414,9 +414,9 @@ class CircadiaView extends WatchUi.WatchFace {
 
     function getStressDisplay(info) {
         if (info != null && (info has :stressScore) && info.stressScore != null) {
-            _stressText = info.stressScore.toNumber().toString();
+            _stressText = info.stressScore.toNumber().toString() + "%";
         }
-        return _stressText + "%";
+        return _stressText;
     }
 
     function getWeatherTempText() {
