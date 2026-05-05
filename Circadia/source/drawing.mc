@@ -36,9 +36,9 @@ module Drawing {
     const COLON_V_SHIFT_FRAC = 0.0561797753;
 
     const TOP_FIELD_RADIUS_FRAC    = 0.67;
-    const BOTTOM_FIELD_RADIUS_FRAC = 0.6;
+    const BOTTOM_FIELD_RADIUS_FRAC = 0.5;
     const TOP_FIELD_AZ_DEG         = 0.0;
-    const SIDE_FIELD_OFFSET_DEG     = 50.0;
+    const SIDE_FIELD_OFFSET_DEG     = 40.0;
     const BOTTOM_RIGHT_FIELD_AZ_DEG = 180.0 - SIDE_FIELD_OFFSET_DEG;
     const BOTTOM_LEFT_FIELD_AZ_DEG  = 180.0 + SIDE_FIELD_OFFSET_DEG;
 
@@ -150,8 +150,7 @@ module Drawing {
     }
 
     function drawSecondTickClipped(dc, cache, sec) {
-        if (sec <= 0) { return; }
-        drawOneSecondTickClipped(dc, cache[0], cache[1], cache[2], sec - 1);
+        drawOneSecondTickClipped(dc, cache[0], cache[1], cache[2], sec);
     }
 
     function drawTopFieldClipped(dc, cache, text) {
@@ -232,7 +231,7 @@ module Drawing {
 
     function drawSecondTicks(dc, cx, cy, R, sec) {
         dc.setColor(WHITE, BLACK);
-        for (var i = 0; i < sec; i += 1) {
+        for (var i = 0; i <= sec; i += 1) {
             dc.fillPolygon(secondTickPolygon(cx, cy, R, i));
         }
     }
@@ -259,6 +258,7 @@ module Drawing {
     }
 
     function drawTopField(dc, cx, cy, R, topText) {
+        if (topText == null) { return; }
         var p = polarPoint(cx, cy, R, TOP_FIELD_RADIUS_FRAC, TOP_FIELD_AZ_DEG);
         drawFieldText(dc, p[0].toNumber(), p[1].toNumber(), topText);
     }
@@ -292,11 +292,12 @@ module Drawing {
     }
 
     function drawSubfields(dc, cx, cy, R, leftText, rightText) {
+        if (leftText == null && rightText == null) { return; }
         var pL = polarPoint(cx, cy, R, BOTTOM_FIELD_RADIUS_FRAC, BOTTOM_LEFT_FIELD_AZ_DEG);
         var pR = polarPoint(cx, cy, R, BOTTOM_FIELD_RADIUS_FRAC, BOTTOM_RIGHT_FIELD_AZ_DEG);
 
-        drawFieldText(dc, pL[0].toNumber(), pL[1].toNumber(), leftText);
-        drawFieldText(dc, pR[0].toNumber(), pR[1].toNumber(), rightText);
+        if (leftText  != null) { drawFieldText(dc, pL[0].toNumber(), pL[1].toNumber(), leftText);  }
+        if (rightText != null) { drawFieldText(dc, pR[0].toNumber(), pR[1].toNumber(), rightText); }
     }
 
     // Field text is always white, with a 1px black outline for legibility

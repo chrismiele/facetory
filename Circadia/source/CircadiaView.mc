@@ -218,9 +218,6 @@ class CircadiaView extends WatchUi.WatchFace {
         if (fieldIsVisible(config.FIELD_BODY_BATTERY)) {
             _bodyBatteryText = getBodyBatteryDisplay();
         }
-        if (fieldIsVisible(config.FIELD_STRESS)) {
-            _stressText = getStressDisplay();
-        }
         if (fieldIsVisible(config.FIELD_BATTERY)) {
             refreshBatteryPercent();
         }
@@ -328,6 +325,7 @@ class CircadiaView extends WatchUi.WatchFace {
 
     function fieldNeedsFastRefresh(kind) {
         return kind == config.FIELD_HEART_RATE
+            || kind == config.FIELD_STRESS
             || kind == config.FIELD_STEPS
             || kind == config.FIELD_CALORIES
             || kind == config.FIELD_FLOORS
@@ -339,7 +337,8 @@ class CircadiaView extends WatchUi.WatchFace {
             || kind == config.FIELD_CALORIES
             || kind == config.FIELD_FLOORS
             || kind == config.FIELD_DISTANCE
-            || kind == config.FIELD_RECOVERY;
+            || kind == config.FIELD_RECOVERY
+            || kind == config.FIELD_STRESS;
     }
 
     function anyActivityMonitorFieldVisible() {
@@ -376,7 +375,7 @@ class CircadiaView extends WatchUi.WatchFace {
         if (kind == config.FIELD_TEMPERATURE)  { return _cachedWeatherText; }
         if (kind == config.FIELD_BODY_BATTERY) { return _bodyBatteryText; }
         if (kind == config.FIELD_BATTERY)      { return _batteryPctText; }
-        if (kind == config.FIELD_STRESS)       { return _stressText; }
+        if (kind == config.FIELD_STRESS)       { return getStressDisplay(amInfo); }
         if (kind == config.FIELD_NEXT_SUN_EVENT) { return _nextSunEventText; }
         if (kind == config.FIELD_STEPS)        { return getStepsDisplay(amInfo); }
         if (kind == config.FIELD_CALORIES)     { return getCaloriesDisplay(amInfo); }
@@ -406,25 +405,11 @@ class CircadiaView extends WatchUi.WatchFace {
         _batteryPctText = stats.battery.toNumber().toString() + "%";
     }
 
-    function getStressDisplay() {
-        if (!(Toybox has :SensorHistory) || !(SensorHistory has :getStressHistory)) {
-            return NO_DATA;
+    function getStressDisplay(info) {
+        if (info != null && (info has :stressScore) && info.stressScore != null) {
+            _stressText = info.stressScore.toNumber().toString();
         }
-        var it = SensorHistory.getStressHistory({
-            :period => 5,
-            :order  => SensorHistory.ORDER_NEWEST_FIRST
-        });
-        if (it == null) { return _stressText; }
-
-        for (var i = 0; i < 5; i += 1) {
-            var sample = it.next();
-            if (sample == null) { break; }
-            if (sample.data != null) {
-                _stressText = sample.data.toNumber().toString() + "%";
-                break;
-            }
-        }
-        return _stressText;
+        return _stressText + "%";
     }
 
     function getWeatherTempText() {
@@ -492,7 +477,7 @@ class CircadiaView extends WatchUi.WatchFace {
                 dist = dist / 100000.0;
                 suffix = " km";
             }
-            _cachedDistanceText = oneDecimalString(dist) + suffix;
+            _cachedDistanceText = oneDecimalString(dist);
         }
         return _cachedDistanceText;
     }
@@ -577,7 +562,7 @@ class CircadiaView extends WatchUi.WatchFace {
             value  = metres / 1000.0;
             suffix = "km";
         }
-        return oneDecimalString(value) + suffix;
+        return oneDecimalString(value);
     }
 
     // Seconds → "H:MM" or "HH:MM"

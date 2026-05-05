@@ -34,7 +34,6 @@ module config {
 
     const AOD_TIME_ONLY = 0;
     const AOD_SKY_ONLY  = 1;
-    const AOD_SHOW_ALL  = 2;
 
     const TIME_FORMAT_24H = 0;
     const TIME_FORMAT_12H = 1;
@@ -140,20 +139,24 @@ module config {
     function showStars()        { return _starCount > 0;    }
     function is12hMode()        { return _timeFormat == TIME_FORMAT_12H; }
 
-    // Whether to draw the digital clock + data fields right now, given AOD mode.
+    // Whether to draw the digital clock right now, given AOD mode.
+    // In AOD, the clock always shows regardless of sky/time setting.
     function showFace(isSleeping) {
-        if (!isSleeping)                            { return true; }
-        if (_aodBehaviour == AOD_SHOW_ALL)          { return true; }
-        if (_aodBehaviour == AOD_TIME_ONLY)         { return true; }
+        if (!isSleeping)                    { return true; }
+        if (_aodBehaviour == AOD_TIME_ONLY) { return true; }
         return false;   // AOD_SKY_ONLY
     }
 
     // Whether to draw sun/moon/stars right now, given AOD mode.
     function showSky(isSleeping) {
-        if (!isSleeping)                            { return true; }
-        if (_aodBehaviour == AOD_SHOW_ALL)          { return true; }
-        if (_aodBehaviour == AOD_SKY_ONLY)          { return true; }
+        if (!isSleeping)                   { return true; }
+        if (_aodBehaviour == AOD_SKY_ONLY) { return true; }
         return false;   // AOD_TIME_ONLY
+    }
+
+    // Data fields and seconds are never shown in AOD.
+    function showFields(isSleeping) {
+        return !isSleeping;
     }
 
 }

@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<resources>
+    <strings>
+
+        <!-- App name -->
+        <string id="AppName">Circadia</string>
+
+        <!-- Setting titles -->
+        <string id="topFieldTitle">Oberes Datenfeld</string>
+        <string id="leftFieldTitle">Datenfeld unten links</string>
+        <string id="rightFieldTitle">Datenfeld unten rechts</string>
+        <string id="tempUnitsTitle">Temperatureinheit</string>
+        <string id="distanceUnitsTitle">Entfernungseinheit</string>
+        <string id="mipModeTitle">Anzeigetyp</string>
+        <string id="showSecondsTitle">Sekunden anzeigen</string>
+        <string id="starCountTitle">Anzahl der Sterne</string>
+        <string id="useGpsTitle">Standort</string>
+        <string id="latDegTitle">Heimatbreitengrad (Dezimalgrad, positiv = N)</string>
+        <string id="lonDegTitle">Heimatlängengrad (Dezimalgrad, positiv = O)</string>
+        <string id="aodBehaviourTitle">Always-On-Display</string>
+        <string id="timeFormatTitle">Zeitformat</string>
+        <string id="dateFormatTitle">Datumsformat</string>
+        <string id="minuteSaturationTitle">Farbsättigung der Minuten</string>
+
+        <!-- Field choices -->
+        <string id="fieldDate">Datum</string>
+        <string id="fieldHeartRate">Herzfrequenz</string>
+        <string id="fieldSteps">Schritte</string>
+        <string id="fieldTemperature">Temperatur</string>
+        <string id="fieldBodyBattery">Body Battery</string>
+        <string id="fieldBattery">Geräteakku</string>
+        <string id="fieldNextSunEvent">Nächstes Sonnenereignis</string>
+        <string id="fieldStress">Stress</string>
+        <string id="fieldCalories">Kalorien</string>
+        <string id="fieldFloors">Stockwerke</string>
+        <string id="fieldDistance">Entfernung</string>
+        <string id="fieldRecovery">Erholungszeit</string>
+        <string id="fieldRunningDistance7d">7-Tage-Laufdistanz</string>
+        <string id="fieldRunningTime7d">7-Tage-Laufzeit</string>
+        <string id="fieldRunningDistanceWtd">Laufdistanz diese Woche</string>
+        <string id="fieldRunningTimeWtd">Laufzeit diese Woche</string>
+
+        <!-- Unit choices -->
+        <!-- Temperature unit choices -->
+        <string id="tempCelsius">Celsius (°C)</string>
+        <string id="tempFahrenheit">Fahrenheit (°F)</string>
+        <string id="tempKelvin">Kelvin (K)</string>
+
+        <!-- Distance unit choices -->
+        <string id="distanceKm">Kilometer</string>
+        <string id="distanceMi">Meilen</string>
+
+        <!-- Display choices -->
+        <string id="displayAmoled">Standard (volle Farbe)</string>
+        <string id="displayMip">Vereinfacht (MIP-tauglich)</string>
+
+        <!-- Star choices -->
+        <string id="starsNone">Keine</string>
+        <string id="starsSome">Einige</string>
+        <string id="starsLots">Viele</string>
+
+        <!-- GPS choices -->
+        <string id="gpsUseLocation">Geräteposition verwenden</string>
+        <string id="gpsUseHome">Heimatkoordinaten verwenden</string>
+
+        <!-- AOD choices -->
+        <string id="aodClockOnly">Nur Uhr</string>
+        <string id="aodSkyOnly">Nur Himmel</string>
+
+        <!-- Time format choices -->
+        <string id="timeFormat24h">24 Stunden</string>
+        <string id="timeFormat12h">12 Stunden</string>
+
+        <!-- Date format choices -->
+        <string id="dateFormatDayNumber">Fr. 13</string>
+        <string id="dateFormatMonthDay">Jan. 13</string>
+        <string id="dateFormatDayMonth">13. Jan.</string>
+
+        <!-- Saturation choices -->
+        <string id="saturation0">0 % (reines Weiß)</string>
+        <string id="saturation1">20 %</string>
+        <string id="saturation2">40 %</string>
+        <string id="saturation3">60 %</string>
+        <string id="saturation4">80 %</string>
+        <string id="saturation5">100 % (volle Farbe)</string>
+
+        <!-- Week start day choices -->
+        <string id="weekStartDayTitle">Woche beginnt am</string>
+        <string id="daySunday">Sonntag</string>
+        <string id="dayMonday">Montag</string>
+        <string id="dayTuesday">Dienstag</string>
+        <string id="dayWednesday">Mittwoch</string>
+        <string id="dayThursday">Donnerstag</string>
+        <string id="dayFriday">Freitag</string>
+        <string id="daySaturday">Samstag</string>
+    </strings>
+</resources>

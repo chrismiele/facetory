@@ -5,64 +5,64 @@
         <!-- ─── Data Fields ─────────────────────────────────────────────── -->
         <setting propertyKey="@Properties.topField" title="@Strings.topFieldTitle">
             <settingConfig type="list">
-                <listEntry value="0">@Strings.fieldDate</listEntry>
-                <listEntry value="3">@Strings.fieldHeartRate</listEntry>
-                <listEntry value="4">@Strings.fieldSteps</listEntry>
-                <listEntry value="8">@Strings.fieldCalories</listEntry>
-                <listEntry value="2">@Strings.fieldTemperature</listEntry>
                 <listEntry value="1">@Strings.fieldBodyBattery</listEntry>
+                <listEntry value="8">@Strings.fieldCalories</listEntry>
+                <listEntry value="0">@Strings.fieldDate</listEntry>
                 <listEntry value="5">@Strings.fieldBattery</listEntry>
-                <listEntry value="6">@Strings.fieldNextSunEvent</listEntry>
-                <listEntry value="7">@Strings.fieldStress</listEntry>
                 <listEntry value="9">@Strings.fieldFloors</listEntry>
-                <listEntry value="10">@Strings.fieldDistance</listEntry>
+                <listEntry value="3">@Strings.fieldHeartRate</listEntry>
+                <listEntry value="6">@Strings.fieldNextSunEvent</listEntry>
                 <listEntry value="11">@Strings.fieldRecovery</listEntry>
-                <listEntry value="12">@Strings.fieldRunningDistance7d</listEntry>
-                <listEntry value="13">@Strings.fieldRunningTime7d</listEntry>
+                <listEntry value="4">@Strings.fieldSteps</listEntry>
+                <listEntry value="10">@Strings.fieldDistance</listEntry>
+                <listEntry value="7">@Strings.fieldStress</listEntry>
+                <listEntry value="2">@Strings.fieldTemperature</listEntry>
                 <listEntry value="14">@Strings.fieldRunningDistanceWtd</listEntry>
                 <listEntry value="15">@Strings.fieldRunningTimeWtd</listEntry>
+                <listEntry value="12">@Strings.fieldRunningDistance7d</listEntry>
+                <listEntry value="13">@Strings.fieldRunningTime7d</listEntry>
             </settingConfig>
         </setting>
 
         <setting propertyKey="@Properties.leftField" title="@Strings.leftFieldTitle">
             <settingConfig type="list">
-                <listEntry value="0">@Strings.fieldDate</listEntry>
-                <listEntry value="3">@Strings.fieldHeartRate</listEntry>
-                <listEntry value="4">@Strings.fieldSteps</listEntry>
-                <listEntry value="8">@Strings.fieldCalories</listEntry>
-                <listEntry value="2">@Strings.fieldTemperature</listEntry>
                 <listEntry value="1">@Strings.fieldBodyBattery</listEntry>
+                <listEntry value="8">@Strings.fieldCalories</listEntry>
+                <listEntry value="0">@Strings.fieldDate</listEntry>
                 <listEntry value="5">@Strings.fieldBattery</listEntry>
-                <listEntry value="6">@Strings.fieldNextSunEvent</listEntry>
-                <listEntry value="7">@Strings.fieldStress</listEntry>
                 <listEntry value="9">@Strings.fieldFloors</listEntry>
-                <listEntry value="10">@Strings.fieldDistance</listEntry>
+                <listEntry value="3">@Strings.fieldHeartRate</listEntry>
+                <listEntry value="6">@Strings.fieldNextSunEvent</listEntry>
                 <listEntry value="11">@Strings.fieldRecovery</listEntry>
-                <listEntry value="12">@Strings.fieldRunningDistance7d</listEntry>
-                <listEntry value="13">@Strings.fieldRunningTime7d</listEntry>
+                <listEntry value="4">@Strings.fieldSteps</listEntry>
+                <listEntry value="10">@Strings.fieldDistance</listEntry>
+                <listEntry value="7">@Strings.fieldStress</listEntry>
+                <listEntry value="2">@Strings.fieldTemperature</listEntry>
                 <listEntry value="14">@Strings.fieldRunningDistanceWtd</listEntry>
                 <listEntry value="15">@Strings.fieldRunningTimeWtd</listEntry>
+                <listEntry value="12">@Strings.fieldRunningDistance7d</listEntry>
+                <listEntry value="13">@Strings.fieldRunningTime7d</listEntry>
             </settingConfig>
         </setting>
 
         <setting propertyKey="@Properties.rightField" title="@Strings.rightFieldTitle">
             <settingConfig type="list">
-                <listEntry value="0">@Strings.fieldDate</listEntry>
-                <listEntry value="3">@Strings.fieldHeartRate</listEntry>
-                <listEntry value="4">@Strings.fieldSteps</listEntry>
-                <listEntry value="8">@Strings.fieldCalories</listEntry>
-                <listEntry value="2">@Strings.fieldTemperature</listEntry>
                 <listEntry value="1">@Strings.fieldBodyBattery</listEntry>
+                <listEntry value="8">@Strings.fieldCalories</listEntry>
+                <listEntry value="0">@Strings.fieldDate</listEntry>
                 <listEntry value="5">@Strings.fieldBattery</listEntry>
-                <listEntry value="6">@Strings.fieldNextSunEvent</listEntry>
-                <listEntry value="7">@Strings.fieldStress</listEntry>
                 <listEntry value="9">@Strings.fieldFloors</listEntry>
-                <listEntry value="10">@Strings.fieldDistance</listEntry>
+                <listEntry value="3">@Strings.fieldHeartRate</listEntry>
+                <listEntry value="6">@Strings.fieldNextSunEvent</listEntry>
                 <listEntry value="11">@Strings.fieldRecovery</listEntry>
-                <listEntry value="12">@Strings.fieldRunningDistance7d</listEntry>
-                <listEntry value="13">@Strings.fieldRunningTime7d</listEntry>
+                <listEntry value="4">@Strings.fieldSteps</listEntry>
+                <listEntry value="10">@Strings.fieldDistance</listEntry>
+                <listEntry value="7">@Strings.fieldStress</listEntry>
+                <listEntry value="2">@Strings.fieldTemperature</listEntry>
                 <listEntry value="14">@Strings.fieldRunningDistanceWtd</listEntry>
                 <listEntry value="15">@Strings.fieldRunningTimeWtd</listEntry>
+                <listEntry value="12">@Strings.fieldRunningDistance7d</listEntry>
+                <listEntry value="13">@Strings.fieldRunningTime7d</listEntry>
             </settingConfig>
         </setting>
 
@@ -70,8 +70,8 @@
         <setting propertyKey="@Properties.tempUnits" title="@Strings.tempUnitsTitle">
             <settingConfig type="list">
                 <listEntry value="0">@Strings.tempCelsius</listEntry>
-                <listEntry value="2">@Strings.tempKelvin</listEntry>
                 <listEntry value="1">@Strings.tempFahrenheit</listEntry>
+                <listEntry value="2">@Strings.tempKelvin</listEntry>
             </settingConfig>
         </setting>
 
@@ -140,9 +140,8 @@
         <!-- ─── AOD ────────────────────────────────────────────────────── -->
         <setting propertyKey="@Properties.aodBehaviour" title="@Strings.aodBehaviourTitle">
             <settingConfig type="list">
-                <listEntry value="0">@Strings.aodTimeOnly</listEntry>
                 <listEntry value="1">@Strings.aodSkyOnly</listEntry>
-                <listEntry value="2">@Strings.aodShowAll</listEntry>
+                <listEntry value="0">@Strings.aodClockOnly</listEntry>
             </settingConfig>
         </setting>
 
