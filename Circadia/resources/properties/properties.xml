@@ -2,7 +2,7 @@
 <resources>
     <properties>
         <!-- Data fields -->
-        <property id="topField"    type="number">12</property>  
+        <property id="topField"    type="number">0</property>  
         <property id="leftField"   type="number">2</property>  
         <property id="rightField"  type="number">3</property> 
 

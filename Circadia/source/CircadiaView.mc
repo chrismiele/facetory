@@ -95,9 +95,10 @@ class CircadiaView extends WatchUi.WatchFace {
         var g = Gregorian.info(now, Time.FORMAT_SHORT);
         var t = System.getClockTime();
 
-        var showSky  = config.showSky(_isSleeping);
-        var showFace = config.showFace(_isSleeping);
-        var mipMode  = config.mipMode();
+        var showSky    = config.showSky(_isSleeping);
+        var showFace   = config.showFace(_isSleeping);
+        var showFields = config.showFields(_isSleeping);
+        var mipMode    = config.mipMode();
 
         if (g.year != _cacheYear || g.month != _cacheMonth || g.day != _cacheDay ||
             t.hour != _cacheHour || t.min != _cacheMin || mipMode != _cacheMipMode) {
@@ -112,7 +113,9 @@ class CircadiaView extends WatchUi.WatchFace {
             _cacheMipMode = mipMode;
         }
 
-        refreshLiveFields();
+        if (showFields) {
+            refreshLiveFields();
+        }
 
         if (showSky) {
             updateSkyCache(g, t);
@@ -129,15 +132,17 @@ class CircadiaView extends WatchUi.WatchFace {
             Drawing.drawFace(
                 dc, _layoutCache,
                 t.hour, t.min, t.sec,
-                config.showSeconds(), _cachedSunsetAccent, _sunColor,
-                _topFieldText, _leftFieldText, _rightFieldText,
+                config.showSeconds() && showFields, _cachedSunsetAccent, _sunColor,
+                showFields ? _topFieldText : null,
+                showFields ? _leftFieldText : null,
+                showFields ? _rightFieldText : null,
                 mipMode
             );
         }
     }
 
     function onPartialUpdate(dc) {
-        if (!config.showFace(_isSleeping)) { return; }
+        if (!config.showFace(_isSleeping) || !config.showFields(_isSleeping)) { return; }
 
         var topField    = config.topField();
         var leftField   = config.leftField();
