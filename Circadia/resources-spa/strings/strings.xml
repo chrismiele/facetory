@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <resources>
     <strings>
-        <!-- App name (kept untranslated) -->
+
+        <!-- App name -->
         <string id="AppName">Circadia</string>
 
         <!-- Setting titles -->
@@ -10,6 +11,7 @@
         <string id="rightFieldTitle">Campo de datos inferior derecho</string>
         <string id="tempUnitsTitle">Unidades de temperatura</string>
         <string id="distanceUnitsTitle">Unidades de distancia</string>
+        <string id="mipModeTitle">Tipo de pantalla</string>
         <string id="showSecondsTitle">Mostrar segundos</string>
         <string id="starCountTitle">Número de estrellas</string>
         <string id="useGpsTitle">Ubicación</string>
@@ -33,7 +35,12 @@
         <string id="fieldFloors">Pisos subidos</string>
         <string id="fieldDistance">Distancia</string>
         <string id="fieldRecovery">Tiempo de recuperación</string>
+        <string id="fieldRunningDistance7d">Distancia de carrera 7 días</string>
+        <string id="fieldRunningTime7d">Tiempo de carrera 7 días</string>
+        <string id="fieldRunningDistanceWtd">Distancia de carrera semanal</string>
+        <string id="fieldRunningTimeWtd">Tiempo de carrera semanal</string>
 
+        <!-- Unit choices -->
         <!-- Temperature unit choices -->
         <string id="tempCelsius">Celsius (°C)</string>
         <string id="tempFahrenheit">Fahrenheit (°F)</string>
@@ -42,6 +49,10 @@
         <!-- Distance unit choices -->
         <string id="distanceKm">Kilómetros</string>
         <string id="distanceMi">Millas</string>
+
+        <!-- Display choices -->
+        <string id="displayAmoled">Predeterminado (color completo)</string>
+        <string id="displayMip">Simplificado (compatible con MIP)</string>
 
         <!-- Star choices -->
         <string id="starsNone">Ninguna</string>
@@ -61,7 +72,7 @@
         <string id="timeFormat24h">24 horas</string>
         <string id="timeFormat12h">12 horas</string>
 
-        <!-- Date format choices (examples shown using Spanish abbreviations) -->
+        <!-- Date format choices -->
         <string id="dateFormatDayNumber">vie. 13</string>
         <string id="dateFormatMonthDay">ene. 13</string>
         <string id="dateFormatDayMonth">13 ene.</string>
@@ -73,5 +84,15 @@
         <string id="saturation3">60 %</string>
         <string id="saturation4">80 %</string>
         <string id="saturation5">100 % (tono completo)</string>
+
+        <!-- Week start day choices -->
+        <string id="weekStartDayTitle">La semana empieza el</string>
+        <string id="daySunday">Domingo</string>
+        <string id="dayMonday">Lunes</string>
+        <string id="dayTuesday">Martes</string>
+        <string id="dayWednesday">Miércoles</string>
+        <string id="dayThursday">Jueves</string>
+        <string id="dayFriday">Viernes</string>
+        <string id="daySaturday">Sábado</string>
     </strings>
 </resources>

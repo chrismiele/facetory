@@ -17,6 +17,10 @@
                 <listEntry value="9">@Strings.fieldFloors</listEntry>
                 <listEntry value="10">@Strings.fieldDistance</listEntry>
                 <listEntry value="11">@Strings.fieldRecovery</listEntry>
+                <listEntry value="12">@Strings.fieldRunningDistance7d</listEntry>
+                <listEntry value="13">@Strings.fieldRunningTime7d</listEntry>
+                <listEntry value="14">@Strings.fieldRunningDistanceWtd</listEntry>
+                <listEntry value="15">@Strings.fieldRunningTimeWtd</listEntry>
             </settingConfig>
         </setting>
 
@@ -34,6 +38,10 @@
                 <listEntry value="9">@Strings.fieldFloors</listEntry>
                 <listEntry value="10">@Strings.fieldDistance</listEntry>
                 <listEntry value="11">@Strings.fieldRecovery</listEntry>
+                <listEntry value="12">@Strings.fieldRunningDistance7d</listEntry>
+                <listEntry value="13">@Strings.fieldRunningTime7d</listEntry>
+                <listEntry value="14">@Strings.fieldRunningDistanceWtd</listEntry>
+                <listEntry value="15">@Strings.fieldRunningTimeWtd</listEntry>
             </settingConfig>
         </setting>
 
@@ -51,6 +59,10 @@
                 <listEntry value="9">@Strings.fieldFloors</listEntry>
                 <listEntry value="10">@Strings.fieldDistance</listEntry>
                 <listEntry value="11">@Strings.fieldRecovery</listEntry>
+                <listEntry value="12">@Strings.fieldRunningDistance7d</listEntry>
+                <listEntry value="13">@Strings.fieldRunningTime7d</listEntry>
+                <listEntry value="14">@Strings.fieldRunningDistanceWtd</listEntry>
+                <listEntry value="15">@Strings.fieldRunningTimeWtd</listEntry>
             </settingConfig>
         </setting>
 
@@ -143,6 +155,19 @@
                 <listEntry value="3">@Strings.saturation3</listEntry>
                 <listEntry value="4">@Strings.saturation4</listEntry>
                 <listEntry value="5">@Strings.saturation5</listEntry>
+            </settingConfig>
+        </setting>
+
+        <!-- ─── Week Start Day ─────────────────────────────────────────── -->
+        <setting propertyKey="@Properties.weekStartDay" title="@Strings.weekStartDayTitle">
+            <settingConfig type="list">
+                <listEntry value="1">@Strings.daySunday</listEntry>
+                <listEntry value="2">@Strings.dayMonday</listEntry>
+                <listEntry value="3">@Strings.dayTuesday</listEntry>
+                <listEntry value="4">@Strings.dayWednesday</listEntry>
+                <listEntry value="5">@Strings.dayThursday</listEntry>
+                <listEntry value="6">@Strings.dayFriday</listEntry>
+                <listEntry value="7">@Strings.daySaturday</listEntry>
             </settingConfig>
         </setting>
 

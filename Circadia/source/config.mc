@@ -19,7 +19,11 @@ module config {
     const FIELD_CALORIES     = 8;
     const FIELD_FLOORS       = 9;
     const FIELD_DISTANCE     = 10;
-    const FIELD_RECOVERY     = 11;
+    const FIELD_RECOVERY              = 11;
+    const FIELD_RUNNING_DISTANCE_7D   = 12;
+    const FIELD_RUNNING_TIME_7D       = 13;
+    const FIELD_RUNNING_DISTANCE_WTD  = 14;
+    const FIELD_RUNNING_TIME_WTD      = 15;
 
     const TEMP_C = 0;
     const TEMP_F = 1;
@@ -56,6 +60,8 @@ module config {
     var _timeFormat       = TIME_FORMAT_24H;
     var _dateFormat       = DATE_FORMAT_DAY_NUMBER;
     var _minuteSaturation = 3;       // 0-5 step index, mapped to 0.0-1.0 in step of 0.2
+    // Week start day: 1=Sun, 2=Mon, ..., 7=Sat (matches Gregorian.Info.day_of_week)
+    var _weekStartDay     = 2;       // default: Monday
 
     // Helpers — getValue throws if a key is missing from properties.xml,
     // so wrap each read in a try/catch and fall back to the current value.
@@ -107,6 +113,7 @@ module config {
         _timeFormat       = readNumber("timeFormat",       _timeFormat);
         _dateFormat       = readNumber("dateFormat",       _dateFormat);
         _minuteSaturation = readNumber("minuteSaturation", _minuteSaturation);
+        _weekStartDay     = readNumber("weekStartDay",     _weekStartDay);
     }
 
     // ── Accessors (zero-cost reads of cached values) ─────────────────────────
@@ -128,6 +135,7 @@ module config {
     function aodBehaviour()     { return _aodBehaviour;     }
     function timeFormat()       { return _timeFormat;       }
     function dateFormat()       { return _dateFormat;       }
+    function weekStartDay()     { return _weekStartDay;     }
 
     function showStars()        { return _starCount > 0;    }
     function is12hMode()        { return _timeFormat == TIME_FORMAT_12H; }

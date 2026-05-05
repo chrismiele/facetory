@@ -34,6 +34,10 @@
         <string id="fieldFloors">Étages montés</string>
         <string id="fieldDistance">Distance</string>
         <string id="fieldRecovery">Temps de récupération</string>
+        <string id="fieldRunningDistance7d">Distance de course sur 7 jours</string>
+        <string id="fieldRunningTime7d">Temps de course sur 7 jours</string>
+        <string id="fieldRunningDistanceWtd">Distance de course cette semaine</string>
+        <string id="fieldRunningTimeWtd">Temps de course cette semaine</string>
 
         <!-- Temperature unit choices -->
         <string id="tempCelsius">Celsius (°C)</string>
@@ -78,5 +82,15 @@
         <string id="saturation3">60 %</string>
         <string id="saturation4">80 %</string>
         <string id="saturation5">100 % (teinte intégrale)</string>
+
+        <!-- Week start day choices -->
+        <string id="weekStartDayTitle">La semaine commence le</string>
+        <string id="daySunday">Dimanche</string>
+        <string id="dayMonday">Lundi</string>
+        <string id="dayTuesday">Mardi</string>
+        <string id="dayWednesday">Mercredi</string>
+        <string id="dayThursday">Jeudi</string>
+        <string id="dayFriday">Vendredi</string>
+        <string id="daySaturday">Samedi</string>
     </strings>
 </resources>

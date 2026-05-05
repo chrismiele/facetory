@@ -6,6 +6,7 @@ using Toybox.SensorHistory;
 using Toybox.System;
 using Toybox.Time;
 using Toybox.Time.Gregorian;
+using Toybox.UserProfile;
 using Toybox.WatchUi;
 using Toybox.Weather;
 
@@ -20,12 +21,11 @@ class CircadiaView extends WatchUi.WatchFace {
     var _sunColor     = AmoledArt.WHITE;
     var _bodyBatteryText = NO_DATA;
     var _stressText      = NO_DATA;
-    var _batteryPctText  = NO_DATA;   // "87%" — refreshed once per minute
+    var _batteryPctText  = NO_DATA;
     var _nextSunEventText = NO_DATA;
-    var _nextSunEventAt   = null;    // Time.Moment when the cached event occurs
+    var _nextSunEventAt   = null;
     var _isSleeping = false;
 
-    // Minute-level cache keys
     var _cacheYear  = -1;
     var _cacheMonth = -1;
     var _cacheDay   = -1;
@@ -33,7 +33,6 @@ class CircadiaView extends WatchUi.WatchFace {
     var _cacheMin   = -1;
     var _cacheMipMode = false;
 
-    // Pre-computed per-minute values
     var _cachedMoonDiameterDeg = Drawing.NEW_MOON_DIAMETER_DEG;
     var _cachedMoonPhaseAngle  = 0.0;
     var _cachedMoonPhaseBin    = Lunar.PHASE_NEW;
@@ -41,13 +40,11 @@ class CircadiaView extends WatchUi.WatchFace {
     var _cachedSunAltAz        = [0.0, 0.0];
     var _cachedSunsetAccent    = 0.0;
 
-    // Layout cache (invalidated on screen-size change only)
     var _cachedLayoutW = -1.0;
     var _cachedLayoutH = -1.0;
     var _layoutCache   = [0.0, 0.0, 0.0];
     var _skyCache      = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Lunar.PHASE_NEW];
 
-    // Text caches
     var _cachedDateText    = NO_DATA;
     var _cachedWeatherText = NO_DATA;
     var _topFieldText      = NO_DATA;
@@ -58,6 +55,10 @@ class CircadiaView extends WatchUi.WatchFace {
     var _cachedFloorsText   = NO_DATA;
     var _cachedDistanceText = NO_DATA;
     var _cachedRecoveryText = NO_DATA;
+    var _cachedRunningDistance7dText  = NO_DATA;
+    var _cachedRunningTime7dText      = NO_DATA;
+    var _cachedRunningDistanceWtdText = NO_DATA;
+    var _cachedRunningTimeWtdText     = NO_DATA;
 
     function initialize() {
         WatchFace.initialize();
@@ -75,10 +76,6 @@ class CircadiaView extends WatchUi.WatchFace {
     function onExitSleep()  { _isSleeping = false; }
     function onEnterSleep() { _isSleeping = true; }
 
-    // Called by CircadiaApp.onSettingsChanged after config.refresh().
-    // We invalidate the minute cache so all derived values re-compute on
-    // the next onUpdate. Also drop the next-sun-event cache, since the
-    // user may have just changed home coordinates.
     function onSettingsChanged() {
         _cacheMin = -1;
         _nextSunEventAt = null;
@@ -166,8 +163,6 @@ class CircadiaView extends WatchUi.WatchFace {
         if (rightFast) { Drawing.drawRightFieldClipped(dc, _layoutCache, _rightFieldText); }
     }
 
-    // ── Layout ──────────────────────────────────────────────────────────────
-
     function updateLayoutCache(dc) {
         var w = dc.getWidth().toFloat();
         var h = dc.getHeight().toFloat();
@@ -177,8 +172,6 @@ class CircadiaView extends WatchUi.WatchFace {
             _cachedLayoutH = h;
         }
     }
-
-    // ── Minute-level cache ───────────────────────────────────────────────────
 
     function updateMinuteCache(now, g, t, mipMode) {
         var clockHour = t.hour + t.min / 60.0;
@@ -209,8 +202,6 @@ class CircadiaView extends WatchUi.WatchFace {
             );
         }
 
-        // Date text — formatted per user preference. FORMAT_MEDIUM gives month as
-        // a 3-letter String ("Apr"); FORMAT_SHORT gives month as Number.
         var gMed = Gregorian.info(now, Time.FORMAT_MEDIUM);
         var df = config.dateFormat();
         if (df == config.DATE_FORMAT_MONTH_DAY) {
@@ -221,7 +212,6 @@ class CircadiaView extends WatchUi.WatchFace {
             _cachedDateText = gMed.day_of_week + " " + g.day.toString();
         }
 
-        // Only fetch data for fields that are actually displayed
         if (fieldIsVisible(config.FIELD_TEMPERATURE)) {
             _cachedWeatherText = getWeatherTempText();
         }
@@ -237,17 +227,19 @@ class CircadiaView extends WatchUi.WatchFace {
         if (fieldIsVisible(config.FIELD_NEXT_SUN_EVENT)) {
             updateNextSunEventIfNeeded(now);
         }
+        if (fieldIsVisible(config.FIELD_RUNNING_DISTANCE_7D) ||
+            fieldIsVisible(config.FIELD_RUNNING_TIME_7D)      ||
+            fieldIsVisible(config.FIELD_RUNNING_DISTANCE_WTD) ||
+            fieldIsVisible(config.FIELD_RUNNING_TIME_WTD)) {
+            updateRunningCache(now);
+        }
 
-        // Activity-monitor fields share a single getInfo() call.
         var amInfo = anyActivityMonitorFieldVisible() ? ActivityMonitor.getInfo() : null;
         _topFieldText   = getFieldText(config.topField(),   amInfo);
         _leftFieldText  = getFieldText(config.leftField(),  amInfo);
         _rightFieldText = getFieldText(config.rightField(), amInfo);
     }
 
-    // The next sunrise or sunset, whichever comes first. Cached as a
-    // Time.Moment; recomputed only when "now" reaches the cached event.
-    // Sunrise text gets a "+" prefix; sunset gets a "-".
     function updateNextSunEventIfNeeded(now) {
         if (_nextSunEventAt != null && now.lessThan(_nextSunEventAt)) {
             return;
@@ -262,8 +254,6 @@ class CircadiaView extends WatchUi.WatchFace {
         var sr = Weather.getSunrise(loc, now);
         var ss = Weather.getSunset(loc, now);
 
-        // If either event is in the future, the next one is the earlier of
-        // those two. Otherwise both are past — query tomorrow's sunrise.
         var prefix = null;
         var moment = null;
 
@@ -277,7 +267,6 @@ class CircadiaView extends WatchUi.WatchFace {
         }
 
         if (moment == null) {
-            // Both today's events are past — try tomorrow's sunrise.
             var tomorrow = now.add(new Time.Duration(Gregorian.SECONDS_PER_DAY));
             var srNext = Weather.getSunrise(loc, tomorrow);
             if (srNext != null) {
@@ -331,8 +320,6 @@ class CircadiaView extends WatchUi.WatchFace {
         }
     }
 
-    // ── Field helpers ────────────────────────────────────────────────────────
-
     function fieldIsVisible(kind) {
         return config.topField() == kind
             || config.leftField() == kind
@@ -347,8 +334,6 @@ class CircadiaView extends WatchUi.WatchFace {
             || kind == config.FIELD_DISTANCE;
     }
 
-    // True iff any displayed field is sourced from ActivityMonitor.getInfo().
-    // Used to gate the once-per-refresh getInfo() call.
     function fieldUsesActivityMonitor(kind) {
         return kind == config.FIELD_STEPS
             || kind == config.FIELD_CALORIES
@@ -363,8 +348,6 @@ class CircadiaView extends WatchUi.WatchFace {
             || fieldUsesActivityMonitor(config.rightField());
     }
 
-    // Per-frame refresh for sub-minute fields. Fetches ActivityMonitor.getInfo()
-    // at most once even if multiple slots are activity-sourced.
     function refreshLiveFields() {
         var topField   = config.topField();
         var leftField  = config.leftField();
@@ -401,10 +384,12 @@ class CircadiaView extends WatchUi.WatchFace {
         if (kind == config.FIELD_DISTANCE)     { return getDistanceDisplay(amInfo); }
         if (kind == config.FIELD_RECOVERY)     { return getRecoveryDisplay(amInfo); }
         if (kind == config.FIELD_HEART_RATE)   { return getHeartRateDisplay(); }
+        if (kind == config.FIELD_RUNNING_DISTANCE_7D)  { return _cachedRunningDistance7dText;  }
+        if (kind == config.FIELD_RUNNING_TIME_7D)       { return _cachedRunningTime7dText;       }
+        if (kind == config.FIELD_RUNNING_DISTANCE_WTD)  { return _cachedRunningDistanceWtdText;  }
+        if (kind == config.FIELD_RUNNING_TIME_WTD)      { return _cachedRunningTimeWtdText;      }
         return NO_DATA;
     }
-
-    // ── Data fetchers ────────────────────────────────────────────────────────
 
     function getHeartRateDisplay() {
         var info = Activity.getActivityInfo();
@@ -412,8 +397,6 @@ class CircadiaView extends WatchUi.WatchFace {
         return info.currentHeartRate.toNumber().toString();
     }
 
-    // Re-reads the battery percentage. Called once per minute from
-    // updateMinuteCache. Cheap, but no need to do more often than that.
     function refreshBatteryPercent() {
         var stats = System.getSystemStats();
         if (stats == null || stats.battery == null) {
@@ -521,7 +504,89 @@ class CircadiaView extends WatchUi.WatchFace {
         return _cachedRecoveryText;
     }
 
-    // ── Formatting helpers ───────────────────────────────────────────────────
+    // Compute all four running metrics in one pass over activity history.
+    // Called once per minute when any of the four fields is visible.
+    function updateRunningCache(now) {
+        if (!(Toybox.UserProfile has :getUserActivityHistory)) {
+            _cachedRunningDistance7dText  = NO_DATA;
+            _cachedRunningTime7dText      = NO_DATA;
+            _cachedRunningDistanceWtdText = NO_DATA;
+            _cachedRunningTimeWtdText     = NO_DATA;
+            return;
+        }
+
+        var iterator = UserProfile.getUserActivityHistory();
+        if (iterator == null) {
+            _cachedRunningDistance7dText  = NO_DATA;
+            _cachedRunningTime7dText      = NO_DATA;
+            _cachedRunningDistanceWtdText = NO_DATA;
+            _cachedRunningTimeWtdText     = NO_DATA;
+            return;
+        }
+
+        var localNow = Gregorian.info(now, Time.FORMAT_SHORT);
+        var secsSinceMidnight = localNow.hour * 3600
+                              + localNow.min  * 60
+                              + localNow.sec;
+        var cutoff7d = now.subtract(new Time.Duration(
+            secsSinceMidnight + 6 * Gregorian.SECONDS_PER_DAY
+        ));
+
+        var todayDow = localNow.day_of_week;
+        var startDow = config.weekStartDay();
+        var daysBack = (todayDow - startDow + 7) % 7;
+        var cutoffWtd = now.subtract(new Time.Duration(
+            secsSinceMidnight + daysBack * Gregorian.SECONDS_PER_DAY
+        ));
+
+        var dist7d  = 0.0;
+        var time7d  = 0;
+        var distWtd = 0.0;
+        var timeWtd = 0;
+
+        var item = iterator.next();
+        while (item != null) {
+            if (item.startTime == null || item.type != Activity.SPORT_RUNNING) {
+                item = iterator.next();
+                continue;
+            }
+
+            var d = (item.distance != null) ? item.distance.toFloat() : 0.0;
+            var s = (item.duration != null) ? item.duration.value()   : 0;
+
+            if (!item.startTime.lessThan(cutoff7d))  { dist7d  += d; time7d  += s; }
+            if (!item.startTime.lessThan(cutoffWtd)) { distWtd += d; timeWtd += s; }
+
+            item = iterator.next();
+        }
+
+        _cachedRunningDistance7dText  = formatRunDistance(dist7d);
+        _cachedRunningTime7dText      = formatRunTime(time7d);
+        _cachedRunningDistanceWtdText = formatRunDistance(distWtd);
+        _cachedRunningTimeWtdText     = formatRunTime(timeWtd);
+    }
+
+    // Distance in metres → "x.x km" or "x.x mi"
+    function formatRunDistance(metres) {
+        var value;
+        var suffix;
+        if (config.distanceUnits() == config.DIST_MI) {
+            value  = metres / 1609.344;
+            suffix = "mi";
+        } else {
+            value  = metres / 1000.0;
+            suffix = "km";
+        }
+        return oneDecimalString(value) + suffix;
+    }
+
+    // Seconds → "H:MM" or "HH:MM"
+    function formatRunTime(seconds) {
+        var totalMin = seconds / 60;
+        var h   = totalMin / 60;
+        var min = totalMin % 60;
+        return h.toString() + ":" + min.format("%02d");
+    }
 
     function oneDecimalString(x) {
         var tenth = Math.floor(x * 10.0 + 0.5).toNumber();

@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <resources>
     <strings>
-        <!-- App name (kept untranslated) -->
+
+        <!-- App name -->
         <string id="AppName">Circadia</string>
 
         <!-- Setting titles -->
@@ -34,7 +35,12 @@
         <string id="fieldFloors">Stockwerke</string>
         <string id="fieldDistance">Entfernung</string>
         <string id="fieldRecovery">Erholungszeit</string>
+        <string id="fieldRunningDistance7d">7-Tage-Laufdistanz</string>
+        <string id="fieldRunningTime7d">7-Tage-Laufzeit</string>
+        <string id="fieldRunningDistanceWtd">Laufdistanz diese Woche</string>
+        <string id="fieldRunningTimeWtd">Laufzeit diese Woche</string>
 
+        <!-- Unit choices -->
         <!-- Temperature unit choices -->
         <string id="tempCelsius">Celsius (°C)</string>
         <string id="tempFahrenheit">Fahrenheit (°F)</string>
@@ -66,7 +72,7 @@
         <string id="timeFormat24h">24 Stunden</string>
         <string id="timeFormat12h">12 Stunden</string>
 
-        <!-- Date format choices (examples shown using German abbreviations) -->
+        <!-- Date format choices -->
         <string id="dateFormatDayNumber">Fr. 13</string>
         <string id="dateFormatMonthDay">Jan. 13</string>
         <string id="dateFormatDayMonth">13. Jan.</string>
@@ -78,5 +84,15 @@
         <string id="saturation3">60 %</string>
         <string id="saturation4">80 %</string>
         <string id="saturation5">100 % (volle Farbe)</string>
+
+        <!-- Week start day choices -->
+        <string id="weekStartDayTitle">Woche beginnt am</string>
+        <string id="daySunday">Sonntag</string>
+        <string id="dayMonday">Montag</string>
+        <string id="dayTuesday">Dienstag</string>
+        <string id="dayWednesday">Mittwoch</string>
+        <string id="dayThursday">Donnerstag</string>
+        <string id="dayFriday">Freitag</string>
+        <string id="daySaturday">Samstag</string>
     </strings>
 </resources>

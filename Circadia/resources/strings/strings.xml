@@ -32,8 +32,12 @@
         <string id="fieldStress">Stress</string>
         <string id="fieldCalories">Calories</string>
         <string id="fieldFloors">Floors climbed</string>
-        <string id="fieldDistance">Distance</string>
+        <string id="fieldDistance">Steps distance</string>
         <string id="fieldRecovery">Recovery time</string>
+        <string id="fieldRunningDistance7d">7-day run distance</string>
+        <string id="fieldRunningTime7d">7-day run time</string>
+        <string id="fieldRunningDistanceWtd">WTD run distance</string>
+        <string id="fieldRunningTimeWtd">WTD run time</string>
 
         <!-- Unit choices -->
         <!-- Temperature unit choices -->
@@ -79,5 +83,15 @@
         <string id="saturation3">60%</string>
         <string id="saturation4">80%</string>
         <string id="saturation5">100% (full hue)</string>
+
+        <!-- Week start day choices -->
+        <string id="weekStartDayTitle">Week starts on</string>
+        <string id="daySunday">Sunday</string>
+        <string id="dayMonday">Monday</string>
+        <string id="dayTuesday">Tuesday</string>
+        <string id="dayWednesday">Wednesday</string>
+        <string id="dayThursday">Thursday</string>
+        <string id="dayFriday">Friday</string>
+        <string id="daySaturday">Saturday</string>
     </strings>
 </resources>
