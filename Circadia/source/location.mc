@@ -1,16 +1,12 @@
 using Toybox.Activity;
 using Toybox.Application;
 using Toybox.Position;
-using Toybox.Time;
 using Toybox.Weather;
 
 module LocationService {
 
     const CACHE_LAT_KEY   = "trusted_lat_deg";
     const CACHE_LON_KEY   = "trusted_lon_deg";
-    const CACHE_TIME_KEY  = "trusted_location_time";
-    const MAX_CACHE_AGE_SEC = 30 * 24 * 60 * 60;
-
     // Minimum position change (degrees) that triggers a storage write.
     // ~0.01° ≈ 1 km — more than sufficient for solar/lunar accuracy.
     const WRITE_THRESHOLD_DEG = 0.01;
@@ -73,7 +69,6 @@ module LocationService {
         if (needsWrite) {
             Application.Storage.setValue(CACHE_LAT_KEY,  loc[0]);
             Application.Storage.setValue(CACHE_LON_KEY,  loc[1]);
-            Application.Storage.setValue(CACHE_TIME_KEY, Time.now().value());
         }
 
         return loc;
@@ -82,10 +77,8 @@ module LocationService {
     function getCachedLocation() {
         var lat = Application.Storage.getValue(CACHE_LAT_KEY);
         var lon = Application.Storage.getValue(CACHE_LON_KEY);
-        var t   = Application.Storage.getValue(CACHE_TIME_KEY);
 
-        if (lat == null || lon == null || t == null) { return null; }
-        if (Time.now().value() - t > MAX_CACHE_AGE_SEC) { return null; }
+        if (lat == null || lon == null) { return null; }
 
         var latF = lat.toFloat();
         var lonF = lon.toFloat();

@@ -3,22 +3,11 @@ using Toybox.Math;
 
 module Drawing {
 
-    // Local shorthands for the two colours used pervasively. Every other
-    // colour comes from Colours.* — see colours.mc for the single source.
     const BLACK = 0x000000;
     const WHITE = 0xFFFFFF;
 
-    const SUN_GLOW_DEG       = 25.0;  // cosine rim — chosen so halo is visually ~18° from centre
-    const SUN_OUTER_CORE_DEG =  8.0;  // outer core ring (WHITE → sunColor)
-    const SUN_INNER_CORE_DEG =  4.0;  // inner core (always white)
-    const MOON_GLOW_DEG    = 45.0;
     const NEW_MOON_DIAMETER_DEG = 5.0;
     const MOON_DIAMETER_DEG     = 12.0;
-    const MIP_RING_THICKNESS_DEG  = 3.0;
-    const MOON_RING_THICKNESS_DEG = 15.0;
-    const SUN_GLOW_CUTOFF_DEG     = 18.0;
-    const MAX_MOON_GLOW_BRIGHTNESS         = 0.5;
-    const INNER_MOON_GLOW_BRIGHTNESS_SCALE = 0.5;
 
     const STAR_SMALL  = 0;
     const STAR_MEDIUM = 1;
@@ -41,20 +30,6 @@ module Drawing {
     const STAR_RED_FRAC         = 0.12;
     const STAR_BLUE_FRAC        = 0.08;
 
-    // ── Glow bitmap cache ──────────────────────────────────────────────────
-    // One unified cache per buffered colour. Slot 0 = YELLOW, Slot 1 = BLUE.
-    // (The transitional colours — orange/red/purple — appear briefly during
-    // sunrise/sunset and are drawn directly without a cache.)
-    const GLOW_SLOT_YELLOW = 0;
-    const GLOW_SLOT_BLUE   = 1;
-
-    var _glowBitmap    = [null, null];
-    var _glowR         = [-1.0, -1.0];
-    var _glowDeg       = [-1.0, -1.0];
-    var _glowRadiusPx  = [0, 0];
-
-    var _transparent;
-
     const CLOCK_RADIUS_FRAC  = 0.6179775281;
     const CLOCK_AZ_DEG       = 0.0;
     const COLON_GAP_FRAC     = 0.0842696629;
@@ -69,6 +44,9 @@ module Drawing {
 
     const SECOND_TICK_LENGTH_FRAC     = 0.0449438202;
     const SECOND_TICK_HALF_WIDTH_FRAC = 0.0084269663;
+
+    // Used by AmoledArt moon glow and by drawSky for the sun glow cutoff radius.
+    const SUN_GLOW_CUTOFF_DEG = 18.0;
 
     // Pre-computed sin/cos table for the 60 second-tick angles. Lazy-built.
     // Saves ~120 trig calls per onPartialUpdate when seconds are enabled.
@@ -86,14 +64,7 @@ module Drawing {
         }
     }
 
-    function ensureTransparent() {
-        if (_transparent == null) {
-            _transparent = Graphics.createColor(0, 0, 0, 0);
-        }
-    }
-
     // Layout cache: just the polar coordinate origin and watch radius.
-    // The dc width/height aren't needed elsewhere — _layoutCache stays a 3-tuple.
     function layout(w, h) {
         var cx = w/2.0;
         var cy = h/2.0;
@@ -113,8 +84,7 @@ module Drawing {
         return R*(moonDiameterDeg/90.0);
     }
 
-    // Clear the whole screen to black. Used when AOD shows time-only
-    // (i.e. sky drawing is suppressed but we still need to wipe stale pixels).
+    // Clear the whole screen to black. Used when AOD shows time-only.
     function clearScreen(dc) {
         dc.setColor(BLACK, BLACK);
         dc.clear();
@@ -140,9 +110,9 @@ module Drawing {
         var glowRadius = R*(SUN_GLOW_CUTOFF_DEG/90.0);
         if (showSun && intersectsSkyDisc(sx, sy, glowRadius, cx, cy, R)) {
             if (mipMode) {
-                drawMipSun(dc, sx, sy, R, sunAlt);
+                MiPArt.drawSun(dc, sx, sy, R, sunAlt);
             } else {
-                drawSunGlow(dc, sx, sy, cx, cy, R, sunColor, SUN_GLOW_DEG);
+                AmoledArt.drawSunGlow(dc, sx, sy, cx, cy, R, sunColor, AmoledArt.SUN_GLOW_DEG);
             }
         }
 
@@ -159,14 +129,14 @@ module Drawing {
                 phaseAngle,
                 phaseBin,
                 sunAlt,
-                mipMode ? Colours.MIP_MOON_BRIGHT : Colours.MOON_AMOLED,
+                mipMode ? MiPArt.MIP_MOON_BRIGHT : AmoledArt.MOON_AMOLED,
                 R,
                 mipMode
             );
         }
     }
 
-    function drawFace(dc, cache, hour, min, sec, showSeconds, sunsetAccent, sunColor, topText, leftText, rightText) {
+    function drawFace(dc, cache, hour, min, sec, showSeconds, sunsetAccent, sunColor, topText, leftText, rightText, mipMode) {
         var cx = cache[0];
         var cy = cache[1];
         var R  = cache[2];
@@ -176,7 +146,7 @@ module Drawing {
         }
 
         drawTopField(dc, cx, cy, R, topText);
-        drawDigitalClock(dc, cx, cy, R, hour, min, sunsetAccent, sunColor, leftText, rightText);
+        drawDigitalClock(dc, cx, cy, R, hour, min, sunsetAccent, sunColor, leftText, rightText, mipMode);
     }
 
     function drawSecondTickClipped(dc, cache, sec) {
@@ -205,7 +175,7 @@ module Drawing {
         var w = dc.getTextWidthInPixels(text, font);
         var h = dc.getFontHeight(font);
 
-        var padX = 3;  // +1 vs. before to cover the outline's 1px expansion
+        var padX = 3;
         var padY = 2;
 
         dc.setClip(x - w/2 - padX, y - h/2 - padY, w + 2*padX, h + 2*padY);
@@ -293,7 +263,7 @@ module Drawing {
         drawFieldText(dc, p[0].toNumber(), p[1].toNumber(), topText);
     }
 
-    function drawDigitalClock(dc, cx, cy, R, hour, min, sunsetAccent, sunColor, leftText, rightText) {
+    function drawDigitalClock(dc, cx, cy, R, hour, min, sunsetAccent, sunColor, leftText, rightText, mipMode) {
         var font  = Graphics.FONT_SYSTEM_NUMBER_THAI_HOT;
         var displayHour = MathUtil.displayHour(hour, config.is12hMode());
         var hText = MathUtil.twoDigits(displayHour);
@@ -310,11 +280,12 @@ module Drawing {
         var colonGap   = R*COLON_GAP_FRAC;
         var colonShift = R*COLON_V_SHIFT_FRAC;
 
-        dc.setColor(MathUtil.blendColor(WHITE, Colours.SUNSET_ACCENT, sunsetAccent), Graphics.COLOR_TRANSPARENT);
+        var accentColor = mipMode ? MiPArt.MIP_SUNSET_ACCENT : AmoledArt.SUNSET_ACCENT;
+        dc.setColor(MathUtil.blendColor(WHITE, accentColor, sunsetAccent), Graphics.COLOR_TRANSPARENT);
         dc.drawText((clockCx - colonGap).toNumber(), baselineY.toNumber(), font, hText, Graphics.TEXT_JUSTIFY_RIGHT);
         dc.drawText(clockCx.toNumber(), (baselineY - colonShift).toNumber(), font, ":", Graphics.TEXT_JUSTIFY_CENTER);
 
-        dc.setColor(Solar.brightSunColor(sunColor, config.minuteSaturation()), Graphics.COLOR_TRANSPARENT);
+        dc.setColor(AmoledArt.brightSunColor(sunColor, config.minuteSaturation()), Graphics.COLOR_TRANSPARENT);
         dc.drawText((clockCx + colonGap).toNumber(), baselineY.toNumber(), font, mText, Graphics.TEXT_JUSTIFY_LEFT);
 
         drawSubfields(dc, cx, cy, R, leftText, rightText);
@@ -341,140 +312,6 @@ module Drawing {
         dc.drawText(x, y, font, text, Graphics.TEXT_JUSTIFY_CENTER);
     }
 
-    // Map a sun colour to a glow-cache slot, or -1 if no cache exists for it.
-    function glowCacheSlot(sunColor) {
-        if (sunColor == Colours.SUN_YELLOW) { return GLOW_SLOT_YELLOW; }
-        if (sunColor == Colours.SUN_BLUE)   { return GLOW_SLOT_BLUE; }
-        return -1;
-    }
-
-    function drawSunGlow(dc, x, y, cx, cy, R, sunColor, glowDeg) {
-        if (Toybox.Graphics has :createBufferedBitmap) {
-            var slot = glowCacheSlot(sunColor);
-            if (slot >= 0) {
-                var bmp = getGlowBitmap(slot, sunColor, R, glowDeg);
-                if (bmp != null) {
-                    dc.drawBitmap(x.toNumber() - _glowRadiusPx[slot], y.toNumber() - _glowRadiusPx[slot], bmp);
-                    return;
-                }
-            }
-        }
-        drawSunGlowDirect(dc, x, y, cx, cy, R, sunColor, glowDeg);
-    }
-
-    // AMOLED sun — three concentric zones:
-    //   Inner core  [0,          SUN_INNER_CORE_DEG] : pure WHITE
-    //   Outer core  [INNER_CORE, SUN_OUTER_CORE_DEG] : WHITE → sunColor, cosine brightness
-    //   Halo        [OUTER_CORE, SUN_GLOW_DEG]       : sunColor, cosine brightness continued
-    //
-    // A single cosine brightness curve B(t) = 0.5*(1+cos(π*t)) spans both outer
-    // core and halo, where t=0 at the inner core edge and t=1 at SUN_GLOW_DEG.
-    // The cosine reaches exactly 0 at the rim, so the halo is visible to precisely
-    // SUN_GLOW_DEG — no artificial inflation needed.
-    function drawSunGlowDirect(dc, x, y, cx, cy, R, sunColor, glowDeg) {
-        var drawDeg     = (glowDeg < SUN_GLOW_CUTOFF_DEG + 3.0) ? glowDeg : SUN_GLOW_CUTOFF_DEG + 3.0;
-        var glowPx      = R * (glowDeg / 90.0);
-        var drawPx      = R * (drawDeg / 90.0);
-        var outerCorePx = R * (SUN_OUTER_CORE_DEG / 90.0);
-        var innerCorePx = R * (SUN_INNER_CORE_DEG / 90.0);
-        var bodySpan    = glowPx - innerCorePx;
-        var haloSteps   = (drawDeg - SUN_OUTER_CORE_DEG).toNumber();
-        var outerSteps  = (SUN_OUTER_CORE_DEG - SUN_INNER_CORE_DEG).toNumber();
-        var xi = x.toNumber();
-        var yi = y.toNumber();
-
-        var dx = xi - cx.toNumber();
-        var dy = yi - cy.toNumber();
-        var d  = Math.sqrt(dx*dx + dy*dy);
-
-        // Halo: 1°/step, sunColor with cosine brightness
-        for (var i = haloSteps; i >= 1; i -= 1) {
-            var ri = outerCorePx + (drawPx - outerCorePx) * i.toFloat() / haloSteps;
-            if (d - ri >= R) { continue; }
-            var t = (ri - innerCorePx) / bodySpan;
-            var b = 0.5 * (1.0 + Math.cos(Math.PI * t));
-            dc.setColor(Solar.scaleColor(sunColor, b), BLACK);
-            dc.fillCircle(xi, yi, ri.toNumber());
-        }
-
-        // Outer core: WHITE → sunColor with same cosine brightness
-        for (var j = outerSteps; j >= 1; j -= 1) {
-            var rj = innerCorePx + (outerCorePx - innerCorePx) * j.toFloat() / outerSteps;
-            if (d - rj >= R) { continue; }
-            var t2 = (rj - innerCorePx) / bodySpan;
-            var b2 = 0.5 * (1.0 + Math.cos(Math.PI * t2));
-            var hue = MathUtil.blendColor(WHITE, sunColor, j.toFloat() / outerSteps);
-            dc.setColor(Solar.scaleColor(hue, b2), BLACK);
-            dc.fillCircle(xi, yi, rj.toNumber());
-        }
-
-        // Inner core: pure white
-        dc.setColor(WHITE, BLACK);
-        dc.fillCircle(xi, yi, innerCorePx.toNumber());
-    }
-
-    // Glow-bitmap cache: keyed on (slot, sunColor, R, glowDeg).
-    function getGlowBitmap(slot, sunColor, R, glowDeg) {
-        if (_glowBitmap[slot] != null
-            && _glowR[slot]   == R
-            && _glowDeg[slot] == glowDeg) {
-            return _glowBitmap[slot];
-        }
-
-        var drawDeg  = (glowDeg < SUN_GLOW_CUTOFF_DEG + 3.0) ? glowDeg : SUN_GLOW_CUTOFF_DEG + 3.0;
-        var glowPx   = R * (drawDeg / 90.0);
-        var radiusPx = glowPx.toNumber() + 2;
-        var size     = 2*radiusPx + 1;
-
-        var ref = Graphics.createBufferedBitmap({
-            :width         => size,
-            :height        => size,
-            :alphaBlending => Graphics.ALPHA_BLENDING_FULL
-        });
-        if (ref == null) { return null; }
-
-        var bmp = ref.get();
-        if (bmp == null) { return null; }
-
-        ensureTransparent();
-
-        var bdc = bmp.getDc();
-        bdc.setColor(BLACK, _transparent);
-        bdc.clear();
-
-        drawSunGlowDirect(bdc, radiusPx, radiusPx, radiusPx, radiusPx, R, sunColor, glowDeg);
-
-        _glowBitmap[slot]   = bmp;
-        _glowR[slot]        = R;
-        _glowDeg[slot]      = glowDeg;
-        _glowRadiusPx[slot] = radiusPx;
-
-        return bmp;
-    }
-
-    function drawMipSun(dc, x, y, R, altDeg) {
-        // Three concentric rings with evenly-spaced radii at 6°, 12°, 18° of
-        // sky-disc angle (core, middle, outer). Painted outermost first so
-        // the white/ember core lands on top.
-        var colors = Solar.mipSunColorsForAlt(altDeg);
-
-        var outerR  = R * (18.0 / 90.0);
-        var middleR = R * (12.0 / 90.0);
-        var coreR   = R * ( 6.0 / 90.0);
-
-        var xi = x.toNumber();
-        var yi = y.toNumber();
-
-        dc.setColor(colors[0], BLACK);
-        dc.fillCircle(xi, yi, MathUtil.roundNearest(outerR));
-
-        dc.setColor(colors[1], BLACK);
-        dc.fillCircle(xi, yi, MathUtil.roundNearest(middleR));
-
-        dc.setColor(colors[2], BLACK);
-        dc.fillCircle(xi, yi, MathUtil.roundNearest(coreR));
-    }
-
     function drawNewMoon(dc, xi, yi, ri) {
         dc.setColor(BLACK, BLACK);
         dc.fillCircle(xi, yi, ri);
@@ -484,15 +321,14 @@ module Drawing {
         if (mipMode) {
             var radiusScale = closenessToFullMoon(phaseAngle);
             var nightScale  = moonGlowNightScale(sunAltDeg);
-            drawMipHaloBodyScaled(dc, xi, yi, skyRadiusPx, moonRadiusPx, MOON_GLOW_DEG, radiusScale*nightScale, Colours.WHITE, Colours.MIP_MOON_DARK, Colours.MIP_MOON_MEDIUM);
+            MiPArt.drawHaloBody(dc, xi, yi, skyRadiusPx, moonRadiusPx, AmoledArt.MOON_GLOW_DEG, radiusScale*nightScale, WHITE, MiPArt.MIP_MOON_DARK, MiPArt.MIP_MOON_MEDIUM);
             return;
         }
 
-        drawMoonGlow(dc, xi, yi, moonRadiusPx, phaseAngle, sunAltDeg, litColor, skyRadiusPx);
+        AmoledArt.drawMoonGlow(dc, xi, yi, moonRadiusPx, phaseAngle, sunAltDeg, litColor, skyRadiusPx);
         dc.setColor(litColor, BLACK);
         dc.fillCircle(xi, yi, MathUtil.roundNearest(moonRadiusPx));
     }
-
 
     function drawMoonPhaseCached(dc, x, y, diameterPx, sunX, sunY, phaseAngle, bin, sunAltDeg, litColor, skyRadiusPx, mipMode) {
         var r  = diameterPx/2.0;
@@ -501,7 +337,7 @@ module Drawing {
         var ri = MathUtil.roundNearest(r);
 
         if (mipMode) {
-            litColor = (bin == Lunar.PHASE_FULL) ? Colours.WHITE : Colours.MIP_MOON_BRIGHT;
+            litColor = MiPArt.moonLitColor(bin == Lunar.PHASE_FULL);
         }
 
         if (bin == Lunar.PHASE_NEW) {
@@ -572,80 +408,6 @@ module Drawing {
         }
     }
 
-    function drawMipHaloBodyScaled(dc, x, y, R, bodyR, glowDeg, scale, brightColor, innerColor, outerColor) {
-        var xi = x.toNumber();
-        var yi = y.toNumber();
-        var bodyRi = MathUtil.roundNearest(bodyR);
-
-        if (scale <= 0.0) {
-            dc.setColor(brightColor, BLACK);
-            dc.fillCircle(xi, yi, bodyRi);
-            return;
-        }
-
-        var glowR  = R*(glowDeg/90.0)*scale;
-        var innerR = glowR - R*(MIP_RING_THICKNESS_DEG/90.0);
-
-        if (innerR < bodyR) { innerR = bodyR; }
-
-        dc.setColor(outerColor, BLACK);
-        dc.fillCircle(xi, yi, MathUtil.roundNearest(glowR));
-
-        dc.setColor(innerColor, BLACK);
-        dc.fillCircle(xi, yi, MathUtil.roundNearest(innerR));
-
-        dc.setColor(brightColor, BLACK);
-        dc.fillCircle(xi, yi, bodyRi);
-    }
-
-    function drawMoonGlow(dc, xi, yi, moonRadiusPx, phaseAngle, sunAltDeg, litColor, skyRadiusPx) {
-        var radiusScale = closenessToFullMoon(phaseAngle) * moonGlowNightScale(sunAltDeg);
-        if (radiusScale <= 0.0) { return; }
-
-        var outerR = skyRadiusPx*(MOON_GLOW_DEG/90.0)*radiusScale;
-        if (outerR <= 0.5) { return; }
-
-        var glowSteps = MathUtil.roundNearest(1.0*MOON_GLOW_DEG*radiusScale);
-        if (glowSteps < 1) { glowSteps = 1; }
-
-        drawOffsetMoonGlowCircle(dc, xi, yi, moonRadiusPx, outerR, litColor, MAX_MOON_GLOW_BRIGHTNESS, glowSteps);
-    }
-
-    function drawOffsetMoonGlowCircle(dc, xg, yg, moonRadiusPx, outerR, litColor, brightnessScale, glowSteps) {
-        var thicknessR = outerR*(MOON_RING_THICKNESS_DEG/MOON_GLOW_DEG);
-        var innerR = outerR - thicknessR;
-        if (innerR < 0.0) { innerR = 0.0; }
-
-        var midR = 0.5*(outerR + innerR);
-        var outerEdgeBrightness = 0.1*brightnessScale;
-        var innerEdgeBrightness = INNER_MOON_GLOW_BRIGHTNESS_SCALE*brightnessScale;
-
-        for (var i = glowSteps; i >= 1; i -= 1) {
-            var f  = i.toFloat()/glowSteps.toFloat();
-            var rr = outerR*f;
-            var brightness;
-
-            if (rr >= midR) {
-                brightness = brightnessScale
-                    + (outerEdgeBrightness - brightnessScale)*(rr - midR)/(outerR - midR);
-            } else if (rr >= innerR) {
-                brightness = innerEdgeBrightness
-                    + (brightnessScale - innerEdgeBrightness)*(rr - innerR)/(midR - innerR);
-            } else if (rr >= moonRadiusPx && innerR > moonRadiusPx) {
-                brightness = brightnessScale
-                    + (innerEdgeBrightness - brightnessScale)*(rr - moonRadiusPx)/(innerR - moonRadiusPx);
-            } else {
-                continue;
-            }
-
-            var c = MathUtil.blendColor(BLACK, litColor, brightness);
-
-            dc.setColor(c, BLACK);
-            dc.fillCircle(MathUtil.roundNearest(xg), MathUtil.roundNearest(yg), MathUtil.roundNearest(rr));
-        }
-    }
-
-
     function drawShiftedBlackCircle(dc, xi, yi, skyRadiusPx, moonRadiusPx, ux, uy, shiftDeg, rb) {
         var shift = skyRadiusPx*(shiftDeg/90.0);
         var dx = MathUtil.roundNearest(shift*ux);
@@ -665,8 +427,8 @@ module Drawing {
         // The dark-half polygon spans the moon's near-side rectangle: from
         // 2.2r behind the moon (along -ux) up to the moon's centre, full
         // width (4.4r). The "front" edge passes through (xi, yi).
-        var t = -2.2*r;     // back distance
-        var s =  2.2*r;     // half-width
+        var t = -2.2*r;
+        var s =  2.2*r;
 
         var x0 = MathUtil.roundNearest(xi + t*ux - s*vx);
         var y0 = MathUtil.roundNearest(yi + t*uy - s*vy);
@@ -690,17 +452,14 @@ module Drawing {
             drawGibbousHorizontal(dc, xi, yi, r, true, termFrac);
             return;
         }
-
         if (orient == Lunar.ORIENT_DOWN) {
             drawGibbousVertical(dc, xi, yi, r, true, termFrac);
             return;
         }
-
         if (orient == Lunar.ORIENT_LEFT) {
             drawGibbousHorizontal(dc, xi, yi, r, false, termFrac);
             return;
         }
-
         drawGibbousVertical(dc, xi, yi, r, false, termFrac);
     }
 
@@ -741,11 +500,11 @@ module Drawing {
     function fadedStarColors(nightScale) {
         var starScale = 0.8*nightScale;
         return [
-            MathUtil.blendColor(BLACK, Colours.STAR_YELLOW,      starScale),
-            MathUtil.blendColor(BLACK, Colours.STAR_SOFT_YELLOW, starScale),
-            MathUtil.blendColor(BLACK, Colours.STAR_RED,         starScale),
-            MathUtil.blendColor(BLACK, Colours.STAR_BLUE,        starScale),
-            MathUtil.blendColor(BLACK, Colours.STAR_WHITE,       starScale)
+            MathUtil.blendColor(BLACK, AmoledArt.STAR_YELLOW,      starScale),
+            MathUtil.blendColor(BLACK, AmoledArt.STAR_SOFT_YELLOW, starScale),
+            MathUtil.blendColor(BLACK, AmoledArt.STAR_RED,         starScale),
+            MathUtil.blendColor(BLACK, AmoledArt.STAR_BLUE,        starScale),
+            MathUtil.blendColor(BLACK, AmoledArt.STAR_WHITE,       starScale)
         ];
     }
 

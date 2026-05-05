@@ -16,6 +16,7 @@
         <iq:products>
             <iq:product id="fenix8solar47mm"/>
             <iq:product id="fr265s"/>
+            <iq:product id="fr57042mm"/>
             <iq:product id="vivoactive5"/>
         </iq:products>
         <!--
@@ -34,9 +35,11 @@
         -->
         <iq:languages>
             <iq:language>deu</iq:language>
+            <iq:language>dut</iq:language>
             <iq:language>eng</iq:language>
             <iq:language>fre</iq:language>
             <iq:language>fre</iq:language>
+            <iq:language>spa</iq:language>
         </iq:languages>
         <!--
             Use "Monkey C: Configure Monkey Barrel" from the Visual Studio Code

@@ -17,7 +17,7 @@ class CircadiaView extends WatchUi.WatchFace {
     var _latDeg;
     var _lonDeg;
 
-    var _sunColor     = Colours.WHITE;
+    var _sunColor     = AmoledArt.WHITE;
     var _bodyBatteryText = NO_DATA;
     var _stressText      = NO_DATA;
     var _batteryPctText  = NO_DATA;   // "87%" — refreshed once per minute
@@ -133,7 +133,8 @@ class CircadiaView extends WatchUi.WatchFace {
                 dc, _layoutCache,
                 t.hour, t.min, t.sec,
                 config.showSeconds(), _cachedSunsetAccent, _sunColor,
-                _topFieldText, _leftFieldText, _rightFieldText
+                _topFieldText, _leftFieldText, _rightFieldText,
+                mipMode
             );
         }
     }
@@ -195,10 +196,10 @@ class CircadiaView extends WatchUi.WatchFace {
             g.year, g.month, g.day, clockHour, offsetSec,
             _latDeg, _lonDeg
         );
-        _cachedSunsetAccent = Solar.sunsetAccentScale(_cachedSunAltAz[0]);
+        _cachedSunsetAccent = AmoledArt.sunsetAccentScale(_cachedSunAltAz[0]);
         _sunColor = mipMode
-            ? Solar.mipBrightSunColorForAlt(_cachedSunAltAz[0])
-            : Solar.sunColorForAlt(_cachedSunAltAz[0]);
+            ? MiPArt.brightSunColorForAlt(_cachedSunAltAz[0])
+            : AmoledArt.sunColorForAlt(_cachedSunAltAz[0]);
 
         _cachedMoonAltAz = [0.0, 0.0];
         if (config.showMoon()) {

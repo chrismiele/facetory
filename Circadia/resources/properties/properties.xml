@@ -4,7 +4,7 @@
         <!-- Data fields -->
         <property id="topField"    type="number">0</property>  
         <property id="leftField"   type="number">2</property>  
-        <property id="rightField"  type="number">1</property> 
+        <property id="rightField"  type="number">3</property> 
 
         <!-- Temperature units: 0 = Celsius, 1 = Fahrenheit, 2 = Kelvin -->
         <property id="tempUnits"   type="number">0</property>
