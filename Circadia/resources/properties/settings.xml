@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<resources>
+    <settings>
+
+        <!-- ─── Data Fields ─────────────────────────────────────────────── -->
+        <setting propertyKey="@Properties.topField" title="@Strings.topFieldTitle">
+            <settingConfig type="list">
+                <listEntry value="1">@Strings.fieldBodyBattery</listEntry>
+                <listEntry value="8">@Strings.fieldCalories</listEntry>
+                <listEntry value="0">@Strings.fieldDate</listEntry>
+                <listEntry value="5">@Strings.fieldBattery</listEntry>
+                <listEntry value="9">@Strings.fieldFloors</listEntry>
+                <listEntry value="3">@Strings.fieldHeartRate</listEntry>
+                <listEntry value="6">@Strings.fieldNextSunEvent</listEntry>
+                <listEntry value="11">@Strings.fieldRecovery</listEntry>
+                <listEntry value="4">@Strings.fieldSteps</listEntry>
+                <listEntry value="10">@Strings.fieldDistance</listEntry>
+                <listEntry value="7">@Strings.fieldStress</listEntry>
+                <listEntry value="2">@Strings.fieldTemperature</listEntry>
+                <listEntry value="14">@Strings.fieldRunningDistanceWtd</listEntry>
+                <listEntry value="15">@Strings.fieldRunningTimeWtd</listEntry>
+                <listEntry value="12">@Strings.fieldRunningDistance7d</listEntry>
+                <listEntry value="13">@Strings.fieldRunningTime7d</listEntry>
+            </settingConfig>
+        </setting>
+
+        <setting propertyKey="@Properties.leftField" title="@Strings.leftFieldTitle">
+            <settingConfig type="list">
+                <listEntry value="1">@Strings.fieldBodyBattery</listEntry>
+                <listEntry value="8">@Strings.fieldCalories</listEntry>
+                <listEntry value="0">@Strings.fieldDate</listEntry>
+                <listEntry value="5">@Strings.fieldBattery</listEntry>
+                <listEntry value="9">@Strings.fieldFloors</listEntry>
+                <listEntry value="3">@Strings.fieldHeartRate</listEntry>
+                <listEntry value="6">@Strings.fieldNextSunEvent</listEntry>
+                <listEntry value="11">@Strings.fieldRecovery</listEntry>
+                <listEntry value="4">@Strings.fieldSteps</listEntry>
+                <listEntry value="10">@Strings.fieldDistance</listEntry>
+                <listEntry value="7">@Strings.fieldStress</listEntry>
+                <listEntry value="2">@Strings.fieldTemperature</listEntry>
+                <listEntry value="14">@Strings.fieldRunningDistanceWtd</listEntry>
+                <listEntry value="15">@Strings.fieldRunningTimeWtd</listEntry>
+                <listEntry value="12">@Strings.fieldRunningDistance7d</listEntry>
+                <listEntry value="13">@Strings.fieldRunningTime7d</listEntry>
+            </settingConfig>
+        </setting>
+
+        <setting propertyKey="@Properties.rightField" title="@Strings.rightFieldTitle">
+            <settingConfig type="list">
+                <listEntry value="1">@Strings.fieldBodyBattery</listEntry>
+                <listEntry value="8">@Strings.fieldCalories</listEntry>
+                <listEntry value="0">@Strings.fieldDate</listEntry>
+                <listEntry value="5">@Strings.fieldBattery</listEntry>
+                <listEntry value="9">@Strings.fieldFloors</listEntry>
+                <listEntry value="3">@Strings.fieldHeartRate</listEntry>
+                <listEntry value="6">@Strings.fieldNextSunEvent</listEntry>
+                <listEntry value="11">@Strings.fieldRecovery</listEntry>
+                <listEntry value="4">@Strings.fieldSteps</listEntry>
+                <listEntry value="10">@Strings.fieldDistance</listEntry>
+                <listEntry value="7">@Strings.fieldStress</listEntry>
+                <listEntry value="2">@Strings.fieldTemperature</listEntry>
+                <listEntry value="14">@Strings.fieldRunningDistanceWtd</listEntry>
+                <listEntry value="15">@Strings.fieldRunningTimeWtd</listEntry>
+                <listEntry value="12">@Strings.fieldRunningDistance7d</listEntry>
+                <listEntry value="13">@Strings.fieldRunningTime7d</listEntry>
+            </settingConfig>
+        </setting>
+
+        <!-- ─── Temperature Units ──────────────────────────────────────── -->
+        <setting propertyKey="@Properties.tempUnits" title="@Strings.tempUnitsTitle">
+            <settingConfig type="list">
+                <listEntry value="0">@Strings.tempCelsius</listEntry>
+                <listEntry value="1">@Strings.tempFahrenheit</listEntry>
+                <listEntry value="2">@Strings.tempKelvin</listEntry>
+            </settingConfig>
+        </setting>
+
+        <!-- ─── Distance Units ─────────────────────────────────────────── -->
+        <setting propertyKey="@Properties.distanceUnits" title="@Strings.distanceUnitsTitle">
+            <settingConfig type="list">
+                <listEntry value="0">@Strings.distanceKm</listEntry>
+                <listEntry value="1">@Strings.distanceMi</listEntry>
+            </settingConfig>
+        </setting>
+
+        <!-- ─── Time / Date Format ─────────────────────────────────────── -->
+        <setting propertyKey="@Properties.timeFormat" title="@Strings.timeFormatTitle">
+            <settingConfig type="list">
+                <listEntry value="0">@Strings.timeFormat24h</listEntry>
+                <listEntry value="1">@Strings.timeFormat12h</listEntry>
+            </settingConfig>
+        </setting>
+
+        <setting propertyKey="@Properties.dateFormat" title="@Strings.dateFormatTitle">
+            <settingConfig type="list">
+                <listEntry value="0">@Strings.dateFormatDayNumber</listEntry>
+                <listEntry value="1">@Strings.dateFormatMonthDay</listEntry>
+                <listEntry value="2">@Strings.dateFormatDayMonth</listEntry>
+            </settingConfig>
+        </setting>
+
+        <!-- ─── Display Type ───────────────────────────────────────────── -->
+        <setting propertyKey="@Properties.mipMode" title="@Strings.mipModeTitle">
+            <settingConfig type="list">
+                <listEntry value="0">@Strings.displayAmoled</listEntry>
+                <listEntry value="1">@Strings.displayMip</listEntry>
+            </settingConfig>
+        </setting>
+
+        <!-- ─── Visual Toggles ─────────────────────────────────────────── -->
+        <setting propertyKey="@Properties.showSeconds" title="@Strings.showSecondsTitle">
+            <settingConfig type="boolean" />
+        </setting>
+
+        <!-- ─── Stars ──────────────────────────────────────────────────── -->
+        <setting propertyKey="@Properties.starCount" title="@Strings.starCountTitle">
+            <settingConfig type="list">
+                <listEntry value="0">@Strings.starsNone</listEntry>
+                <listEntry value="100">@Strings.starsSome</listEntry>
+                <listEntry value="200">@Strings.starsLots</listEntry>
+            </settingConfig>
+        </setting>
+
+        <!-- ─── Location ───────────────────────────────────────────────── -->
+        <setting propertyKey="@Properties.useGps" title="@Strings.useGpsTitle">
+            <settingConfig type="list">
+                <listEntry value="1">@Strings.gpsUseLocation</listEntry>
+                <listEntry value="0">@Strings.gpsUseHome</listEntry>
+            </settingConfig>
+        </setting>
+
+        <setting propertyKey="@Properties.latDeg" title="@Strings.latDegTitle">
+            <settingConfig type="numeric" min="-90.0" max="90.0" />
+        </setting>
+
+        <setting propertyKey="@Properties.lonDeg" title="@Strings.lonDegTitle">
+            <settingConfig type="numeric" min="-180.0" max="180.0" />
+        </setting>
+
+        <!-- ─── AOD ────────────────────────────────────────────────────── -->
+        <setting propertyKey="@Properties.aodBehaviour" title="@Strings.aodBehaviourTitle">
+            <settingConfig type="list">
+                <listEntry value="1">@Strings.aodSkyOnly</listEntry>
+                <listEntry value="0">@Strings.aodClockOnly</listEntry>
+            </settingConfig>
+        </setting>
+
+        <!-- ─── Saturation ─────────────────────────────────────────────── -->
+        <setting propertyKey="@Properties.minuteSaturation" title="@Strings.minuteSaturationTitle">
+            <settingConfig type="list">
+                <listEntry value="0">@Strings.saturation0</listEntry>
+                <listEntry value="1">@Strings.saturation1</listEntry>
+                <listEntry value="2">@Strings.saturation2</listEntry>
+                <listEntry value="3">@Strings.saturation3</listEntry>
+                <listEntry value="4">@Strings.saturation4</listEntry>
+                <listEntry value="5">@Strings.saturation5</listEntry>
+            </settingConfig>
+        </setting>
+
+        <!-- ─── Week Start Day ─────────────────────────────────────────── -->
+        <setting propertyKey="@Properties.weekStartDay" title="@Strings.weekStartDayTitle">
+            <settingConfig type="list">
+                <listEntry value="1">@Strings.daySunday</listEntry>
+                <listEntry value="2">@Strings.dayMonday</listEntry>
+                <listEntry value="3">@Strings.dayTuesday</listEntry>
+                <listEntry value="4">@Strings.dayWednesday</listEntry>
+                <listEntry value="5">@Strings.dayThursday</listEntry>
+                <listEntry value="6">@Strings.dayFriday</listEntry>
+                <listEntry value="7">@Strings.daySaturday</listEntry>
+            </settingConfig>
+        </setting>
+
+    </settings>
+</resources>
