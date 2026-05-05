@@ -179,6 +179,8 @@ class CircadiaView extends WatchUi.WatchFace {
     }
 
     function updateMinuteCache(now, g, t, mipMode) {
+        updateLocation();
+
         var clockHour = t.hour + t.min / 60.0;
         var offsetSec = t.timeZoneOffset;
 
@@ -459,7 +461,7 @@ class CircadiaView extends WatchUi.WatchFace {
 
     function getCaloriesDisplay(info) {
         if (info != null && info.calories != null) {
-            _cachedCaloriesText = oneDecimalString(info.calories.toFloat()) + " k";
+            _cachedCaloriesText = oneDecimalString(info.calories.toFloat() / 1000.0) + "k";
         }
         return _cachedCaloriesText;
     }
