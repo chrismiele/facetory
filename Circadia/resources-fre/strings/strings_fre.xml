@@ -38,6 +38,7 @@
         <string id="fieldRunningTime7d">Temps de course sur 7 jours</string>
         <string id="fieldRunningDistanceWtd">Distance de course cette semaine</string>
         <string id="fieldRunningTimeWtd">Temps de course cette semaine</string>
+        <string id="fieldVo2Max">VO2 max</string>
 
         <!-- Temperature unit choices -->
         <string id="tempCelsius">Celsius (°C)</string>

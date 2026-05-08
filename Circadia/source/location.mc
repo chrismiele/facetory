@@ -44,6 +44,9 @@ module LocationService {
     }
 
     function getWeatherLocation() {
+        if (!(Toybox has :Weather) || !(Weather has :getCurrentConditions)) {
+            return null;
+        }
         var cc = Weather.getCurrentConditions();
         if (cc == null || cc.observationLocationPosition == null) { return null; }
         return degreesIfValid(cc.observationLocationPosition);

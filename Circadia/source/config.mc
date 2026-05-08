@@ -24,6 +24,7 @@ module config {
     const FIELD_RUNNING_TIME_7D       = 13;
     const FIELD_RUNNING_DISTANCE_WTD  = 14;
     const FIELD_RUNNING_TIME_WTD      = 15;
+    const FIELD_VO2MAX                = 16;
 
     const TEMP_C = 0;
     const TEMP_F = 1;

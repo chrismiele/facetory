@@ -39,6 +39,7 @@
         <string id="fieldRunningTime7d">7-Tage-Laufzeit</string>
         <string id="fieldRunningDistanceWtd">Laufdistanz diese Woche</string>
         <string id="fieldRunningTimeWtd">Laufzeit diese Woche</string>
+        <string id="fieldVo2Max">VO2-Max</string>
 
         <!-- Unit choices -->
         <!-- Temperature unit choices -->

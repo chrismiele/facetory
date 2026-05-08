@@ -39,6 +39,7 @@
         <string id="fieldRunningTime7d">Tiempo de carrera 7 días</string>
         <string id="fieldRunningDistanceWtd">Distancia de carrera semanal</string>
         <string id="fieldRunningTimeWtd">Tiempo de carrera semanal</string>
+        <string id="fieldVo2Max">VO2 máx.</string>
 
         <!-- Unit choices -->
         <!-- Temperature unit choices -->

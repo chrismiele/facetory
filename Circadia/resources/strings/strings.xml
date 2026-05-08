@@ -38,6 +38,7 @@
         <string id="fieldRunningTime7d">7-day run time</string>
         <string id="fieldRunningDistanceWtd">WTD run distance</string>
         <string id="fieldRunningTimeWtd">WTD run time</string>
+        <string id="fieldVo2Max">VO2 max</string>
 
         <!-- Unit choices -->
         <!-- Temperature unit choices -->

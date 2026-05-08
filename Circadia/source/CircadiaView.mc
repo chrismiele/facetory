@@ -59,6 +59,7 @@ class CircadiaView extends WatchUi.WatchFace {
     var _cachedRunningTime7dText      = NO_DATA;
     var _cachedRunningDistanceWtdText = NO_DATA;
     var _cachedRunningTimeWtdText     = NO_DATA;
+    var _cachedVo2MaxText             = NO_DATA;
 
     function initialize() {
         WatchFace.initialize();
@@ -249,6 +250,12 @@ class CircadiaView extends WatchUi.WatchFace {
             return;
         }
 
+        if (!(Toybox has :Weather) || !(Weather has :getSunrise) || !(Weather has :getSunset)) {
+            _nextSunEventText = NO_DATA;
+            _nextSunEventAt   = null;
+            return;
+        }
+
         var loc = new Position.Location({
             :latitude  => _latDeg,
             :longitude => _lonDeg,
@@ -345,7 +352,8 @@ class CircadiaView extends WatchUi.WatchFace {
             || kind == config.FIELD_FLOORS
             || kind == config.FIELD_DISTANCE
             || kind == config.FIELD_RECOVERY
-            || kind == config.FIELD_STRESS;
+            || kind == config.FIELD_STRESS
+            || kind == config.FIELD_VO2MAX;
     }
 
     function anyActivityMonitorFieldVisible() {
@@ -394,6 +402,7 @@ class CircadiaView extends WatchUi.WatchFace {
         if (kind == config.FIELD_RUNNING_TIME_7D)       { return _cachedRunningTime7dText;       }
         if (kind == config.FIELD_RUNNING_DISTANCE_WTD)  { return _cachedRunningDistanceWtdText;  }
         if (kind == config.FIELD_RUNNING_TIME_WTD)      { return _cachedRunningTimeWtdText;      }
+        if (kind == config.FIELD_VO2MAX)                { return getVo2MaxDisplay(amInfo);       }
         return NO_DATA;
     }
 
@@ -420,6 +429,9 @@ class CircadiaView extends WatchUi.WatchFace {
     }
 
     function getWeatherTempText() {
+        if (!(Toybox has :Weather) || !(Weather has :getCurrentConditions)) {
+            return NO_DATA;
+        }
         var cc = Weather.getCurrentConditions();
         if (cc == null || cc.temperature == null) { return NO_DATA; }
 
@@ -435,6 +447,9 @@ class CircadiaView extends WatchUi.WatchFace {
     }
 
     function getBodyBatteryDisplay() {
+        if (!(Toybox has :SensorHistory) || !(SensorHistory has :getBodyBatteryHistory)) {
+            return _bodyBatteryText;
+        }
         var it = SensorHistory.getBodyBatteryHistory({
             :period => 5,
             :order  => SensorHistory.ORDER_NEWEST_FIRST
@@ -467,7 +482,7 @@ class CircadiaView extends WatchUi.WatchFace {
     }
 
     function getFloorsDisplay(info) {
-        if (info != null && info.floorsClimbed != null) {
+        if (info != null && (info has :floorsClimbed) && info.floorsClimbed != null) {
             _cachedFloorsText = info.floorsClimbed.toNumber().toString();
         }
         return _cachedFloorsText;
@@ -494,6 +509,14 @@ class CircadiaView extends WatchUi.WatchFace {
             _cachedRecoveryText = info.timeToRecovery.toString() + 'h';
         }
         return _cachedRecoveryText;
+    }
+
+    function getVo2MaxDisplay(info) {
+        var profile = UserProfile.getProfile();
+        if (profile != null && (profile has :vo2maxRunning) && profile.vo2maxRunning != null) {
+            _cachedVo2MaxText = profile.vo2maxRunning.toNumber().toString();
+        }
+        return _cachedVo2MaxText;
     }
 
     // Compute all four running metrics in one pass over activity history.

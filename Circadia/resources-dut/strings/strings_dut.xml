@@ -39,6 +39,7 @@
         <string id="fieldRunningTime7d">Looptijd 7 dagen</string>
         <string id="fieldRunningDistanceWtd">Loopafstand deze week</string>
         <string id="fieldRunningTimeWtd">Looptijd deze week</string>
+        <string id="fieldVo2Max">VO2 max</string>
 
         <!-- Unit choices -->
         <!-- Temperature unit choices -->

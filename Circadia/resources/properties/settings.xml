@@ -21,6 +21,7 @@
                 <listEntry value="15">@Strings.fieldRunningTimeWtd</listEntry>
                 <listEntry value="12">@Strings.fieldRunningDistance7d</listEntry>
                 <listEntry value="13">@Strings.fieldRunningTime7d</listEntry>
+                <listEntry value="16">@Strings.fieldVo2Max</listEntry>
             </settingConfig>
         </setting>
 
@@ -42,6 +43,7 @@
                 <listEntry value="15">@Strings.fieldRunningTimeWtd</listEntry>
                 <listEntry value="12">@Strings.fieldRunningDistance7d</listEntry>
                 <listEntry value="13">@Strings.fieldRunningTime7d</listEntry>
+                <listEntry value="16">@Strings.fieldVo2Max</listEntry>
             </settingConfig>
         </setting>
 
@@ -63,24 +65,13 @@
                 <listEntry value="15">@Strings.fieldRunningTimeWtd</listEntry>
                 <listEntry value="12">@Strings.fieldRunningDistance7d</listEntry>
                 <listEntry value="13">@Strings.fieldRunningTime7d</listEntry>
+                <listEntry value="16">@Strings.fieldVo2Max</listEntry>
             </settingConfig>
         </setting>
 
-        <!-- ─── Temperature Units ──────────────────────────────────────── -->
-        <setting propertyKey="@Properties.tempUnits" title="@Strings.tempUnitsTitle">
-            <settingConfig type="list">
-                <listEntry value="0">@Strings.tempCelsius</listEntry>
-                <listEntry value="1">@Strings.tempFahrenheit</listEntry>
-                <listEntry value="2">@Strings.tempKelvin</listEntry>
-            </settingConfig>
-        </setting>
-
-        <!-- ─── Distance Units ─────────────────────────────────────────── -->
-        <setting propertyKey="@Properties.distanceUnits" title="@Strings.distanceUnitsTitle">
-            <settingConfig type="list">
-                <listEntry value="0">@Strings.distanceKm</listEntry>
-                <listEntry value="1">@Strings.distanceMi</listEntry>
-            </settingConfig>
+        <!-- ─── Visual Toggles ─────────────────────────────────────────── -->
+        <setting propertyKey="@Properties.showSeconds" title="@Strings.showSecondsTitle">
+            <settingConfig type="boolean" />
         </setting>
 
         <!-- ─── Time / Date Format ─────────────────────────────────────── -->
@@ -99,17 +90,16 @@
             </settingConfig>
         </setting>
 
-        <!-- ─── Display Type ───────────────────────────────────────────── -->
-        <setting propertyKey="@Properties.mipMode" title="@Strings.mipModeTitle">
+        <!-- ─── Saturation ─────────────────────────────────────────────── -->
+        <setting propertyKey="@Properties.minuteSaturation" title="@Strings.minuteSaturationTitle">
             <settingConfig type="list">
-                <listEntry value="0">@Strings.displayAmoled</listEntry>
-                <listEntry value="1">@Strings.displayMip</listEntry>
+                <listEntry value="0">@Strings.saturation0</listEntry>
+                <listEntry value="1">@Strings.saturation1</listEntry>
+                <listEntry value="2">@Strings.saturation2</listEntry>
+                <listEntry value="3">@Strings.saturation3</listEntry>
+                <listEntry value="4">@Strings.saturation4</listEntry>
+                <listEntry value="5">@Strings.saturation5</listEntry>
             </settingConfig>
-        </setting>
-
-        <!-- ─── Visual Toggles ─────────────────────────────────────────── -->
-        <setting propertyKey="@Properties.showSeconds" title="@Strings.showSecondsTitle">
-            <settingConfig type="boolean" />
         </setting>
 
         <!-- ─── Stars ──────────────────────────────────────────────────── -->
@@ -118,6 +108,53 @@
                 <listEntry value="0">@Strings.starsNone</listEntry>
                 <listEntry value="100">@Strings.starsSome</listEntry>
                 <listEntry value="200">@Strings.starsLots</listEntry>
+            </settingConfig>
+        </setting>
+
+        <!-- ─── AOD ────────────────────────────────────────────────────── -->
+        <setting propertyKey="@Properties.aodBehaviour" title="@Strings.aodBehaviourTitle">
+            <settingConfig type="list">
+                <listEntry value="1">@Strings.aodSkyOnly</listEntry>
+                <listEntry value="0">@Strings.aodClockOnly</listEntry>
+            </settingConfig>
+        </setting>
+
+        <!-- ─── Display Type ───────────────────────────────────────────── -->
+        <setting propertyKey="@Properties.mipMode" title="@Strings.mipModeTitle">
+            <settingConfig type="list">
+                <listEntry value="0">@Strings.displayAmoled</listEntry>
+                <listEntry value="1">@Strings.displayMip</listEntry>
+            </settingConfig>
+        </setting>
+
+        <!-- ─── Temperature Units ──────────────────────────────────────── -->
+        <setting propertyKey="@Properties.tempUnits" title="@Strings.tempUnitsTitle">
+            <settingConfig type="list">
+                <listEntry value="0">@Strings.tempCelsius</listEntry>
+                <listEntry value="2">@Strings.tempKelvin</listEntry>
+                <listEntry value="1">@Strings.tempFahrenheit</listEntry>
+
+            </settingConfig>
+        </setting>
+
+        <!-- ─── Distance Units ─────────────────────────────────────────── -->
+        <setting propertyKey="@Properties.distanceUnits" title="@Strings.distanceUnitsTitle">
+            <settingConfig type="list">
+                <listEntry value="0">@Strings.distanceKm</listEntry>
+                <listEntry value="1">@Strings.distanceMi</listEntry>
+            </settingConfig>
+        </setting>
+
+        <!-- ─── Week Start Day ─────────────────────────────────────────── -->
+        <setting propertyKey="@Properties.weekStartDay" title="@Strings.weekStartDayTitle">
+            <settingConfig type="list">
+                <listEntry value="1">@Strings.daySunday</listEntry>
+                <listEntry value="2">@Strings.dayMonday</listEntry>
+                <listEntry value="3">@Strings.dayTuesday</listEntry>
+                <listEntry value="4">@Strings.dayWednesday</listEntry>
+                <listEntry value="5">@Strings.dayThursday</listEntry>
+                <listEntry value="6">@Strings.dayFriday</listEntry>
+                <listEntry value="7">@Strings.daySaturday</listEntry>
             </settingConfig>
         </setting>
 
@@ -135,39 +172,6 @@
 
         <setting propertyKey="@Properties.lonDeg" title="@Strings.lonDegTitle">
             <settingConfig type="numeric" min="-180.0" max="180.0" />
-        </setting>
-
-        <!-- ─── AOD ────────────────────────────────────────────────────── -->
-        <setting propertyKey="@Properties.aodBehaviour" title="@Strings.aodBehaviourTitle">
-            <settingConfig type="list">
-                <listEntry value="1">@Strings.aodSkyOnly</listEntry>
-                <listEntry value="0">@Strings.aodClockOnly</listEntry>
-            </settingConfig>
-        </setting>
-
-        <!-- ─── Saturation ─────────────────────────────────────────────── -->
-        <setting propertyKey="@Properties.minuteSaturation" title="@Strings.minuteSaturationTitle">
-            <settingConfig type="list">
-                <listEntry value="0">@Strings.saturation0</listEntry>
-                <listEntry value="1">@Strings.saturation1</listEntry>
-                <listEntry value="2">@Strings.saturation2</listEntry>
-                <listEntry value="3">@Strings.saturation3</listEntry>
-                <listEntry value="4">@Strings.saturation4</listEntry>
-                <listEntry value="5">@Strings.saturation5</listEntry>
-            </settingConfig>
-        </setting>
-
-        <!-- ─── Week Start Day ─────────────────────────────────────────── -->
-        <setting propertyKey="@Properties.weekStartDay" title="@Strings.weekStartDayTitle">
-            <settingConfig type="list">
-                <listEntry value="1">@Strings.daySunday</listEntry>
-                <listEntry value="2">@Strings.dayMonday</listEntry>
-                <listEntry value="3">@Strings.dayTuesday</listEntry>
-                <listEntry value="4">@Strings.dayWednesday</listEntry>
-                <listEntry value="5">@Strings.dayThursday</listEntry>
-                <listEntry value="6">@Strings.dayFriday</listEntry>
-                <listEntry value="7">@Strings.daySaturday</listEntry>
-            </settingConfig>
         </setting>
 
     </settings>
