@@ -4,9 +4,9 @@ using Toybox.Math;
 
 module Stellar {
 
-    const STAR_SEED = 26.0;
+    const STAR_SEED = 13.0;
 
-    const NIGHT_START_ALT_DEG = -6.0;
+    const NIGHT_START_ALT_DEG = -3.0;
     const FULL_NIGHT_ALT_DEG  = -18.0;
 
     const SOLAR_HALO_RADIUS_DEG = 18.0;
