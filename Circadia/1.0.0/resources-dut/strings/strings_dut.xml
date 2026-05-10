@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<resources>
+    <strings>
+
+        <!-- App name -->
+        <string id="AppName">Circadia</string>
+
+        <!-- Setting titles -->
+        <string id="topFieldTitle">Bovenste gegevensveld</string>
+        <string id="leftFieldTitle">Gegevensveld linksonder</string>
+        <string id="rightFieldTitle">Gegevensveld rechtsonder</string>
+        <string id="tempUnitsTitle">Temperatuureenheid</string>
+        <string id="distanceUnitsTitle">Afstandseenheid</string>
+        <string id="mipModeTitle">Schermtype</string>
+        <string id="showSecondsTitle">Seconden tonen</string>
+        <string id="starCountTitle">Aantal sterren</string>
+        <string id="useGpsTitle">Locatie</string>
+        <string id="latDegTitle">Thuisbreedtegraad (decimale graden, positief = N)</string>
+        <string id="lonDegTitle">Thuislengtegraat (decimale graden, positief = O)</string>
+        <string id="aodBehaviourTitle">Altijd-aan-display</string>
+        <string id="timeFormatTitle">Tijdnotatie</string>
+        <string id="dateFormatTitle">Datumnotatie</string>
+        <string id="minuteSaturationTitle">Kleurverzadiging minuten</string>
+
+        <!-- Field choices -->
+        <string id="fieldDate">Datum</string>
+        <string id="fieldHeartRate">Hartslag</string>
+        <string id="fieldSteps">Stappen</string>
+        <string id="fieldTemperature">Temperatuur</string>
+        <string id="fieldBodyBattery">Body Battery</string>
+        <string id="fieldBattery">Apparaatbatterij</string>
+        <string id="fieldNextSunEvent">Volgende zonnegebeurtenis</string>
+        <string id="fieldStress">Stress</string>
+        <string id="fieldCalories">Calorieën</string>
+        <string id="fieldFloors">Verdiepingen geklommen</string>
+        <string id="fieldDistance">Afstand</string>
+        <string id="fieldRecovery">Hersteltijd</string>
+        <string id="fieldRunningDistance7d">Loopafstand 7 dagen</string>
+        <string id="fieldRunningTime7d">Looptijd 7 dagen</string>
+        <string id="fieldRunningDistanceWtd">Loopafstand deze week</string>
+        <string id="fieldRunningTimeWtd">Looptijd deze week</string>
+        <string id="fieldVo2Max">VO2 max</string>
+
+        <!-- Unit choices -->
+        <!-- Temperature unit choices -->
+        <string id="tempCelsius">Celsius (°C)</string>
+        <string id="tempFahrenheit">Fahrenheit (°F)</string>
+        <string id="tempKelvin">Kelvin (K)</string>
+
+        <!-- Distance unit choices -->
+        <string id="distanceKm">Kilometers</string>
+        <string id="distanceMi">Mijlen</string>
+
+        <!-- Display choices -->
+        <string id="displayAmoled">Standaard (volledige kleur)</string>
+        <string id="displayMip">Vereenvoudigd (MIP-vriendelijk)</string>
+
+        <!-- Star choices -->
+        <string id="starsNone">Geen</string>
+        <string id="starsSome">Enkele</string>
+        <string id="starsLots">Veel</string>
+
+        <!-- GPS choices -->
+        <string id="gpsUseLocation">Apparaatlocatie gebruiken</string>
+        <string id="gpsUseHome">Thuiscoördinaten gebruiken</string>
+
+        <!-- AOD choices -->
+        <string id="aodClockOnly">Alleen klok</string>
+        <string id="aodSkyOnly">Alleen lucht</string>
+
+        <!-- Time format choices -->
+        <string id="timeFormat24h">24 uur</string>
+        <string id="timeFormat12h">12 uur</string>
+
+        <!-- Date format choices -->
+        <string id="dateFormatDayNumber">vr. 13</string>
+        <string id="dateFormatMonthDay">jan. 13</string>
+        <string id="dateFormatDayMonth">13 jan.</string>
+
+        <!-- Saturation choices -->
+        <string id="saturation0">0% (zuiver wit)</string>
+        <string id="saturation1">20%</string>
+        <string id="saturation2">40%</string>
+        <string id="saturation3">60%</string>
+        <string id="saturation4">80%</string>
+        <string id="saturation5">100% (volle tint)</string>
+
+        <!-- Week start day choices -->
+        <string id="weekStartDayTitle">Week begint op</string>
+        <string id="daySunday">Zondag</string>
+        <string id="dayMonday">Maandag</string>
+        <string id="dayTuesday">Dinsdag</string>
+        <string id="dayWednesday">Woensdag</string>
+        <string id="dayThursday">Donderdag</string>
+        <string id="dayFriday">Vrijdag</string>
+        <string id="daySaturday">Zaterdag</string>
+    </strings>
+</resources>
