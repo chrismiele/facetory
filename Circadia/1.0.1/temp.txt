@@ -1,0 +1,3 @@
+Edits
+
+1. Stars come out one by one, not gradually all together
