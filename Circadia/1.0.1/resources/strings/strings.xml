@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<resources>
+    <strings>
+        <!-- App name -->
+        <string id="AppName">Circadia</string>
+
+        <!-- Setting titles -->
+        <string id="topFieldTitle">Top data field</string>
+        <string id="leftFieldTitle">Bottom-left data field</string>
+        <string id="rightFieldTitle">Bottom-right data field</string>
+        <string id="tempUnitsTitle">Temperature units</string>
+        <string id="distanceUnitsTitle">Distance units</string>
+        <string id="mipModeTitle">Display type</string>
+        <string id="showSecondsTitle">Show seconds</string>
+        <string id="starCountTitle">Number of stars</string>
+        <string id="moonSizeTitle">Moon size</string>
+        <string id="useGpsTitle">Location</string>
+        <string id="latDegTitle">Home latitude (decimal degrees, positive = N)</string>
+        <string id="lonDegTitle">Home longitude (decimal degrees, positive = E)</string>
+        <string id="aodBehaviourTitle">Always-on display</string>
+        <string id="timeFormatTitle">Time format</string>
+        <string id="dateFormatTitle">Date format</string>
+        <string id="minuteSaturationTitle">Minute colour saturation</string>
+
+        <!-- Field choices -->
+        <string id="fieldDate">Date</string>
+        <string id="fieldHeartRate">Heart rate</string>
+        <string id="fieldSteps">Steps</string>
+        <string id="fieldTemperature">Temperature</string>
+        <string id="fieldBodyBattery">Body battery</string>
+        <string id="fieldBattery">Device battery</string>
+        <string id="fieldNextSunEvent">Next sun event</string>
+        <string id="fieldStress">Stress</string>
+        <string id="fieldCalories">Calories</string>
+        <string id="fieldFloors">Floors climbed</string>
+        <string id="fieldDistance">Steps distance</string>
+        <string id="fieldRecovery">Recovery time</string>
+        <string id="fieldRunningDistance7d">7-day run distance</string>
+        <string id="fieldRunningTime7d">7-day run time</string>
+        <string id="fieldRunningDistanceWtd">WTD run distance</string>
+        <string id="fieldRunningTimeWtd">WTD run time</string>
+        <string id="fieldVo2Max">VO2 max</string>
+
+        <!-- Unit choices -->
+        <!-- Temperature unit choices -->
+        <string id="tempCelsius">Celsius (°C)</string>
+        <string id="tempFahrenheit">Fahrenheit (°F)</string>
+        <string id="tempKelvin">Kelvin (K)</string>
+
+        <!-- Distance unit choices -->
+        <string id="distanceKm">Kilometres</string>
+        <string id="distanceMi">Miles</string>
+
+        <!-- Display choices -->
+        <string id="displayAmoled">Default (full colour)</string>
+        <string id="displayMip">Simplified (MIP-friendly)</string>
+
+        <!-- Star choices -->
+        <string id="starsNone">None</string>
+        <string id="starsSome">Some</string>
+        <string id="starsLots">Lots</string>
+
+        <!-- Moon size choices -->
+        <string id="moonSizeSmall">Small</string>
+        <string id="moonSizeMedium">Medium</string>
+        <string id="moonSizeLarge">Large</string>
+
+        <!-- GPS choices -->
+        <string id="gpsUseLocation">Use device location</string>
+        <string id="gpsUseHome">Use home coordinates</string>
+
+        <!-- AOD choices -->
+        <string id="aodClockOnly">Clock only</string>
+        <string id="aodSkyOnly">Sky only</string>
+
+        <!-- Time format choices -->
+        <string id="timeFormat24h">24 hour</string>
+        <string id="timeFormat12h">12 hour</string>
+
+        <!-- Date format choices -->
+        <string id="dateFormatDayNumber">Fri 13</string>
+        <string id="dateFormatMonthDay">Jan 13</string>
+        <string id="dateFormatDayMonth">13 Jan</string>
+
+        <!-- Saturation choices -->
+        <string id="saturation0">0% (pure white)</string>
+        <string id="saturation1">20%</string>
+        <string id="saturation2">40%</string>
+        <string id="saturation3">60%</string>
+        <string id="saturation4">80%</string>
+        <string id="saturation5">100% (full hue)</string>
+
+        <!-- Week start day choices -->
+        <string id="weekStartDayTitle">Week starts on</string>
+        <string id="daySunday">Sunday</string>
+        <string id="dayMonday">Monday</string>
+        <string id="dayTuesday">Tuesday</string>
+        <string id="dayWednesday">Wednesday</string>
+        <string id="dayThursday">Thursday</string>
+        <string id="dayFriday">Friday</string>
+        <string id="daySaturday">Saturday</string>
+    </strings>
+</resources>
