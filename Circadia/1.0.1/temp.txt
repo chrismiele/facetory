@@ -1,3 +1,5 @@
 Edits
 
-1. Stars come out one by one, not gradually all together
+1. Stars popcorn out
+2. Stars are uniformly distributed
+3. Moon size is specifiable 
