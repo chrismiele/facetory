@@ -6,8 +6,10 @@ module Stellar {
 
     const STAR_SEED = 13.0;
 
-    const NIGHT_START_ALT_DEG = -5.0;
+    const NIGHT_START_ALT_DEG = -6.0;
     const FULL_NIGHT_ALT_DEG  = -18.0;
+    const EARLY_PHASE_ALT_DEG = -9.0;
+    const EARLY_PHASE_FRAC    = 0.05;
 
     const SOLAR_HALO_RADIUS_DEG = 18.0;
 
@@ -124,7 +126,7 @@ module Stellar {
         var centerAngle = Math.atan2(-py, -px);
 
         for (var i = 0; i < starCount; i += 1) {
-            var w  = 0.5;
+            var w  = 0.0;
             var N  = 7;
             var u  = (1 - w) * rand01(i, 0) + w * rand01(i % N, 0);
             var r  = skyRadiusPx * Math.sqrt(u);
@@ -229,10 +231,14 @@ module Stellar {
     }
 
     function starNightScale(sunAltDeg) {
-        return MathUtil.clamp(
-            (NIGHT_START_ALT_DEG - sunAltDeg) / (NIGHT_START_ALT_DEG - FULL_NIGHT_ALT_DEG),
-            0.0, 1.0
-        );
+        if (sunAltDeg >= NIGHT_START_ALT_DEG) { return 0.0; }
+        if (sunAltDeg >= EARLY_PHASE_ALT_DEG) {
+            var early = (NIGHT_START_ALT_DEG - sunAltDeg) / (NIGHT_START_ALT_DEG - EARLY_PHASE_ALT_DEG);
+            return early * EARLY_PHASE_FRAC;
+        }
+        if (sunAltDeg <= FULL_NIGHT_ALT_DEG) { return 1.0; }
+        var late = (EARLY_PHASE_ALT_DEG - sunAltDeg) / (EARLY_PHASE_ALT_DEG - FULL_NIGHT_ALT_DEG);
+        return EARLY_PHASE_FRAC + late * (1.0 - EARLY_PHASE_FRAC);
     }
 
     function polePoint(cx, cy, skyRadiusPx, latDeg) {
