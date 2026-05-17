@@ -1,0 +1,1 @@
+New moon size now changes with moon size. Lunar halo now visible on surrounding dates when true full moon occurs during daytime. Star colours more vibrant. 
