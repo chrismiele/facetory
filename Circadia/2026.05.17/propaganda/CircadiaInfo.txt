@@ -1,45 +1,18 @@
-CIQ:
-
-Circadia is an astronomical watch face that shows the sky in real time based on your location. The 12 o'clock position is your northern horizon, with the center directly overhead. Face north, and the sky on your watch matches the sky above you.
-
-As the sun sets each day, its halo shifts from yellow to red, reaching purple at nautical twilight, then blue by astronomical twilight. Full night begins only once the halo has completely passed below the horizon. Stars fade in through nautical twilight, reaching peak brightness by full night. At sunrise, the transition reverses. The minute digits take on the halo's color, while the hours flare orange through sunset and sunrise. The moon shows its current phase and position, with the illuminated side always facing the sun — just as it does in the real sky.
-
-Circadia is mathematically detailed but visually quiet — a clean, minimal watch face with the sky drifting by underneath. It's a "normal" watch face first, but one that reminds you to look up sometimes, and to notice the rhythms behind the hours and minutes: the path of the sun, the phases of the moon, and the turning of the stars.
-
-Currently supports AMOLED devices. MIP support and additional options planned for future release.
-
-If you enjoy using Circadia and want to support future development, you can contribute to my coffee fund: https://ko-fi.com/79north
-
-
-
-
-
-CIQ short:
-
-A minimalist watch face showing real-time positions of the sun and moon.
-
-
-
-
-
-Reddit:
-
 Post title:
-"I made a watch face that shows the sky in real time"
+"Circadia - a minimalist watch face that shows the sky in real time"
 [Upload the video as the main post]
 
 First comment (pin this immediately):
-This is Circadia, an astronomical watch face I just released [on Connect IQ.]
+[Circadia][link] shows the positions of the sun and moon in real time, based on your location. The 12 o'clock position is your northern horizon, with the centre directly overhead. Face north, and the sky on your watch matches the sky above you. 
 
-\textbf{How it works:} The clip above is a full 24-hour cycle. The sun and moon move in real time based on your location. The 12 o'clock position is your northern horizon, with the centre directly overhead. Face north, and the sky on your watch matches the sky above you.  
+\textbf{What makes it different:} Most astronomical faces feel a bit cluttered or cartoonish to me. As somebody who prefers simpler faces, I wanted this to be mathematically detailed (see below!) but visually quiet. It's meant to be a "normal" watch face first, but one that reminds you that the sun is setting, or that the moon is full. 
 
-As the sun sets, its halo shifts from yellow to red, reaching purple at nautical twilight, then blue by astronomical twilight. Full night begins once the halo is completely below the horizon. Stars fade in through nautical twilight, reaching peak brightness by full night. At sunrise, the transition reverses. The minute digits take on the halo's colour, while the hour digits briefly flare orange through sunset and sunrise. 
+\textbf{Astronomy details:} Relative to a typical watch size, the actual sun would span about a pixel. Boring! Instead, the displayed solar halo is 18 degrees in angular radius, chosen so that the transition between astronomical twilight and true night occurs just as the edge of the halo passes from sight. 
 
-The moon shows its current phase and position, with the illuminated part always facing the sun - just as it does in the real sky.
+The halo's colour evolves through the twilight phases: yellow to red through sunset, red to purple through civil twilight, purple to blue through nautical, then drifting offscreen as astronomical twilight ends. The minute digits take on the halo's colour, and the hour digits briefly flare orange through sunset and sunrise. Stars begin appearing at the end of civil twilight, reaching peak density by true night. 
 
-\textbf{What makes it different:} Most astronomical faces feel a bit cluttered or cartoonish to me. I wanted something mathematically detailed but visually quiet. Just a clean, minimal watch face, with the sky drifting by underneath a simple clock and a few user-specified data fields. It's a "normal" watch face first, but one that reminds you that the sun is setting, or that the moon is full. 
+The moon shows its current phase and position, with the lit side always facing the sun. The lunar halo appears within about a day of the full moon, reaching its maximum size at the moment of peak fullness. 
 
 \textbf{Caveats:} This is my first watch face. I've tested it on FR265S and Vivoactive 5, but there are probably weird bugs I haven't hit. Feedback is very welcome, including suggestions for additional options and data fields. Currently released for AMOLED devices, with MIP support planned once I can test it.
 
 I'm sharing it for free, but if you like it and want to support the work, [here's my coffee fund.][https://ko-fi.com/79north]
-
