@@ -3,13 +3,13 @@ using Toybox.Math;
 
 // MoonArt — everything that draws the moon, for both display types.
 //
-// Shapes:
+// Phases:
 //   new       : an unlit disc, the same size as every other phase
-//   crescent  : lit disc with a larger shifted disc cut out of it
-//   quarter   : lit disc with a half-plane cut out of it
-//   gibbous   : lit circle through both horn tips, cut to the disc
-//               (classic drawing: half disc plus an ellipse)
 //   full      : lit disc with a glow
+//   otherwise : on devices with the layered drawing (below), the true shape
+//               for the exact phase: the dividing line moves a pixel at a
+//               time and crescents and gibbous moons are mirror images. On
+//               older devices, the original 10 fixed shapes (classic).
 //
 // Dark side (the "Show the moon's dark side" setting, off by default). Where
 // the device supports it, the unlit part of the moon shows as a dim disc.
@@ -18,32 +18,33 @@ using Toybox.Math;
 //
 // Layered drawing (devices with bitmap-texture fills: Connect IQ 4 with a
 // GPU). Every phase but new and full is built off screen, in two steps, and
-// only when the phase, the tilt step or the colours change:
-//   1. A square "picture" of the moon, fully opaque, in the unlit colour:
-//        quarter, crescent : the lit disc, then the cut-out in unlit colour
-//        gibbous           : one lit circle through both horn tips
-//      Shapes may spill past the disc here; it does not matter.
+// only when the phase moves the dividing line by a pixel, the tilt moves to
+// the next 5° step, or the colours change:
+//   1. A square "picture" of the moon, fully opaque: a lit or unlit
+//      background plus one circle in the other colour (a straight half-plane
+//      at the quarters). See paintPhasePicture(). The circle may spill past
+//      the disc here; it does not matter.
 //   2. A transparent square "layer", with one native filled circle whose fill
 //      is the picture (a BitmapTexture). Only the disc is painted.
 // On screen, a normal frame then costs one bitmap. Because circles look the
-// same from every direction, the lit side can face the sun in fine steps
-// (every 5°) for every phase, gibbous included.
+// same from every direction, the lit side can face the sun at any angle.
 //
 // Nothing here paints "transparent" with a shape. Connect IQ only honours
 // BLEND_MODE_NO_BLEND when drawing bitmaps, so a transparent fill would leave
 // the pixels unchanged rather than punching a hole.
 //
 // Classic drawing (older devices, e.g. Forerunner 245, or if the layer cannot
-// be built): the original drawing, unchanged. Coarse steps (crescent 12,
-// quarter 8, gibbous 4), black cut-outs painted straight onto the screen and
-// clipped to the moon's own square, gibbous as a half disc plus an
-// axis-aligned ellipse. No dark side on these devices.
+// be built): the original drawing, unchanged. Twelve phase steps, coarse
+// tilts (crescent 12, quarter 8, gibbous 4), crescents and quarters as a lit
+// disc with a black cut-out painted straight onto the screen and clipped to
+// the moon's own square, gibbous as a half disc plus an axis-aligned
+// ellipse. No dark side on these devices.
 module MoonArt {
 
     const BLACK = 0x000000;
 
     var _layer       = null;    // BufferedBitmap holding the finished moon disc
-    var _layerKey    = null;    // [radiusPx, phaseBin, tiltBin, litColor, shade] it was drawn for
+    var _layerKey    = null;    // [radiusPx, terminatorPx, tiltBin, litColor, shade] it was drawn for
     var _layerHalf   = 0;       // distance from the bitmap's corner to the moon's centre
     var _layerFailed = false;   // set once if the layer cannot be built on this device
 
@@ -67,7 +68,7 @@ module MoonArt {
         if (phaseBin == Lunar.PHASE_FULL) {
             drawFull(dc, mx, my, moonRadius, phaseAngle, sunAlt, cx, cy, R, mipMode);
         } else if (Drawing.intersectsSkyDisc(mx, my, moonRadius, cx, cy, R)) {
-            drawPhase(dc, mx, my, moonDiameter, sx, sy, phaseBin, mipMode);
+            drawPhase(dc, mx, my, moonDiameter, sx, sy, phaseBin, phaseAngle, mipMode);
         }
     }
 
@@ -121,7 +122,7 @@ module MoonArt {
         return bin == Lunar.PHASE_WAXING_THIN_CRESCENT || bin == Lunar.PHASE_WANING_THIN_CRESCENT;
     }
 
-    function drawPhase(dc, mx, my, diameterPx, sx, sy, bin, mipMode) {
+    function drawPhase(dc, mx, my, diameterPx, sx, sy, bin, phaseAngle, mipMode) {
         var r  = diameterPx / 2.0;
         var xi = MathUtil.roundNearest(mx);
         var yi = MathUtil.roundNearest(my);
@@ -148,10 +149,12 @@ module MoonArt {
         var angle = Lunar.moonOrientationAngle(mx, my, sx, sy);
 
         // Layered drawing: every phase is built off screen, so the lit side
-        // can face the sun in fine steps (Lunar.FINE_BIN_COUNT directions).
+        // can face the sun in fine steps (Lunar.FINE_BIN_COUNT directions)
+        // and the dividing line follows the actual phase, pixel by pixel.
         if (layered) {
             var fineBin = Lunar.fineOrientationBin(angle);
-            if (ensureLayer(r, bin, fineBin, litColor, shade)) {
+            var term    = terminatorPx(ri, phaseAngle);
+            if (ensureLayer(r, term, fineBin, litColor, shade)) {
                 dc.drawBitmap(xi - _layerHalf, yi - _layerHalf, _layer);
                 return;
             }
@@ -220,21 +223,60 @@ module MoonArt {
         fillShiftedCircle(dc, xi, yi, r, ux, uy, shiftFrac, cutFrac * r);
     }
 
-    // The lit part of a gibbous moon, for the off-screen picture: one circle,
-    // shifted towards the sun (ux, uy), that passes through both horn tips
-    // and crosses the axis termFrac * r beyond the centre on the dark side,
-    // the same depth as the classic ellipse. The picture is later cut to the
-    // moon's disc, so the circle may spill past it.
+    // ── Continuous phase (layered drawing) ───────────────────────────────────
     //
-    // Circle through (0, +-r) and (-a, 0) in the moon's frame, sun along +x:
-    //   centre c = (r*r - a*a) / (2a) towards the sun, radius c + a.
-    function fillGibbousLit(dc, xi, yi, r, ux, uy, termFrac) {
-        var a  = termFrac * r;
-        var c  = (r * r - a * a) / (2.0 * a);
+    // The line between the lit and unlit parts (the terminator) crosses the
+    // moon's axis at  x = r * cos(phaseAngle)  from the centre, measured
+    // towards the sun: +r at new moon, 0 at the quarters, -r at full moon.
+    // It is drawn as the circle through both horn tips (the poles, 0, +-r)
+    // and that crossing point:
+    //   crescent (x > 0): lit background, unlit circle centred on the dark side
+    //   gibbous  (x < 0): unlit background, lit circle centred on the sun side
+    // A crescent at phase p and a gibbous at 180 - p use mirror-image
+    // circles, so the two are exact complements.
+    //
+    // PHASE_SHAPE_EXPONENT 1.0 is the true shape. Raising it (e.g. 2.0)
+    // fattens crescents and the dark slivers of gibbous moons alike, for
+    // readability, while keeping the two symmetric.
+    const PHASE_SHAPE_EXPONENT = 1.0;
+
+    // Where the terminator crosses the axis, in whole pixels (see above).
+    function terminatorPx(ri, phaseAngle) {
+        var c = MathUtil.cosDeg(phaseAngle);
+        var m = MathUtil.abs(c);
+        if (PHASE_SHAPE_EXPONENT != 1.0) {
+            m = Math.pow(m, PHASE_SHAPE_EXPONENT);
+        }
+        return MathUtil.roundNearest(((c < 0.0) ? -m : m) * ri);
+    }
+
+    // Paint the whole picture for a moon of radius ri centred on (xi, yi),
+    // with the sun in direction (ux, uy) and the terminator at term pixels.
+    function paintPhasePicture(dc, xi, yi, ri, term, ux, uy, litColor, shade) {
+        var r = ri.toFloat();
+
+        // Within a pixel of the centre: a straight line (quarter moon).
+        if (term > -1 && term < 1) {
+            dc.setColor(litColor, litColor);
+            dc.clear();
+            dc.setColor(shade, shade);
+            fillHalfPlane(dc, xi, yi, r, ux, uy);
+            return;
+        }
+
+        var t   = term.toFloat();
+        var cc  = (t * t - r * r) / (2.0 * t);     // circle centre along (ux, uy)
+        var rho = MathUtil.abs(t - cc);            // circle radius
+        var bg  = (t > 0.0) ? litColor : shade;
+        var fg  = (t > 0.0) ? shade : litColor;
+
+        dc.setColor(bg, bg);
+        dc.clear();
+        dc.setColor(fg, bg);
         dc.fillCircle(
-            xi + MathUtil.roundNearest(c * ux),
-            yi + MathUtil.roundNearest(c * uy),
-            MathUtil.roundNearest(c + a));
+            xi + MathUtil.roundNearest(cc * ux),
+            yi + MathUtil.roundNearest(cc * uy),
+            MathUtil.roundNearest(rho));
     }
 
     // A circle of radius rc, shifted away from the sun direction (ux, uy).
@@ -329,9 +371,9 @@ module MoonArt {
 
     // Make sure _layer holds this moon. Returns false if the layer cannot be
     // built, in which case the caller draws the classic moon.
-    function ensureLayer(r, bin, tiltBin, litColor, shade) {
+    function ensureLayer(r, term, tiltBin, litColor, shade) {
         if (_layer != null && _layerKey != null
-            && _layerKey[0] == r && _layerKey[1] == bin
+            && _layerKey[0] == r && _layerKey[1] == term
             && _layerKey[2] == tiltBin && _layerKey[3] == litColor
             && _layerKey[4] == shade) {
             return true;
@@ -341,13 +383,13 @@ module MoonArt {
         _layerKey = null;
 
         try {
-            var bmp = renderLayer(r, bin, tiltBin, litColor, shade);
+            var bmp = renderLayer(r, term, tiltBin, litColor, shade);
             if (bmp == null) {
                 _layerFailed = true;
                 return false;
             }
             _layer    = bmp;
-            _layerKey = [r, bin, tiltBin, litColor, shade];
+            _layerKey = [r, term, tiltBin, litColor, shade];
             return true;
         } catch (e) {
             _layerFailed = true;
@@ -356,33 +398,23 @@ module MoonArt {
     }
 
     // Build the finished moon (any phase but new and full) on a transparent
-    // square. tiltBin is a Lunar.FINE_BIN_COUNT direction bin.
+    // square. term is terminatorPx(); tiltBin is a Lunar.FINE_BIN_COUNT
+    // direction bin.
     //
     // Both bitmaps are exactly the moon's bounding square, with the moon's
     // centre at (ri, ri). The disc's bounding box then starts at the bitmap's
     // corner, so a texture offset of 0 lines the picture up with the disc
     // whichever corner the texture is anchored to.
-    function renderLayer(r, bin, tiltBin, litColor, shade) {
+    function renderLayer(r, term, tiltBin, litColor, shade) {
         var ri   = MathUtil.roundNearest(r);
         var size = 2 * ri + 1;
 
-        // 1. The picture, opaque. Quarter and crescent: unlit colour
-        //    everywhere, the lit disc, then the cut-out in the unlit colour.
-        //    Gibbous: unlit colour everywhere, then one lit circle.
+        // 1. The picture, opaque: background plus one circle (or half-plane
+        //    at the quarters). See paintPhasePicture().
         var pic = makeBitmap(size);
         if (pic == null) { return null; }
-        var pdc = pic.getDc();
         var dir = Lunar.binDirection(tiltBin, Lunar.FINE_BIN_COUNT);
-        pdc.setColor(shade, shade);
-        pdc.clear();
-        pdc.setColor(litColor, shade);
-        if (isGibbous(bin)) {
-            fillGibbousLit(pdc, ri, ri, r, dir[0], dir[1], gibbousTermFrac(bin));
-        } else {
-            pdc.fillCircle(ri, ri, ri);
-            pdc.setColor(shade, shade);
-            drawCutout(pdc, ri, ri, r, bin, dir[0], dir[1]);
-        }
+        paintPhasePicture(pic.getDc(), ri, ri, ri, term, dir[0], dir[1], litColor, shade);
 
         // 2. The layer: transparent, with one circle filled from the picture.
         //    clear() with a transparent background really does write
