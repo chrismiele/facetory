@@ -43,8 +43,12 @@ module AmoledArt {
     // Corona: rings between the core's edge and the sun's outer edge, listed
     // from the outside in. FRAC is the position across the corona (1 = outer
     // edge, 0 = edge of the core); BRIGHTNESS scales the sun's colour.
-    const CORONA_FRAC       = [1.00, 0.85, 0.70, 0.55, 0.40, 0.25, 0.12];
-    const CORONA_BRIGHTNESS = [0.05, 0.08, 0.12, 0.17, 0.23, 0.31, 0.42];
+    // Twelve evenly spaced rings, brightness 0.10 + 0.55 * t^1.3, where t
+    // runs from 0 at the outer edge to 1 at the innermost ring.
+    const CORONA_FRAC       = [1.000, 0.915, 0.829, 0.744, 0.658, 0.573,
+                               0.487, 0.402, 0.316, 0.231, 0.145, 0.060];
+    const CORONA_BRIGHTNESS = [0.100, 0.124, 0.160, 0.201, 0.248, 0.297,
+                               0.350, 0.405, 0.464, 0.524, 0.586, 0.650];
 
     // Core: the sun's colour at its edge, grading to white at the edge of the
     // white disc; everything inside that is pure white. POS is the position
@@ -53,11 +57,12 @@ module AmoledArt {
     const CORE_STEP_POS   = [1.00, 0.75, 0.50, 0.25, 0.00];
     const CORE_STEP_WHITE = [0.00, 0.18, 0.42, 0.70, 1.00];
 
-    // Edge flare: up to 8 bands, each at least 3px thick, brightest at the rim.
-    const FLARE_MAX_BANDS       = 8;
-    const FLARE_MIN_BAND_PX     = 3.0;
-    const FLARE_PEAK_BRIGHTNESS = 0.55;
-    const FLARE_FALLOFF         = 1.3;
+    // Edge flare: up to 24 bands about a pixel thick, brightest at the rim,
+    // so both the colour and the tapered ends change in small steps.
+    const FLARE_MAX_BANDS       = 24;
+    const FLARE_MIN_BAND_PX     = 1.0;
+    const FLARE_PEAK_BRIGHTNESS = 0.60;
+    const FLARE_FALLOFF         = 1.6;
 
     // ── Moon glow drawing constants ───────────────────────────────────────────
     const MOON_GLOW_DEG                 = 45.0;
