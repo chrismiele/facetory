@@ -19,18 +19,21 @@ using Toybox.Math;
 // or the snapped tilt changes, so a normal frame costs one circle and one
 // bitmap.
 //
-// With the setting off, the dark side is black, as it always was.
+// With the setting off, the same drawing is used with a black disc
+// underneath, so the dark side is black, as it always was.
 //
-// Which drawing path is used:
-//   classic   Lit disc, then black cut-outs painted straight onto the screen.
-//             This is the original drawing and the default. The cut-outs are
-//             larger than the moon, so they are clipped to the moon's own
-//             square to keep them off whatever is next to it.
+// Which drawing path is used depends only on the device, never on settings:
 //   layered   The transparent layer described above, over a dark or black
-//             circle. Nothing is ever drawn outside the moon's disc. Used when
-//             the dark side or the horizon glow is switched on, on devices
-//             with the Connect IQ 4 fill and blend tools. With the glow on, a
-//             cut-out that strayed outside the disc would take a bite out of it.
+//             circle. Nothing is ever drawn outside the moon's disc. Used on
+//             every device with the Connect IQ 4 fill and blend tools.
+//   classic   Fallback for older devices (Connect IQ 3, e.g. Forerunner 245),
+//             or if the layer cannot be built. Lit disc, then black cut-outs
+//             painted straight onto the screen. The cut-outs are larger than
+//             the moon, so they are clipped to the moon's own square to keep
+//             them off whatever is next to it. No dark side on these devices.
+//
+// Gibbous moons need no cut-out, so they are drawn directly on every device,
+// over a dark or black disc.
 module MoonArt {
 
     const BLACK = 0x000000;
@@ -125,15 +128,19 @@ module MoonArt {
 
         var litColor  = mipMode ? MiPArt.MIP_MOON_BRIGHT : AmoledArt.MOON_AMOLED;
         var darkColor = mipMode ? MiPArt.MIP_MOON_DARK   : AmoledArt.MOON_DARK;
-        var darkSide  = config.moonDarkSide() && layerSupported();
-        var layered   = darkSide || (config.horizonFlare() && layerSupported());
+        var layered   = layerSupported();
+        var darkSide  = layered && config.moonDarkSide();
+
+        // The unlit disc that goes under every phase: dim grey with the dark
+        // side on, black with it off.
+        var shade = darkSide ? darkColor : BLACK;
 
         // New moon: the whole disc is unlit. It is the same size as every
         // other phase; without the dark side it is a black disc, which only
         // shows where it passes in front of the sun's glow.
         if (bin == Lunar.PHASE_NEW) {
             Lunar.resetOrientationBins();
-            dc.setColor(darkSide ? darkColor : BLACK, BLACK);
+            dc.setColor(shade, BLACK);
             dc.fillCircle(xi, yi, ri);
             return;
         }
@@ -147,10 +154,8 @@ module MoonArt {
             var gibbousBin = Lunar.gibbousOrientationBin(angle);
             var nearHalf   = (bin == Lunar.PHASE_WAXING_NEAR_HALF_GIBBOUS || bin == Lunar.PHASE_WANING_NEAR_HALF_GIBBOUS);
 
-            if (darkSide) {
-                dc.setColor(darkColor, BLACK);
-                dc.fillCircle(xi, yi, ri);
-            }
+            dc.setColor(shade, BLACK);
+            dc.fillCircle(xi, yi, ri);
             dc.setColor(litColor, Graphics.COLOR_TRANSPARENT);
             drawGibbousComposite(dc, xi, yi, r, gibbousBin,
                 nearHalf ? Lunar.GIBBOUS_TERM_FRAC_NEAR_HALF : Lunar.GIBBOUS_TERM_FRAC_NEAR_FULL);
@@ -168,13 +173,14 @@ module MoonArt {
         }
 
         if (layered && ensureLayer(r, bin, tiltBin, litColor)) {
-            dc.setColor(darkSide ? darkColor : BLACK, BLACK);
+            dc.setColor(shade, BLACK);
             dc.fillCircle(xi, yi, ri);
             dc.drawBitmap(xi - _layerHalf, yi - _layerHalf, _layer);
             return;
         }
 
-        // Classic drawing: the cut-out is painted in black, straight on screen.
+        // Classic drawing (older devices only): the cut-out is painted in
+        // black, straight on screen.
         // The cut-out shapes are larger than the moon, so they are clipped to
         // the moon's own square to keep them off whatever is next to it.
         dc.setColor(litColor, BLACK);
