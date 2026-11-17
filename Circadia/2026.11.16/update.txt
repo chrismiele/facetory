@@ -3,3 +3,4 @@ New optional settings (both off by default): "Show the moon's dark side" and "Ho
 The new moon is now the same size as every other phase.
 MIP watches keep the full face (sky, time and data fields) in low power.
 On Connect IQ 4 watches the moon is always drawn the same way, with the dark side black or dim grey; nothing is drawn outside the moon any more.
+On watches with a GPU, every moon phase now turns to face the sun in 5° steps (previously gibbous moons only had 4 directions).

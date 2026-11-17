@@ -3,44 +3,41 @@ using Toybox.Math;
 
 // MoonArt — everything that draws the moon, for both display types.
 //
-// Shapes are unchanged from the original drawing:
+// Shapes:
 //   new       : an unlit disc, the same size as every other phase
 //   crescent  : lit disc with a larger shifted disc cut out of it
 //   quarter   : lit disc with a half-plane cut out of it
-//   gibbous   : half disc plus an ellipse (nothing cut out)
+//   gibbous   : lit circle through both horn tips, cut to the disc
+//               (classic drawing: half disc plus an ellipse)
 //   full      : lit disc with a glow
 //
 // Dark side (the "Show the moon's dark side" setting, off by default). Where
-// the device supports it, new, crescent, quarter and gibbous moons also show
-// their unlit part as a dim disc. With the setting off, the same drawing is
-// used with black as the unlit colour, so the dark side is black, as it
-// always was.
+// the device supports it, the unlit part of the moon shows as a dim disc.
+// With the setting off, the same drawing is used with black as the unlit
+// colour, so the dark side is black, as it always was.
 //
-// Quarter and crescent moons are built off screen, in two steps, and only
-// when the phase, the snapped tilt or the colours change:
-//   1. A square "picture" of the moon, fully opaque: unlit colour everywhere,
-//      the lit disc, then the cut-out painted in the unlit colour. The
-//      cut-out may spill past the disc here; it does not matter.
+// Layered drawing (devices with bitmap-texture fills: Connect IQ 4 with a
+// GPU). Every phase but new and full is built off screen, in two steps, and
+// only when the phase, the tilt step or the colours change:
+//   1. A square "picture" of the moon, fully opaque, in the unlit colour:
+//        quarter, crescent : the lit disc, then the cut-out in unlit colour
+//        gibbous           : one lit circle through both horn tips
+//      Shapes may spill past the disc here; it does not matter.
 //   2. A transparent square "layer", with one native filled circle whose fill
-//      is the picture (a BitmapTexture). Only the disc is painted, so the
-//      spill never reaches the layer.
-// On screen, a normal frame then costs one bitmap.
+//      is the picture (a BitmapTexture). Only the disc is painted.
+// On screen, a normal frame then costs one bitmap. Because circles look the
+// same from every direction, the lit side can face the sun in fine steps
+// (every 5°) for every phase, gibbous included.
 //
 // Nothing here paints "transparent" with a shape. Connect IQ only honours
 // BLEND_MODE_NO_BLEND when drawing bitmaps, so a transparent fill would leave
 // the pixels unchanged rather than punching a hole.
 //
-// Which drawing path is used depends only on the device, never on settings:
-//   layered   As above. Used on devices with bitmap-texture fills (Connect IQ
-//             4 devices with a GPU). Nothing is ever drawn outside the disc.
-//   classic   Fallback for devices without them (e.g. Forerunner 245), or if
-//             the layer cannot be built. Lit disc, then black cut-outs
-//             painted straight onto the screen. The cut-outs are larger than
-//             the moon, so they are clipped to the moon's own square to keep
-//             them off whatever is next to it. No dark side on these devices.
-//
-// Gibbous moons need no cut-out, so they are drawn directly on every device,
-// over a dark or black disc.
+// Classic drawing (older devices, e.g. Forerunner 245, or if the layer cannot
+// be built): the original drawing, unchanged. Coarse steps (crescent 12,
+// quarter 8, gibbous 4), black cut-outs painted straight onto the screen and
+// clipped to the moon's own square, gibbous as a half disc plus an
+// axis-aligned ellipse. No dark side on these devices.
 module MoonArt {
 
     const BLACK = 0x000000;
@@ -135,8 +132,7 @@ module MoonArt {
         var layered   = layerSupported(dc);
         var darkSide  = layered && config.moonDarkSide();
 
-        // The unlit disc that goes under every phase: dim grey with the dark
-        // side on, black with it off.
+        // The unlit colour: dim grey with the dark side on, black with it off.
         var shade = darkSide ? darkColor : BLACK;
 
         // New moon: the whole disc is unlit. It is the same size as every
@@ -151,67 +147,94 @@ module MoonArt {
 
         var angle = Lunar.moonOrientationAngle(mx, my, sx, sy);
 
-        // Gibbous: the lit shape is built only from pieces inside the disc, so
-        // it can go straight onto the screen over the dark circle.
+        // Layered drawing: every phase is built off screen, so the lit side
+        // can face the sun in fine steps (Lunar.FINE_BIN_COUNT directions).
+        if (layered) {
+            var fineBin = Lunar.fineOrientationBin(angle);
+            if (ensureLayer(r, bin, fineBin, litColor, shade)) {
+                dc.drawBitmap(xi - _layerHalf, yi - _layerHalf, _layer);
+                return;
+            }
+            // The layer could not be built: fall through to the classic moon.
+        }
+
+        // ── Classic drawing (devices without bitmap-texture fills) ──────────
+        // Unchanged from the original: coarse steps, black cut-outs.
+
+        // Gibbous: a half disc plus an ellipse, both lined up with the screen,
+        // so only four directions.
         if (isGibbous(bin)) {
             Lunar.resetHalfAndCrescentBins();
             var gibbousBin = Lunar.gibbousOrientationBin(angle);
-            var nearHalf   = (bin == Lunar.PHASE_WAXING_NEAR_HALF_GIBBOUS || bin == Lunar.PHASE_WANING_NEAR_HALF_GIBBOUS);
 
             dc.setColor(shade, BLACK);
             dc.fillCircle(xi, yi, ri);
             dc.setColor(litColor, Graphics.COLOR_TRANSPARENT);
-            drawGibbousComposite(dc, xi, yi, r, gibbousBin,
-                nearHalf ? Lunar.GIBBOUS_TERM_FRAC_NEAR_HALF : Lunar.GIBBOUS_TERM_FRAC_NEAR_FULL);
+            drawGibbousComposite(dc, xi, yi, r, gibbousBin, gibbousTermFrac(bin));
             return;
         }
 
-        // Quarter and crescent: a lit disc with a piece cut out of it.
-        var tiltBin;
+        // Quarter and crescent: lit disc, then the cut-out painted in black
+        // straight on screen. The cut-out shapes are larger than the moon, so
+        // they are clipped to the moon's own square to keep them off whatever
+        // is next to it.
+        var dir;
         if (isQuarter(bin)) {
             Lunar.resetGibbousAndCrescentBins();
-            tiltBin = Lunar.halfOrientationBin(angle);
+            dir = Lunar.binDirection(Lunar.halfOrientationBin(angle), Lunar.HALF_BIN_COUNT);
         } else {
             Lunar.resetGibbousAndHalfBins();
-            tiltBin = Lunar.crescentOrientationBin(angle);
+            dir = Lunar.binDirection(Lunar.crescentOrientationBin(angle), Lunar.CRESCENT_BIN_COUNT);
         }
 
-        if (layered && ensureLayer(r, bin, tiltBin, litColor, shade)) {
-            dc.drawBitmap(xi - _layerHalf, yi - _layerHalf, _layer);
-            return;
-        }
-
-        // Classic drawing (older devices only): the cut-out is painted in
-        // black, straight on screen.
-        // The cut-out shapes are larger than the moon, so they are clipped to
-        // the moon's own square to keep them off whatever is next to it.
         dc.setColor(litColor, BLACK);
         dc.fillCircle(xi, yi, ri);
         dc.setColor(BLACK, BLACK);
         if (Drawing.setInnerClip(dc, xi - ri - 1, yi - ri - 1, 2 * ri + 3, 2 * ri + 3)) {
-            drawCutout(dc, xi, yi, r, bin, tiltBin);
+            drawCutout(dc, xi, yi, r, bin, dir[0], dir[1]);
         }
         Drawing.restoreClip(dc);
     }
 
+    function gibbousTermFrac(bin) {
+        return (bin == Lunar.PHASE_WAXING_NEAR_HALF_GIBBOUS || bin == Lunar.PHASE_WANING_NEAR_HALF_GIBBOUS)
+            ? Lunar.GIBBOUS_TERM_FRAC_NEAR_HALF
+            : Lunar.GIBBOUS_TERM_FRAC_NEAR_FULL;
+    }
+
     // Paint the unlit part of a quarter or crescent moon centred on (xi, yi),
     // in whatever colour the caller has set: black on screen, the unlit
-    // colour inside the off-screen picture.
-    function drawCutout(dc, xi, yi, r, bin, tiltBin) {
+    // colour inside the off-screen picture. (ux, uy) points at the sun.
+    function drawCutout(dc, xi, yi, r, bin, ux, uy) {
         if (isQuarter(bin)) {
-            var halfDir = Lunar.binDirection(tiltBin, Lunar.HALF_BIN_COUNT);
-            fillHalfPlane(dc, xi, yi, r, halfDir[0], halfDir[1]);
+            fillHalfPlane(dc, xi, yi, r, ux, uy);
             return;
         }
 
-        var crescentDir = Lunar.binDirection(tiltBin, Lunar.CRESCENT_BIN_COUNT);
-        var shiftFrac   = Lunar.CRESCENT_SHIFT_FRAC_THICK;
-        var cutFrac     = Lunar.CRESCENT_BLACK_FRAC_THICK;
+        var shiftFrac = Lunar.CRESCENT_SHIFT_FRAC_THICK;
+        var cutFrac   = Lunar.CRESCENT_BLACK_FRAC_THICK;
         if (isThinCrescent(bin)) {
             shiftFrac = Lunar.CRESCENT_SHIFT_FRAC_THIN;
             cutFrac   = Lunar.CRESCENT_BLACK_FRAC_THIN;
         }
-        fillShiftedCircle(dc, xi, yi, r, crescentDir[0], crescentDir[1], shiftFrac, cutFrac * r);
+        fillShiftedCircle(dc, xi, yi, r, ux, uy, shiftFrac, cutFrac * r);
+    }
+
+    // The lit part of a gibbous moon, for the off-screen picture: one circle,
+    // shifted towards the sun (ux, uy), that passes through both horn tips
+    // and crosses the axis termFrac * r beyond the centre on the dark side,
+    // the same depth as the classic ellipse. The picture is later cut to the
+    // moon's disc, so the circle may spill past it.
+    //
+    // Circle through (0, +-r) and (-a, 0) in the moon's frame, sun along +x:
+    //   centre c = (r*r - a*a) / (2a) towards the sun, radius c + a.
+    function fillGibbousLit(dc, xi, yi, r, ux, uy, termFrac) {
+        var a  = termFrac * r;
+        var c  = (r * r - a * a) / (2.0 * a);
+        dc.fillCircle(
+            xi + MathUtil.roundNearest(c * ux),
+            yi + MathUtil.roundNearest(c * uy),
+            MathUtil.roundNearest(c + a));
     }
 
     // A circle of radius rc, shifted away from the sun direction (ux, uy).
@@ -293,7 +316,7 @@ module MoonArt {
         dc.fillEllipse(xi, yi, ri, ry);
     }
 
-    // ── Off-screen layer for quarter and crescent moons ─────────────────────
+    // ── Off-screen layer ─────────────────────────────────────────────────────
 
     // Needs off-screen bitmaps, bitmap textures and the fill tool. setFill()
     // only exists on devices with a GPU, so it is checked on the live dc.
@@ -332,7 +355,8 @@ module MoonArt {
         }
     }
 
-    // Build the finished quarter or crescent moon on a transparent square.
+    // Build the finished moon (any phase but new and full) on a transparent
+    // square. tiltBin is a Lunar.FINE_BIN_COUNT direction bin.
     //
     // Both bitmaps are exactly the moon's bounding square, with the moon's
     // centre at (ri, ri). The disc's bounding box then starts at the bitmap's
@@ -342,17 +366,23 @@ module MoonArt {
         var ri   = MathUtil.roundNearest(r);
         var size = 2 * ri + 1;
 
-        // 1. The picture: opaque, unlit colour everywhere, then the lit disc,
-        //    then the cut-out in the unlit colour.
+        // 1. The picture, opaque. Quarter and crescent: unlit colour
+        //    everywhere, the lit disc, then the cut-out in the unlit colour.
+        //    Gibbous: unlit colour everywhere, then one lit circle.
         var pic = makeBitmap(size);
         if (pic == null) { return null; }
         var pdc = pic.getDc();
+        var dir = Lunar.binDirection(tiltBin, Lunar.FINE_BIN_COUNT);
         pdc.setColor(shade, shade);
         pdc.clear();
         pdc.setColor(litColor, shade);
-        pdc.fillCircle(ri, ri, ri);
-        pdc.setColor(shade, shade);
-        drawCutout(pdc, ri, ri, r, bin, tiltBin);
+        if (isGibbous(bin)) {
+            fillGibbousLit(pdc, ri, ri, r, dir[0], dir[1], gibbousTermFrac(bin));
+        } else {
+            pdc.fillCircle(ri, ri, ri);
+            pdc.setColor(shade, shade);
+            drawCutout(pdc, ri, ri, r, bin, dir[0], dir[1]);
+        }
 
         // 2. The layer: transparent, with one circle filled from the picture.
         //    clear() with a transparent background really does write

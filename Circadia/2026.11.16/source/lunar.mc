@@ -28,10 +28,16 @@ module Lunar {
     const CRESCENT_BIN_COUNT = 12;
     const PHASE_BIN_COUNT    = 12;
 
+    // Directions for moons drawn through the off-screen layer (every phase
+    // but new and full, on devices that support it): one step every 5°.
+    // The coarse counts above are for the classic drawing on older devices.
+    const FINE_BIN_COUNT     = 72;
+
     const GIBBOUS_HYST_DEG  = 10.0;
     const HALF_HYST_DEG     =  6.0;
     const CRESCENT_HYST_DEG =  4.0;
     const PHASE_HYST_DEG    =  2.0;
+    const FINE_HYST_DEG     =  1.0;
 
     const ORIENT_RIGHT = 0;
     const ORIENT_DOWN  = 1;
@@ -48,6 +54,7 @@ module Lunar {
     var _prevHalfBin     = -1;
     var _prevCrescentBin = -1;
     var _prevPhaseBin    = -1;
+    var _prevFineBin     = -1;
 
     function lunarAltAzApprox(year, month, day, clockHour, offsetSec, latDeg, lonDeg) {
         var utc     = MathUtil.utcFromLocal(year, month, day, clockHour, offsetSec);
@@ -178,6 +185,7 @@ module Lunar {
         _prevGibbousBin  = -1;
         _prevHalfBin     = -1;
         _prevCrescentBin = -1;
+        _prevFineBin     = -1;
     }
 
     function resetHalfAndCrescentBins() {
@@ -205,9 +213,9 @@ module Lunar {
         return _prevGibbousBin;
     }
 
-    // The quarter and crescent tilts are returned as bin numbers so the moon
-    // layer can tell when the snapped tilt has changed. binDirection() turns
-    // a bin back into a unit vector.
+    // Tilts are returned as bin numbers so the moon layer can tell when the
+    // snapped tilt has changed. binDirection() turns a bin back into a unit
+    // vector pointing at the sun.
     function halfOrientationBin(angle) {
         _prevHalfBin = stickyBin(angle, _prevHalfBin, HALF_BIN_COUNT, HALF_HYST_DEG);
         return _prevHalfBin;
@@ -216,6 +224,13 @@ module Lunar {
     function crescentOrientationBin(angle) {
         _prevCrescentBin = stickyBin(angle, _prevCrescentBin, CRESCENT_BIN_COUNT, CRESCENT_HYST_DEG);
         return _prevCrescentBin;
+    }
+
+    // One shared direction for every phase drawn through the layer, so the
+    // tilt carries over smoothly when the phase changes.
+    function fineOrientationBin(angle) {
+        _prevFineBin = stickyBin(angle, _prevFineBin, FINE_BIN_COUNT, FINE_HYST_DEG);
+        return _prevFineBin;
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
