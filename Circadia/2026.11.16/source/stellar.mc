@@ -28,8 +28,10 @@ module Stellar {
     }
 
     // layout = [cx, cy, skyRadiusPx]; datetime = [year, month, day, hour, min]
-    // sunInfo = [sunX, sunY, sunAltDeg]; moonInfo = [moonX, moonY, moonRadiusPx]
-    function updateProjectedStars(layout, datetime, latDeg, sunInfo, moonInfo, starCount, mipMode) {
+    //
+    // Stars are only placed here, once a minute. They are drawn first in the
+    // sky, so the sun and moon, painted over them, hide the ones behind them.
+    function updateProjectedStars(layout, datetime, latDeg, sunAltDeg, starCount, mipMode) {
         var cx           = layout[0];
         var cy           = layout[1];
         var skyRadiusPx  = layout[2];
@@ -38,12 +40,6 @@ module Stellar {
         var day          = datetime[2];
         var hour         = datetime[3];
         var min          = datetime[4];
-        var sunX         = sunInfo[0];
-        var sunY         = sunInfo[1];
-        var sunAltDeg    = sunInfo[2];
-        var moonX        = moonInfo[0];
-        var moonY        = moonInfo[1];
-        var moonRadiusPx = moonInfo[2];
 
         var nightScale = starNightScale(sunAltDeg);
         if (nightScale <= 0.0) {
@@ -57,9 +53,7 @@ module Stellar {
             year, month, day, hour, min,
             (latDeg    * 100.0).toNumber(),
             (sunAltDeg * 100.0).toNumber(),
-            sunX.toNumber(),  sunY.toNumber(),
-            moonX.toNumber(), moonY.toNumber(),
-            moonRadiusPx.toNumber(), starCount, mipMode
+            starCount, mipMode
         ];
 
         if (_projectionKey != null && keysEqual(key, _projectionKey)) {
@@ -76,12 +70,8 @@ module Stellar {
         if (latDeg < 0.0)     { spin = -spin; }
 
         var skyR2             = skyRadiusPx * skyRadiusPx;
-        var moonR2            = moonRadiusPx * moonRadiusPx;
-        var solarHaloRadiusPx = skyRadiusPx * (SunArt.OUTER_DEG / 90.0);   // no stars inside the sun
-        var solarHaloR2       = solarHaloRadiusPx * solarHaloRadiusPx;
         var activeCount       = activeStarCount(nightScale, _starCatalog.size());
         var stars             = [];
-        var moonOccluder      = [moonX, moonY, moonRadiusPx, moonR2];
 
         for (var i = 0; i < activeCount; i += 1) {
             var s          = _starCatalog[i] as Lang.Array;
@@ -95,7 +85,9 @@ module Stellar {
             var x     = px + pathRadius * Math.cos(angle);
             var y     = py + pathRadius * Math.sin(angle);
 
-            if (starIsVisible(x, y, cx, cy, skyR2, sunX, sunY, solarHaloR2, moonOccluder)) {
+            var dx    = x - cx;
+            var dy    = y - cy;
+            if (dx * dx + dy * dy <= skyR2) {
                 var color = mipMode ? MiPArt.starColor(s[4], s[5]) : amoledColors[s[5]];
                 stars.add([MathUtil.roundNearest(x), MathUtil.roundNearest(y), s[4], color]);
             }
@@ -142,11 +134,9 @@ module Stellar {
         var centerAngle = Math.atan2(-py, -px);
 
         for (var i = 0; i < starCount; i += 1) {
-            var w  = 0.0;
-            var N  = 7;
-            var u  = (1 - w) * rand01(i, 0) + w * rand01(i % N, 0);
-            var r  = skyRadiusPx * Math.sqrt(u);
-            var a  = 2.0 * Math.PI * ((1 - w) * rand01(i, 1) + w * rand01(i % N, 1));
+            // Spread evenly over the sky disc.
+            var r  = skyRadiusPx * Math.sqrt(rand01(i, 0));
+            var a  = 2.0 * Math.PI * rand01(i, 1);
 
             var dx = r * Math.cos(a) - px;
             var dy = r * Math.sin(a) - py;
@@ -226,27 +216,6 @@ module Stellar {
         if (arcLength < 0.001) { arcLength = 0.001; }
 
         return [arcStart, arcLength, MathUtil.frac((starAngle - arcStart) / arcLength)];
-    }
-
-    // ── Visibility test ──────────────────────────────────────────────────────
-
-    // moonOccluder = [moonX, moonY, moonRadiusPx, moonR2]
-    function starIsVisible(x, y, cx, cy, skyR2, sunX, sunY, solarHaloR2, moonOccluder) {
-        var dxSky = x - cx;
-        var dySky = y - cy;
-        if (dxSky * dxSky + dySky * dySky > skyR2) { return false; }
-
-        var dxSun = x - sunX;
-        var dySun = y - sunY;
-        if (dxSun * dxSun + dySun * dySun <= solarHaloR2) { return false; }
-
-        if (moonOccluder[2] > 0.0) {
-            var dxMoon = x - moonOccluder[0];
-            var dyMoon = y - moonOccluder[1];
-            if (dxMoon * dxMoon + dyMoon * dyMoon <= moonOccluder[3]) { return false; }
-        }
-
-        return true;
     }
 
     // ── Star property helpers ────────────────────────────────────────────────

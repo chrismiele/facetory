@@ -15,32 +15,49 @@ module MiPArt {
 
     // ── Sun ──────────────────────────────────────────────────────────────────
     //
+    // Three layers at every stage: a ball the size of the white disc (the
+    // largest moon) and two thin rings around it, 2 degrees each, so the MIP
+    // sun is 24 degrees across and gone from the screen by -12. (AMOLED's
+    // 36-degree corona, sized to vanish at full night, is too heavy in flat
+    // MIP colours.)
+    //
     // One colour ramp, from white-hot through yellow, orange and red to the
-    // purples and blues of twilight. At stage k the sun's core is RAMP[k], its
-    // inner corona RAMP[k+1] and its outer corona RAMP[k+2], so as the sun sets
-    // it slides one step down the ramp at a time. The minute text takes
-    // MINUTE_COLORS[k], which follows the same timing as the AMOLED palette:
-    // orange around sunset, red by the end of civil twilight, purple by the end
-    // of nautical twilight, blue at full night.
+    // purples and blues of twilight. At step s the ball is RAMP[s], the inner
+    // ring RAMP[s+1] and the outer ring RAMP[s+2], so as the sun sets it slides
+    // one step down the ramp at a time and the three layers always differ.
+    // The edge flare uses the two ring colours, RAMP[s+1] at the rim and
+    // RAMP[s+2] inside it, so it reads as the halo spread along the horizon.
     //
-    //   stage  sun altitude    core     inner    outer    minute text
-    //     0     6 and above    FFFFFF*  FFFF55   FFFF00   FFFF00
-    //     1     0 to   6       FFFF55   FFFF00   FFAA00   FFAA00
-    //     2    -3 to   0       FFFF00   FFAA00   FF5500   FF5500
-    //     3    -6 to  -3       FFAA00   FF5500   FF0000   FF0000
-    //     4    -9 to  -6       FF5500   FF0000   FF0055   FF0055
-    //     5   -12 to  -9       FF0000   FF0055   AA00AA   FF55AA
-    //     6   -18 to -12       FF0055   AA00AA   5500AA   AA55FF
-    //     7   below -18        (no sun)                   55AAFF
+    //   step  sun altitude    ball     inner    outer
+    //    0     9 and above    FFFFFF   FFFF55   FFFF00
+    //    1     0 to   9       FFFF55   FFFF00   FFAA00
+    //    2    -3 to   0       FFFF00   FFAA00   FF5500
+    //    3    -6 to  -3       FFAA00   FF5500   FF0000
+    //    4    -9 to  -6       FF5500   FF0000   FF0055   (flare only from -8)
+    //    5   -12 to  -9       FF0000   FF0055   AA00AA   (flare only)
+    //    6   -18 to -12       FF0055   AA00AA   5500AA   (flare only)
     //
-    //   * The white-hot core. MIP cannot fade it, so it is white down to +9
-    //     and pale yellow (FFFF55) from there to +6.
+    // The step follows sunStage(), except that the white ball gives way to
+    // pale yellow at +9, half way through the white-hot fade (MIP cannot fade
+    // it), and the rings move down with it.
     //
-    // The edge flare uses RAMP[k+1] at the rim, stepping to RAMP[k+3] at its
-    // inner edge, so the ramp carries a few entries beyond the sun's own.
+    // The minute text takes MINUTE_COLORS[sunStage()], which follows the same
+    // timing as the AMOLED palette: orange around sunset, red by the end of
+    // civil twilight, purple by the end of nautical twilight, blue at full
+    // night.
+    //
+    //   stage  sun altitude    minute text
+    //     0     6 and above    FFFF00
+    //     1     0 to   6       FFAA00
+    //     2    -3 to   0       FF5500
+    //     3    -6 to  -3       FF0000
+    //     4    -9 to  -6       FF0055
+    //     5   -12 to  -9       FF55AA
+    //     6   -18 to -12       AA55FF
+    //     7   below -18        55AAFF
     const SUN_RAMP = [
         0xFFFFFF, 0xFFFF55, 0xFFFF00, 0xFFAA00, 0xFF5500, 0xFF0000,
-        0xFF0055, 0xAA00AA, 0x5500AA, 0x0000AA, 0x000055
+        0xFF0055, 0xAA00AA, 0x5500AA
     ];
 
     // Minute-text colour for each stage. All bright enough to read on black.
@@ -48,8 +65,9 @@ module MiPArt {
         0xFFFF00, 0xFFAA00, 0xFF5500, 0xFF0000, 0xFF0055, 0xFF55AA, 0xAA55FF, 0x55AAFF
     ];
 
-    const INNER_CORONA_DEG   = 12.0;   // boundary between the two corona rings
-    const FLARE_MAX_BANDS    = 3;
+    const INNER_RING_DEG     = 10.0;   // outer edge of the inner ring
+    const OUTER_RING_DEG     = 12.0;   // outer edge of the outer ring: the whole MIP sun
+    const FLARE_MAX_BANDS    = 2;      // one per ring colour
     const FLARE_MIN_BAND_PX  = 2.0;
 
     // ── Moon ─────────────────────────────────────────────────────────────────
@@ -120,46 +138,46 @@ module MiPArt {
 
     // ── Drawing functions ────────────────────────────────────────────────────
 
-    // Corona rings and flare bands are merged dimmest-first (highest ramp
-    // index first), so the brighter of the two shows wherever they overlap.
-    // The core goes on top.
+    // The ramp step for the sun's own colours (see the table above).
+    function sunRampStep(altDeg) {
+        var k = sunStage(altDeg);
+        if (k == 0 && SunArt.whiteHot(altDeg) >= 0.5) { return 0; }
+        return (k < 1) ? 1 : k;
+    }
+
+    // Rings and flare bands are merged dimmest-first (highest ramp index
+    // first), so the brighter of the two shows wherever they overlap. The
+    // ball goes on top.
     function drawSun(dc, cx, cy, R, sx, sy, altDeg) {
         var deg = R / 90.0;
-        var k   = sunStage(altDeg);
+        var s   = sunRampStep(altDeg);
         var xi  = MathUtil.roundNearest(sx);
         var yi  = MathUtil.roundNearest(sy);
 
-        var rings = SunArt.coronaVisible(altDeg) ? 2 : 0;
+        var rings = (altDeg > -OUTER_RING_DEG) ? 2 : 0;
         var bands = SunArt.prepareFlare(cx, cy, R, sx, sy, altDeg, FLARE_MIN_BAND_PX, FLARE_MAX_BANDS);
 
-        var ring = 0;           // 0 = outer corona (ramp k+2), 1 = inner corona (ramp k+1)
-        var band = bands - 1;   // band j uses ramp k+1+j; the innermost is the dimmest
+        var ring = 0;           // 0 = outer ring (ramp s+2), 1 = inner ring (ramp s+1)
+        var band = bands - 1;   // band j uses ramp s+1+j; the innermost is the dimmest
 
         while (ring < rings || band >= 0) {
-            var ringIdx = (ring < rings) ? (k + 2 - ring) : -1;
-            var bandIdx = (band >= 0)    ? (k + 1 + band)  : -1;
+            var ringIdx = (ring < rings) ? (s + 2 - ring) : -1;
+            var bandIdx = (band >= 0)    ? (s + 1 + band) : -1;
 
             if (band >= 0 && bandIdx >= ringIdx) {
                 SunArt.drawFlareBand(dc, cx, cy, R, band, bands, SUN_RAMP[bandIdx]);
                 band -= 1;
             } else {
-                var rDeg = (ring == 0) ? SunArt.OUTER_DEG : INNER_CORONA_DEG;
+                var rDeg = (ring == 0) ? OUTER_RING_DEG : INNER_RING_DEG;
                 dc.setColor(SUN_RAMP[ringIdx], BLACK);
                 dc.fillCircle(xi, yi, MathUtil.roundNearest(rDeg * deg));
                 ring += 1;
             }
         }
 
-        if (SunArt.coreVisible(altDeg)) {
-            // Stage 0's core is the white-hot one. MIP cannot fade it, so it
-            // switches to the next ramp colour once the fade is past half way.
-            var coreColor = SUN_RAMP[k];
-            if (k == 0 && SunArt.whiteHot(altDeg) < 0.5) {
-                coreColor = SUN_RAMP[1];
-            }
-            // The MIP core is the white disc itself: the same width as the
-            // largest moon. The inner corona ring is its coloured rim.
-            dc.setColor(coreColor, BLACK);
+        // The ball: the white disc itself, the same width as the largest moon.
+        if (altDeg > -SunArt.WHITE_DISC_DEG) {
+            dc.setColor(SUN_RAMP[s], BLACK);
             dc.fillCircle(xi, yi, MathUtil.roundNearest(SunArt.WHITE_DISC_DEG * deg));
         }
     }

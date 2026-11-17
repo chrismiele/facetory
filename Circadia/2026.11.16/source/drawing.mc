@@ -148,16 +148,19 @@ module Drawing {
         dc.clear();
     }
 
+    // Back to front: stars, sun, moon. Everything is painted opaque, so the
+    // sun's corona and flare and the moon hide the stars behind them simply
+    // by being drawn later; nothing has to test stars against them.
     function drawSky(dc, cache, showSun, showMoon, showStars, mipMode) {
         clearBackground(dc);
+
+        if (showStars) {
+            Stellar.drawProjectedStars(dc);
+        }
 
         if (showSun) {
             // cache = [cx, cy, R, sunAlt, sunX, sunY, ...]
             SunArt.draw(dc, cache[0], cache[1], cache[2], cache[4], cache[5], cache[3], mipMode);
-        }
-
-        if (showStars) {
-            Stellar.drawProjectedStars(dc);
         }
 
         if (showMoon) {

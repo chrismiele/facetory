@@ -44,7 +44,6 @@ module Lunar {
     const ORIENT_LEFT  = 2;
     const ORIENT_UP    = 3;
 
-    const SYNODIC_MONTH_DAYS     = 29.530588;
     // Half-width of the full-moon glow window, in fraction of a synodic month.
     // 0.02 of 29.53 days ≈ a bit > 12 hours, giving a ~24-hour total window centered on full moon.
     const FULL_MOON_WINDOW_FRAC = 0.02;

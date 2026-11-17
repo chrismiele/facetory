@@ -294,8 +294,7 @@ class CircadiaView extends WatchUi.WatchFace {
                 [cx, cy, R],
                 [g.year, g.month, g.day, t.hour, t.min],
                 _latDeg,
-                [sp[0], sp[1], _cachedSunAltAz[0]],
-                [mp[0], mp[1], moonRadius],
+                _cachedSunAltAz[0],
                 config.starCount(),
                 config.mipMode()
             );

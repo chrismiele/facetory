@@ -16,11 +16,13 @@ using Toybox.Math;
 //                               setting: a large new moon in front of the sun
 //                               covers the white disc and nothing more.
 //   core        10 deg radius   The white disc plus the rim where white gives
-//                               way to the sun's colour (AMOLED). On MIP the
-//                               rim is the first corona ring instead.
+//                               way to the sun's colour.
 //   corona      18 deg radius   The last trace leaves the screen at -18, the
 //                               end of astronomical twilight: full night, and
 //                               the moment the stars reach full count.
+//
+// MIP draws a more compact sun: the white disc and two thin rings (see
+// MiPArt), gone from the screen by -12. Its flare still runs to -18.
 //
 // Timing. Each 6-degree stage has one change:
 //
@@ -39,7 +41,12 @@ using Toybox.Math;
 // end of civil twilight (-6), and shrinks back to a point at full night (-18).
 // Breadth and thickness scale together, in a straight line with altitude.
 //
-// Brightest wins. Corona rings and flare bands are painted dimmest first, so
+// The flare is drawn as concentric arcs hugging the rim ("slices"). On AMOLED
+// it is a glow like the corona: nested levels, each a little smaller and
+// brighter than the last, so it fades both inward and toward its ends. On
+// MIP it is two bands in the corona's two ring colours.
+//
+// Brightest wins. Corona rings and flare levels are painted dimmest first, so
 // wherever they overlap the brighter one shows and neither cuts a gap in the
 // other. The core always goes on top.
 module SunArt {
@@ -106,10 +113,10 @@ module SunArt {
 
     // ── Edge flare ───────────────────────────────────────────────────────────
 
-    // Work out this frame's flare and return how many bands to draw it in
-    // (0 = no flare). Bands are numbered from 0 at the rim inward. Each band
-    // is at least minBandPx thick, so a small flare uses fewer bands.
-    function prepareFlare(cx, cy, R, sx, sy, altDeg, minBandPx, maxBands) {
+    // Work out this frame's flare and return how many slices to draw it in
+    // (0 = no flare). Slices are numbered from 0 at the rim inward, and each
+    // is at least minSlicePx thick, so a small flare uses fewer of them.
+    function prepareFlare(cx, cy, R, sx, sy, altDeg, minSlicePx, maxSlices) {
         if (!config.horizonFlare()) { return 0; }
 
         var f = flareStrength(altDeg);
@@ -121,39 +128,61 @@ module SunArt {
         _flareSpan  = FLARE_MAX_SPAN_DEG * f;
         _flareTheta = MathUtil.rad2deg(Math.atan2(cy - sy, sx - cx));
 
-        var bands = (_flareDepthPx / minBandPx).toNumber();
-        if (bands < 1)        { bands = 1; }
-        if (bands > maxBands) { bands = maxBands; }
-        return bands;
+        var slices = (_flareDepthPx / minSlicePx).toNumber();
+        if (slices < 1)         { slices = 1; }
+        if (slices > maxSlices) { slices = maxSlices; }
+        return slices;
     }
 
-    // Band j of `bands`: an arc hugging the rim. Each band is a little shorter
-    // than the one outside it, which rounds the flare off toward its ends.
+    // MIP: band j of `bands`, one colour from the rim inward. Each band is a
+    // little shorter than the one outside it, which rounds the ends off.
     function drawFlareBand(dc, cx, cy, R, j, bands, color) {
-        var u    = (j + 0.5) / bands;
-        var span = _flareSpan * Math.sqrt(1.0 - u * u);
+        var u = (j + 0.5) / bands;
+        dc.setColor(color, BLACK);
+        drawRimSlice(dc, cx, cy, R, j, bands, _flareSpan * Math.sqrt(1.0 - u * u));
+        dc.setPenWidth(1);
+    }
 
+    // AMOLED: glow level k of `levels`, in one colour. Level 0 is the whole
+    // flare; each level after it is smaller (1 - k/levels of the depth) and
+    // is painted brighter on top. A level's outline is a half-ellipse in
+    // (bearing, depth), built from the slices it reaches. Its length shrinks
+    // more slowly than its depth (alongExp < 1), so the glow stays long and
+    // thin and fades gently toward its ends.
+    function drawFlareLevel(dc, cx, cy, R, k, levels, slices, alongExp, color) {
+        var g    = 1.0 - k.toFloat() / levels;
+        var span = _flareSpan * Math.pow(g, alongExp);
+        dc.setColor(color, BLACK);
+        for (var j = 0; j < slices; j += 1) {
+            var t = (j + 0.5) / slices / g;     // depth of this slice, as a fraction of the level's
+            if (t >= 1.0) { break; }
+            drawRimSlice(dc, cx, cy, R, j, slices, span * Math.sqrt(1.0 - t * t));
+        }
+        dc.setPenWidth(1);
+    }
+
+    // Slice j of `slices`: an arc hugging the rim, `span` degrees to each side
+    // of the sun's bearing, in the current colour.
+    function drawRimSlice(dc, cx, cy, R, j, slices, span) {
         var start = MathUtil.roundNearest(_flareTheta - span);
         var end   = MathUtil.roundNearest(_flareTheta + span);
         if (end <= start) { return; }
 
-        var inner = R - (j + 1) * _flareDepthPx / bands;
-        var outer = R - j * _flareDepthPx / bands;
+        var inner = R - (j + 1) * _flareDepthPx / slices;
+        var outer = R - j * _flareDepthPx / slices;
         if (j == 0) { outer = R + RIM_OVERDRAW_PX; }
 
-        // One pixel of overlap so rounding never leaves a hairline between bands.
+        // One pixel of overlap so rounding never leaves a hairline between slices.
         var pen = (outer - inner + 1.5).toNumber();
         if (pen < 1) { pen = 1; }
 
         dc.setPenWidth(pen);
-        dc.setColor(color, BLACK);
         dc.drawArc(
             MathUtil.roundNearest(cx), MathUtil.roundNearest(cy),
             MathUtil.roundNearest(0.5 * (inner + outer)),
             Graphics.ARC_COUNTER_CLOCKWISE,
             wrapDegrees(start), wrapDegrees(end)
         );
-        dc.setPenWidth(1);
     }
 
     // Whole degrees into 0..359.

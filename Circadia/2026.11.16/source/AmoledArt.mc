@@ -57,12 +57,18 @@ module AmoledArt {
     const CORE_STEP_POS   = [1.00, 0.75, 0.50, 0.25, 0.00];
     const CORE_STEP_WHITE = [0.00, 0.18, 0.42, 0.70, 1.00];
 
-    // Edge flare: up to 24 bands about a pixel thick, brightest at the rim,
-    // so both the colour and the tapered ends change in small steps.
-    const FLARE_MAX_BANDS       = 24;
-    const FLARE_MIN_BAND_PX     = 1.0;
+    // Edge flare: a glow in 12 levels, like the corona's 12 rings, built from
+    // slices about a pixel thick (see SunArt.drawFlareLevel). Level k is
+    // painted at PEAK * ((k + 1) / LEVELS)^FALLOFF, so brightness falls off
+    // inward as before and now also toward the flare's ends. Level 0 would
+    // be near black and only hide stars, so it is skipped.
+    const FLARE_LEVELS          = 12;
+    const FLARE_FIRST_LEVEL     = 1;
+    const FLARE_MAX_SLICES      = 12;
+    const FLARE_MIN_SLICE_PX    = 1.0;
     const FLARE_PEAK_BRIGHTNESS = 0.60;
     const FLARE_FALLOFF         = 1.6;
+    const FLARE_ALONG_EXPONENT  = 0.3;
 
     // ── Moon glow drawing constants ───────────────────────────────────────────
     const MOON_GLOW_DEG                 = 45.0;
@@ -109,10 +115,10 @@ module AmoledArt {
 
     // ── Sun drawing ───────────────────────────────────────────────────────────
 
-    // Corona rings and flare bands are merged dimmest-first, so the brighter
+    // Corona rings and flare levels are merged dimmest-first, so the brighter
     // of the two shows wherever they overlap. Both lists are already in order
-    // of rising brightness: corona from the outside in, flare from its inner
-    // edge out to the rim. The core goes on top.
+    // of rising brightness: corona from the outside in, flare levels from the
+    // largest to the smallest. The core goes on top.
     function drawSun(dc, cx, cy, R, sx, sy, altDeg) {
         var deg = R / 90.0;
         var col = sunColorForAlt(altDeg);
@@ -120,18 +126,20 @@ module AmoledArt {
         var yi  = MathUtil.roundNearest(sy);
 
         var rings = SunArt.coronaVisible(altDeg) ? CORONA_FRAC.size() : 0;
-        var bands = SunArt.prepareFlare(cx, cy, R, sx, sy, altDeg, FLARE_MIN_BAND_PX, FLARE_MAX_BANDS);
+        var slices = SunArt.prepareFlare(cx, cy, R, sx, sy, altDeg, FLARE_MIN_SLICE_PX, FLARE_MAX_SLICES);
+        var levels = (slices > 0) ? FLARE_LEVELS : 0;
 
-        var ring = 0;           // next corona ring; 0 is the outermost and dimmest
-        var band = bands - 1;   // next flare band; the innermost is the dimmest
+        var ring  = 0;                   // next corona ring; 0 is the outermost and dimmest
+        var level = FLARE_FIRST_LEVEL;   // next flare level; the largest is the dimmest
 
-        while (ring < rings || band >= 0) {
-            var ringB = (ring < rings) ? CORONA_BRIGHTNESS[ring] : 2.0;
-            var bandB = (band >= 0)    ? flareBrightness(band, bands) : 2.0;
+        while (ring < rings || level < levels) {
+            var ringB  = (ring < rings)   ? CORONA_BRIGHTNESS[ring] : 2.0;
+            var levelB = (level < levels) ? flareBrightness(level)  : 2.0;
 
-            if (bandB <= ringB) {
-                SunArt.drawFlareBand(dc, cx, cy, R, band, bands, MathUtil.scaleColor(col, bandB));
-                band -= 1;
+            if (levelB <= ringB) {
+                SunArt.drawFlareLevel(dc, cx, cy, R, level, FLARE_LEVELS, slices, FLARE_ALONG_EXPONENT,
+                    MathUtil.scaleColor(col, levelB));
+                level += 1;
             } else {
                 var rDeg = SunArt.CORE_DEG + CORONA_FRAC[ring] * (SunArt.OUTER_DEG - SunArt.CORE_DEG);
                 dc.setColor(MathUtil.scaleColor(col, ringB), BLACK);
@@ -145,9 +153,8 @@ module AmoledArt {
         }
     }
 
-    function flareBrightness(band, bands) {
-        var u = (band + 0.5) / bands;
-        return FLARE_PEAK_BRIGHTNESS * Math.pow(1.0 - u, FLARE_FALLOFF);
+    function flareBrightness(level) {
+        return FLARE_PEAK_BRIGHTNESS * Math.pow((level + 1.0) / FLARE_LEVELS, FLARE_FALLOFF);
     }
 
     // whiteHot = 1: a pure white disc of radius whitePx, giving way to the
