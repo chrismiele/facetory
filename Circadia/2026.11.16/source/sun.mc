@@ -41,10 +41,10 @@ using Toybox.Math;
 // end of civil twilight (-6), and shrinks back to a point at full night (-18).
 // Breadth and thickness scale together, in a straight line with altitude.
 //
-// The flare is drawn as concentric arcs hugging the rim ("slices"). On AMOLED
-// it is a glow like the corona: nested levels, each a little smaller and
-// brighter than the last, so it fades both inward and toward its ends. On
-// MIP it is two bands in the corona's two ring colours.
+// On AMOLED the flare is a glow like the corona: nested crescents, each a
+// little shallower and brighter than the last, all tapering to the same two
+// points on the rim. On MIP it is two bands hugging the rim, in the corona's
+// two ring colours.
 //
 // Brightest wins. Corona rings and flare levels are painted dimmest first, so
 // wherever they overlap the brighter one shows and neither cuts a gap in the
@@ -64,6 +64,7 @@ module SunArt {
     const FLARE_END_ALT_DEG   = -OUTER_DEG;    // full night
     const FLARE_MAX_SPAN_DEG  = 65.0;          // bearing to each side of the sun, at the peak
     const FLARE_MAX_DEPTH_DEG = 10.0;          // thickness at the sun's bearing, at the peak
+    const FLARE_MAX_FILL      = 0.8;           // AMOLED crescent: fraction of the deepest circle possible
     const RIM_OVERDRAW_PX     = 3.0;           // the sky disc stops 2px short of the screen edge
 
     // ── White-hot core ───────────────────────────────────────────────────────
@@ -116,6 +117,7 @@ module SunArt {
     // Work out this frame's flare and return how many slices to draw it in
     // (0 = no flare). Slices are numbered from 0 at the rim inward, and each
     // is at least minSlicePx thick, so a small flare uses fewer of them.
+    // (AMOLED only needs to know whether there is a flare.)
     function prepareFlare(cx, cy, R, sx, sy, altDeg, minSlicePx, maxSlices) {
         if (!config.horizonFlare()) { return 0; }
 
@@ -143,21 +145,53 @@ module SunArt {
         dc.setPenWidth(1);
     }
 
-    // AMOLED: glow level k of `levels`, in one colour. Level 0 is the whole
-    // flare; each level after it is smaller (1 - k/levels of the depth) and
-    // is painted brighter on top. A level's outline is a half-ellipse in
-    // (bearing, depth), built from the slices it reaches. Its length shrinks
-    // more slowly than its depth (alongExp < 1), so the glow stays long and
-    // thin and fades gently toward its ends.
-    function drawFlareLevel(dc, cx, cy, R, k, levels, slices, alongExp, color) {
-        var g    = 1.0 - k.toFloat() / levels;
-        var span = _flareSpan * Math.pow(g, alongExp);
+    // AMOLED: glow level k of `levels`, in one colour: a crescent between
+    // the rim and a slightly larger circle set back from the sun's bearing,
+    // so it is deepest at the bearing and tapers to a point at each end of
+    // the flare. Level 0 is the deepest; each level after it is shallower
+    // (1 - k/levels of the depth), shares the same tips, and is painted
+    // brighter on top. Each level is a single thick arc around that circle's
+    // centre, from the circle out past the rim.
+    //
+    // A circle through both tips can only be so deep: as deep as a straight
+    // chord between them, R(1 - cos span). The flare is kept to
+    // FLARE_MAX_FILL of that, which only matters for a very young or very
+    // old flare, when it is short.
+    function drawFlareCrescent(dc, cx, cy, R, k, levels, color) {
+        var span  = MathUtil.deg2rad(_flareSpan);
+        var cosS  = Math.cos(span);
+        var room  = R * (1.0 - cosS);
+        var depth = _flareDepthPx;
+        if (depth > FLARE_MAX_FILL * room) { depth = FLARE_MAX_FILL * room; }
+        depth = depth * (1.0 - k.toFloat() / levels);
+        if (depth < 0.5) { return; }
+
+        // The inner circle: centre e behind the screen centre (away from the
+        // sun), radius rho, passing through both tips and `depth` in from
+        // the rim at the bearing.
+        var e   = depth * (2.0 * R - depth) / (2.0 * (room - depth));
+        var rho = R - depth + e;
+        var th  = MathUtil.deg2rad(_flareTheta);
+        var ex  = cx - e * Math.cos(th);
+        var ey  = cy + e * Math.sin(th);
+
+        // The tips, as seen from that centre. Rounded outward: past the tips
+        // the arc only lies beyond the rim.
+        var beta  = MathUtil.rad2deg(Math.atan2(R * Math.sin(span), R * cosS + e));
+        var start = Math.floor(_flareTheta - beta).toNumber();
+        var end   = Math.ceil(_flareTheta + beta).toNumber();
+
+        // From the circle out past the rim (rim + e at the bearing).
+        var pen = (depth + RIM_OVERDRAW_PX + 1.0).toNumber();
+
         dc.setColor(color, BLACK);
-        for (var j = 0; j < slices; j += 1) {
-            var t = (j + 0.5) / slices / g;     // depth of this slice, as a fraction of the level's
-            if (t >= 1.0) { break; }
-            drawRimSlice(dc, cx, cy, R, j, slices, span * Math.sqrt(1.0 - t * t));
-        }
+        dc.setPenWidth(pen);
+        dc.drawArc(
+            MathUtil.roundNearest(ex), MathUtil.roundNearest(ey),
+            MathUtil.roundNearest(rho + 0.5 * pen),
+            Graphics.ARC_COUNTER_CLOCKWISE,
+            wrapDegrees(start), wrapDegrees(end)
+        );
         dc.setPenWidth(1);
     }
 

@@ -33,9 +33,14 @@ module MiPArt {
     //    1     0 to   9       FFFF55   FFFF00   FFAA00
     //    2    -3 to   0       FFFF00   FFAA00   FF5500
     //    3    -6 to  -3       FFAA00   FF5500   FF0000
-    //    4    -9 to  -6       FF5500   FF0000   FF0055   (flare only from -8)
-    //    5   -12 to  -9       FF0000   FF0055   AA00AA   (flare only)
-    //    6   -18 to -12       FF0055   AA00AA   5500AA   (flare only)
+    //    4    -9 to  -6       FF5500   FF0000   FF00AA   (flare only from -8)
+    //    5   -12 to  -9       FF0000   FF00AA   AA00AA   (flare only)
+    //    6   -18 to -12       FF00AA   AA00AA   5500AA   (flare only)
+    //
+    // Neighbouring ramp colours must look different on a MIP screen, since
+    // any two of them can sit side by side in the halo or the flare. Red is
+    // followed by pink (FF00AA), not crimson (FF0055), which is hard to tell
+    // from red.
     //
     // The step follows sunStage(), except that the white ball gives way to
     // pale yellow at +9, half way through the white-hot fade (MIP cannot fade
@@ -57,7 +62,7 @@ module MiPArt {
     //     7   below -18        55AAFF
     const SUN_RAMP = [
         0xFFFFFF, 0xFFFF55, 0xFFFF00, 0xFFAA00, 0xFF5500, 0xFF0000,
-        0xFF0055, 0xAA00AA, 0x5500AA
+        0xFF00AA, 0xAA00AA, 0x5500AA
     ];
 
     // Minute-text colour for each stage. All bright enough to read on black.

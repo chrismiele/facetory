@@ -4,7 +4,8 @@ using Toybox.Math;
 // MoonArt — everything that draws the moon, for both display types.
 //
 // Phases:
-//   new       : an unlit disc, the same size as every other phase
+//   new       : nothing, or with the dark side on, a dim disc the same
+//               size as every other phase
 //   full      : lit disc with a glow
 //   otherwise : on devices with the layered drawing (below), the true shape
 //               for the exact phase: the dividing line moves half a pixel at
@@ -137,13 +138,15 @@ module MoonArt {
         // The unlit colour: dim grey with the dark side on, black with it off.
         var shade = darkSide ? darkColor : BLACK;
 
-        // New moon: the whole disc is unlit. It is the same size as every
-        // other phase; without the dark side it is a black disc, which only
-        // shows where it passes in front of the sun's glow.
+        // New moon: the whole disc is unlit, so without the dark side there
+        // is nothing to draw. With it, a dim disc the same size as every
+        // other phase.
         if (bin == Lunar.PHASE_NEW) {
             Lunar.resetOrientationBins();
-            dc.setColor(shade, BLACK);
-            dc.fillCircle(xi, yi, ri);
+            if (darkSide) {
+                dc.setColor(shade, BLACK);
+                dc.fillCircle(xi, yi, ri);
+            }
             return;
         }
 
