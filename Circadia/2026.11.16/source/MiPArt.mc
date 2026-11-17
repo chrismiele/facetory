@@ -25,8 +25,11 @@ module MiPArt {
     // purples and blues of twilight. At step s the ball is RAMP[s], the inner
     // ring RAMP[s+1] and the outer ring RAMP[s+2], so as the sun sets it slides
     // one step down the ramp at a time and the three layers always differ.
-    // The edge flare uses the two ring colours, RAMP[s+1] at the rim and
-    // RAMP[s+2] inside it, so it reads as the halo spread along the horizon.
+    // The edge flare is two crescents with the same tips (see
+    // SunArt.drawFlareCrescent): the full depth in the outer ring's colour,
+    // RAMP[s+2], then half the depth in the inner ring's colour, RAMP[s+1],
+    // so it reads as the halo spread along the horizon and tapers to a
+    // point at each end.
     //
     //   step  sun altitude    ball     inner    outer
     //    0     9 and above    FFFFFF   FFFF55   FFFF00
@@ -72,8 +75,7 @@ module MiPArt {
 
     const INNER_RING_DEG     = 10.0;   // outer edge of the inner ring
     const OUTER_RING_DEG     = 12.0;   // outer edge of the outer ring: the whole MIP sun
-    const FLARE_MAX_BANDS    = 2;      // one per ring colour
-    const FLARE_MIN_BAND_PX  = 2.0;
+    const FLARE_LEVELS       = 2;      // one crescent per ring colour
 
     // ── Moon ─────────────────────────────────────────────────────────────────
     const MIP_MOON_BRIGHT   = 0xAAAAAA;   // lit face, every phase but full
@@ -150,7 +152,7 @@ module MiPArt {
         return (k < 1) ? 1 : k;
     }
 
-    // Rings and flare bands are merged dimmest-first (highest ramp index
+    // Rings and flare crescents are merged dimmest-first (highest ramp index
     // first), so the brighter of the two shows wherever they overlap. The
     // ball goes on top.
     function drawSun(dc, cx, cy, R, sx, sy, altDeg) {
@@ -159,19 +161,19 @@ module MiPArt {
         var xi  = MathUtil.roundNearest(sx);
         var yi  = MathUtil.roundNearest(sy);
 
-        var rings = (altDeg > -OUTER_RING_DEG) ? 2 : 0;
-        var bands = SunArt.prepareFlare(cx, cy, R, sx, sy, altDeg, FLARE_MIN_BAND_PX, FLARE_MAX_BANDS);
+        var rings  = (altDeg > -OUTER_RING_DEG) ? 2 : 0;
+        var levels = SunArt.prepareFlare(cx, cy, R, sx, sy, altDeg) ? FLARE_LEVELS : 0;
 
-        var ring = 0;           // 0 = outer ring (ramp s+2), 1 = inner ring (ramp s+1)
-        var band = bands - 1;   // band j uses ramp s+1+j; the innermost is the dimmest
+        var ring  = 0;   // 0 = outer ring (ramp s+2), 1 = inner ring (ramp s+1)
+        var level = 0;   // 0 = deep crescent (ramp s+2), 1 = shallow crescent (ramp s+1)
 
-        while (ring < rings || band >= 0) {
-            var ringIdx = (ring < rings) ? (s + 2 - ring) : -1;
-            var bandIdx = (band >= 0)    ? (s + 1 + band) : -1;
+        while (ring < rings || level < levels) {
+            var ringIdx  = (ring < rings)   ? (s + 2 - ring)  : -1;
+            var levelIdx = (level < levels) ? (s + 2 - level) : -1;
 
-            if (band >= 0 && bandIdx >= ringIdx) {
-                SunArt.drawFlareBand(dc, cx, cy, R, band, bands, SUN_RAMP[bandIdx]);
-                band -= 1;
+            if (levelIdx >= ringIdx) {
+                SunArt.drawFlareCrescent(dc, cx, cy, R, level, FLARE_LEVELS, SUN_RAMP[levelIdx]);
+                level += 1;
             } else {
                 var rDeg = (ring == 0) ? OUTER_RING_DEG : INNER_RING_DEG;
                 dc.setColor(SUN_RAMP[ringIdx], BLACK);

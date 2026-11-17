@@ -123,7 +123,7 @@ module AmoledArt {
         var yi  = MathUtil.roundNearest(sy);
 
         var rings = SunArt.coronaVisible(altDeg) ? CORONA_FRAC.size() : 0;
-        var levels = (SunArt.prepareFlare(cx, cy, R, sx, sy, altDeg, 1.0, 1) > 0) ? FLARE_LEVELS : 0;
+        var levels = SunArt.prepareFlare(cx, cy, R, sx, sy, altDeg) ? FLARE_LEVELS : 0;
 
         var ring  = 0;                   // next corona ring; 0 is the outermost and dimmest
         var level = FLARE_FIRST_LEVEL;   // next flare level; the largest is the dimmest
