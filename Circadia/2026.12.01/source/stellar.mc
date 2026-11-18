@@ -39,10 +39,12 @@ using Toybox.WatchUi;
 // or lower) faint lines join the stars of the well-known figures
 // (resources/jsonData/stars_lines.json), drawn under the stars and stopping
 // just short of them. They all come out together when full night begins and
-// all go when it ends. Only whole figures are drawn: every star of the
-// figure must be above the horizon and among the stars shown. The faintest
-// stars of a drawn figure are shown even when the haze near the horizon
-// would otherwise hide them, so the figure is never drawn with a gap.
+// all go when it ends. Every line whose two stars are above the horizon is
+// drawn, so a figure low in the sky is clipped by the horizon rather than
+// left out, as in a planetarium; a figure is drawn once at least half its
+// lines are up, so no stray fragments sit on the horizon. The stars of a
+// drawn line are always shown, even beyond the "Number of stars" or when the
+// haze near the horizon would hide them, so a figure never has a gap.
 module Stellar {
 
     const FULL_NIGHT_ALT_DEG = -18.0;    // end of astronomical twilight; keep equal to -SunArt.OUTER_DEG
@@ -87,6 +89,8 @@ module Stellar {
     var _catalog        = null;
     var _catalogMode    = -1;
     var _lineTable      = null;
+    var _figureStar     = null;    // per constellations-table entry: 1 if in a figure's lines
+    var _lastFigureStar = -1;      // highest such entry
     var _projectedStars = [];
     var _projectedLines = [];      // x0, y0, x1, y1 for each line to draw
     var _lineColor      = 0;
@@ -119,6 +123,23 @@ module Stellar {
             _lineTable = WatchUi.loadResource(Rez.JsonData.StarLines) as Lang.Array;
         }
         return _lineTable;
+    }
+
+    // Which constellations-table entries are figure stars. Built once.
+    function figureStars(tableSize) {
+        if (_figureStar == null) {
+            var lines = lineTable();
+            _figureStar = new [tableSize]b;
+            for (var k = 0; k < lines.size(); k += 1) {
+                var a = lines[k] & 0x1FF;
+                var b = (lines[k] >> 9) & 0x1FF;
+                _figureStar[a] = 1;
+                _figureStar[b] = 1;
+                if (a > _lastFigureStar) { _lastFigureStar = a; }
+                if (b > _lastFigureStar) { _lastFigureStar = b; }
+            }
+        }
+        return _figureStar;
     }
 
     // layout = [cx, cy, skyRadiusPx]; datetime = [year, month, day, hour, min]
@@ -166,13 +187,13 @@ module Stellar {
         var stars        = [];
 
         // Lines: only at full night, in Constellations. For each table entry,
-        // shownAt = 1 + its place in stars (0 = not shown); hiddenAt = 1 + its
-        // place in hidden, the stars that are up and among the starCount but
-        // too faint to see near the horizon.
-        var withLines = (starMode == MODE_CONSTELLATIONS) && (sunAltDeg <= FULL_NIGHT_ALT_DEG);
-        var shownAt   = withLines ? new [cat.size()]b : null;
-        var hiddenAt  = withLines ? new [cat.size()]b : null;
-        var hidden    = withLines ? [] : null;
+        // slot = k + 1 for stars[k], -(k + 1) for hidden[k], null for neither.
+        // hidden holds figure stars that are up but not shown: beyond the
+        // starCount, or too faint to see near the horizon.
+        var withLines  = (starMode == MODE_CONSTELLATIONS) && (sunAltDeg <= FULL_NIGHT_ALT_DEG);
+        var figureStar = withLines ? figureStars(cat.size()) : null;
+        var slot       = withLines ? new [cat.size()] : null;
+        var hidden     = withLines ? [] : null;
 
         for (var i = 0; i < cat.size(); i += 1) {
             var v      = cat[i] as Lang.Number;
@@ -190,15 +211,20 @@ module Stellar {
             if (sinAlt <= 0.0) { continue; }
 
             // The first starCount stars above the horizon make up the sky.
+            // With lines, figure stars beyond them are still placed.
             above += 1;
-            if (above > starCount) { break; }
+            var extra = (above > starCount);
+            if (extra) {
+                if (!withLines || i > _lastFigureStar) { break; }
+                if (figureStar[i] == 0) { continue; }
+            }
 
             // Not visible yet: too faint for the twilight sky at its height.
             var mag      = MAG_ZERO + ((v >> 3) & 0x7F) * MAG_STEP;
             var airmass  = 1.0 / (sinAlt + 0.025);
             var apparent = mag + EXTINCTION_PER_AIRMASS * (airmass - 1.0);
-            var visible  = (apparent <= limitMag);
-            if (!visible && !withLines) { continue; }
+            var visible  = !extra && (apparent <= limitMag);
+            if (!visible && !(withLines && figureStar[i] != 0)) { continue; }
 
             var altDeg = MathUtil.rad2deg(Math.asin(sinAlt));
             altDeg += MathUtil.refractionDeg(altDeg);
@@ -222,74 +248,69 @@ module Stellar {
             var star     = [MathUtil.roundNearest(x), MathUtil.roundNearest(y), size, color];
             if (visible) {
                 stars.add(star);
-                if (withLines) { shownAt[i] = stars.size(); }
-            } else if (hidden.size() < 255) {
+                if (withLines) { slot[i] = stars.size(); }
+            } else {
                 hidden.add(star);
-                hiddenAt[i] = hidden.size();
+                slot[i] = -hidden.size();
             }
         }
 
-        _projectedLines = withLines ? projectLines(stars, shownAt, hidden, hiddenAt) : [];
+        _projectedLines = withLines ? projectLines(stars, slot, hidden) : [];
         _projectedStars = stars;
         _lineColor      = mipMode ? MiPArt.CONSTELLATION_LINE : AmoledArt.CONSTELLATION_LINE;
         _lineAntiAlias  = !mipMode;
         _projectionKey  = key;
     }
 
-    // The lines of every whole figure: one whose stars are all up and among
-    // the starCount. Its stars hidden by the haze are added to stars.
-    function projectLines(stars, shownAt, hidden, hiddenAt) {
+    // The lines to draw: for each figure with at least half its lines up,
+    // every line whose two stars are up. Their hidden stars join stars.
+    function projectLines(stars, slot, hidden) {
         var lines = lineTable();
         var n     = lines.size();
         var out   = [];
         var i     = 0;
         while (i < n) {
             var figure = (lines[i] >> LINE_FIGURE_SHIFT) & 0x7F;
-            var whole  = true;
+            var up     = 0;
             var j      = i;
             while (j < n && ((lines[j] >> LINE_FIGURE_SHIFT) & 0x7F) == figure) {
-                var v = lines[j];
-                var a = v & 0x1FF;
-                var b = (v >> 9) & 0x1FF;
-                if ((shownAt[a] == 0 && hiddenAt[a] == 0) || (shownAt[b] == 0 && hiddenAt[b] == 0)) { whole = false; }
+                if (slot[lines[j] & 0x1FF] != null && slot[(lines[j] >> 9) & 0x1FF] != null) { up += 1; }
                 j += 1;
             }
-            if (whole) {
+            if (2 * up >= j - i) {
                 for (var k = i; k < j; k += 1) {
-                    reveal(lines[k] & 0x1FF, stars, shownAt, hidden, hiddenAt);
-                    reveal((lines[k] >> 9) & 0x1FF, stars, shownAt, hidden, hiddenAt);
+                    var a = lines[k] & 0x1FF;
+                    var b = (lines[k] >> 9) & 0x1FF;
+                    if (slot[a] == null || slot[b] == null) { continue; }
+                    reveal(a, stars, slot, hidden);
+                    reveal(b, stars, slot, hidden);
+                    addLine(out, stars[slot[a] - 1] as Lang.Array, stars[slot[b] - 1] as Lang.Array);
                 }
-                addLines(out, lines, i, j, stars, shownAt);
             }
             i = j;
         }
         return out;
     }
 
-    // Move a hidden star of a drawn figure into stars.
-    function reveal(t, stars, shownAt, hidden, hiddenAt) {
-        if (shownAt[t] != 0 || stars.size() >= 255) { return; }
-        stars.add(hidden[hiddenAt[t] - 1]);
-        shownAt[t] = stars.size();
+    // Move a hidden figure star into stars.
+    function reveal(t, stars, slot, hidden) {
+        if (slot[t] > 0) { return; }
+        stars.add(hidden[-slot[t] - 1]);
+        slot[t] = stars.size();
     }
 
-    // Lines from..to-1, each shortened at both ends to clear its stars.
-    function addLines(out, lines, from, to, stars, shownAt) {
-        for (var k = from; k < to; k += 1) {
-            var v  = lines[k];
-            var a  = stars[shownAt[v & 0x1FF] - 1] as Lang.Array;
-            var b  = stars[shownAt[(v >> 9) & 0x1FF] - 1] as Lang.Array;
-            var dx = (b[0] - a[0]).toFloat();
-            var dy = (b[1] - a[1]).toFloat();
-            var len  = Math.sqrt(dx * dx + dy * dy);
-            var gapA = LINE_GAP_PX[a[2]];
-            var gapB = LINE_GAP_PX[b[2]];
-            if (len <= gapA + gapB + 1) { continue; }
-            out.add(MathUtil.roundNearest(a[0] + dx * gapA / len));
-            out.add(MathUtil.roundNearest(a[1] + dy * gapA / len));
-            out.add(MathUtil.roundNearest(b[0] - dx * gapB / len));
-            out.add(MathUtil.roundNearest(b[1] - dy * gapB / len));
-        }
+    // A line from star a to star b, shortened at both ends to clear them.
+    function addLine(out, a, b) {
+        var dx   = (b[0] - a[0]).toFloat();
+        var dy   = (b[1] - a[1]).toFloat();
+        var len  = Math.sqrt(dx * dx + dy * dy);
+        var gapA = LINE_GAP_PX[a[2]];
+        var gapB = LINE_GAP_PX[b[2]];
+        if (len <= gapA + gapB + 1) { return; }
+        out.add(MathUtil.roundNearest(a[0] + dx * gapA / len));
+        out.add(MathUtil.roundNearest(a[1] + dy * gapA / len));
+        out.add(MathUtil.roundNearest(b[0] - dx * gapB / len));
+        out.add(MathUtil.roundNearest(b[1] - dy * gapB / len));
     }
 
     function drawProjectedStars(dc) {
