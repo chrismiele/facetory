@@ -190,6 +190,11 @@ module Stellar {
     // in low power (an update a minute) a few minutes, which at about half a
     // pixel of star movement a minute does not show. A job in progress is
     // never restarted: a newer request waits and starts when it is done.
+    // So that a sky is never shown late, it is built ahead and shown the
+    // moment its minute starts: while awake, next minute's sky from second
+    // PREBUILD_SEC (see CircadiaView), so stars move every minute as before;
+    // in low power, the sky leadMinutes() ahead, so the sky moves every few
+    // minutes but each new sky is right for the minute it appears.
     const STEP_ENTRIES = 96;
 
     // The most stars ever drawn, so drawing a frame stays bounded too: the
@@ -205,7 +210,8 @@ module Stellar {
     var _jobPhase   = JOB_IDLE;
     var _jobKey     = null;
     var _jobArgs    = null;   // the request being built
-    var _nextArgs   = null;   // a newer request, waiting for the job to finish
+    var _jobAhead   = false;  // building next minute's sky, to hold until then
+    var _nextArgs   = null;   // a newer request [args, key], waiting for the job
     var _jobIndex   = 0;
     var _jobAbove   = 0;
     var _jobStars   = null;
@@ -215,45 +221,125 @@ module Stellar {
     var _jobCosLat  = 1.0;
     var _jobLines   = false;
 
+    // A sky built ahead for a later minute, waiting to be shown.
+    var _readyKey   = null;
+    var _readyMin   = 0;      // its minute (minuteOrdinal)
+    var _readyStars = null;
+    var _readyLines = null;
+    var _readyMip   = false;
+    var _jobMin     = 0;
+    var _jobSteps   = 0;      // steps the current job has taken
+    var _lastSteps  = 0;      // steps the last finished job took
+    var _lowPower   = false;
+
+    // The view says whether the watch is in low power (an update a minute).
+    function setLowPower(lowPower) { _lowPower = lowPower; }
+
+    // How many minutes ahead to start a sky in low power, so it is done by
+    // then (one step per update, an update a minute): the steps the last
+    // sky took, plus one to spare; before any, enough for the largest table.
+    function leadMinutes() {
+        if (_lastSteps > 0) { return _lastSteps + 1; }
+        var n = (_catalog == null) ? 530 : _catalog.size();
+        return (n + STEP_ENTRIES - 1) / STEP_ENTRIES + 3;
+    }
+
     // layout = [cx, cy, skyRadiusPx]; datetime = [year, month, day, hour, min]
     // (local clock); offsetSec = the local time zone's offset from UTC.
-    // Called once a minute. Asks for a new sky; the work is done a step at a
+    // Called once a minute. Shows the sky built ahead for this minute if
+    // there is one, else asks for a new sky; the work is done a step at a
     // time by continueWork(), which the view calls once per full update.
     function updateProjectedStars(layout, datetime, latDeg, lonDeg, offsetSec, sunAltDeg, starCount, starMode, mipMode) {
+        var nowMin = minuteOrdinal(datetime);
+        if (_readyKey != null && _readyMin < nowMin) { dropReady(); }
+
         if (limitingMagnitude(sunAltDeg) <= LIMIT_MAG[0] || starCount <= 0) {
-            // Daytime, or stars off: nothing to build.
+            // Daytime, or stars off: nothing to show. A sky being built, or
+            // built, for a later (starry) minute is kept.
             _projectedStars = [];
             _projectedLines = [];
             _projectionKey  = null;
-            _jobPhase       = JOB_IDLE;
-            _jobStars       = null;
-            _nextArgs       = null;
-            if (starMode == MODE_BRIGHTEST || starCount <= 0) { releaseLines(); }
+            if (_jobPhase != JOB_IDLE && !_jobAhead) { _jobPhase = JOB_IDLE; _jobStars = null; }
+            _nextArgs = null;
+            if (starCount <= 0 || (starMode == MODE_BRIGHTEST && _jobPhase == JOB_IDLE && _readyKey == null)) { releaseLines(); }
             return;
         }
 
         var args = [layout, datetime, latDeg, lonDeg, offsetSec, sunAltDeg, starCount, starMode, mipMode];
-        var key  = [
-            layout[0].toNumber(), layout[1].toNumber(), layout[2].toNumber(),
-            datetime[0], datetime[1], datetime[2], datetime[3], datetime[4],
-            (latDeg    * 100.0).toNumber(),
-            (lonDeg    * 100.0).toNumber(),
-            offsetSec,
-            (sunAltDeg * 100.0).toNumber(),
-            starCount, starMode, mipMode
-        ];
+        var key  = skyKey(args);
         if (_projectionKey != null && keysEqual(key, _projectionKey)) { return; }
+
+        // Built ahead for this minute: show it now, as the minute changes.
+        if (_readyKey != null && _readyMin == nowMin) {
+            if (keysEqual(key, _readyKey)) {
+                show(_readyStars, _readyLines, _readyMip, _readyKey);
+                dropReady();
+                return;
+            }
+            dropReady();                         // something changed: build afresh
+        }
+
         if (_jobPhase != JOB_IDLE) {
-            if (!keysEqual(key, _jobKey)) { _nextArgs = [args, key]; }
+            if (keysEqual(key, _jobKey)) {
+                _jobAhead = false;               // its minute has come: show it when done
+            } else if (!_lowPower) {
+                _nextArgs = [args, key];
+            }
             return;
         }
-        startJob(args, key);
+
+        // In low power, keep the sky shown and let the view start one ahead,
+        // unless there is none yet.
+        if (_lowPower && _projectionKey != null) { return; }
+        startJob(args, key, false);
     }
 
-    function startJob(args, key) {
+    // Build a later minute's sky in the background (the same arguments, for
+    // that minute and its sun altitude), to show when that minute starts.
+    // The view calls this late in each minute while awake, and every update
+    // in low power. Ignored if anything else is being built or waiting.
+    function prepareNextMinute(layout, datetime, latDeg, lonDeg, offsetSec, sunAltDeg, starCount, starMode, mipMode) {
+        if (_jobPhase != JOB_IDLE || _nextArgs != null || _readyKey != null) { return; }
+        if (limitingMagnitude(sunAltDeg) <= LIMIT_MAG[0] || starCount <= 0) { return; }
+        var args = [layout, datetime, latDeg, lonDeg, offsetSec, sunAltDeg, starCount, starMode, mipMode];
+        var key  = skyKey(args);
+        if (_projectionKey != null && keysEqual(key, _projectionKey)) { return; }
+        startJob(args, key, true);
+    }
+
+    // Minutes since 1 Jan of year 0 in a calendar of 13 months of 32 days:
+    // not a real count, but it orders minutes correctly and fits a Number.
+    function minuteOrdinal(datetime) {
+        return (((datetime[0] * 13 + datetime[1]) * 32 + datetime[2]) * 24 + datetime[3]) * 60 + datetime[4];
+    }
+
+    function skyKey(a) {
+        var layout   = a[0];
+        var datetime = a[1];
+        return [
+            layout[0].toNumber(), layout[1].toNumber(), layout[2].toNumber(),
+            datetime[0], datetime[1], datetime[2], datetime[3], datetime[4],
+            (a[2] * 100.0).toNumber(),
+            (a[3] * 100.0).toNumber(),
+            a[4],
+            (a[5] * 100.0).toNumber(),
+            a[6], a[7], a[8]
+        ];
+    }
+
+    function dropReady() {
+        _readyKey   = null;
+        _readyStars = null;
+        _readyLines = null;
+    }
+
+    function startJob(args, key, ahead) {
         _jobArgs  = args;
         _jobKey   = key;
+        _jobMin   = minuteOrdinal(args[1]);
+        _jobAhead = ahead;
         _jobPhase = JOB_LOAD;
+        _jobSteps = 0;
         _nextArgs = null;
     }
 
@@ -262,12 +348,13 @@ module Stellar {
     function continueWork() {
         if (_jobPhase == JOB_IDLE) {
             if (_nextArgs == null) { return; }
-            startJob(_nextArgs[0], _nextArgs[1]);
+            startJob(_nextArgs[0], _nextArgs[1], false);
         }
 
         var a        = _jobArgs;
         var layout   = a[0];
         var starMode = a[7];
+        _jobSteps += 1;
 
         if (_jobPhase == JOB_LOAD) {
             // Tables, and the fixed numbers for this sky.
@@ -304,15 +391,29 @@ module Stellar {
         }
     }
 
+    // A finished sky: shown now, or held for its minute if built ahead.
     function publish(lines) {
-        var mipMode     = _jobArgs[8];
-        _projectedStars = _jobStars;
+        var mipMode = _jobArgs[8];
+        _lastSteps  = _jobSteps;
+        if (_jobAhead) {
+            _readyKey   = _jobKey;
+            _readyMin   = _jobMin;
+            _readyStars = _jobStars;
+            _readyLines = lines;
+            _readyMip   = mipMode;
+        } else {
+            show(_jobStars, lines, mipMode, _jobKey);
+        }
+        _jobStars = null;
+    }
+
+    function show(stars, lines, mipMode, key) {
+        _projectedStars = stars;
         _projectedLines = lines;
         _starColorBins  = mipMode ? null : AmoledArt.starColors();
         _lineColor      = mipMode ? MiPArt.CONSTELLATION_LINE : AmoledArt.CONSTELLATION_LINE;
         _lineAntiAlias  = !mipMode;
-        _projectionKey  = _jobKey;
-        _jobStars       = null;
+        _projectionKey  = key;
     }
 
     // Catalogue entries from..to-1 of the sky being built. Returns true when

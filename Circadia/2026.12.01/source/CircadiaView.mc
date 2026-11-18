@@ -23,6 +23,10 @@ class CircadiaView extends WatchUi.WatchFace {
 
     var _isSleeping = false;
 
+    // From this second of each minute, next minute's star sky is built ahead.
+    const PREBUILD_SEC = 40;
+    var _aheadMin = -1;
+
     // ── Astronomy cache (per minute) ─────────────────────────────────────────
     var _cacheYear  = -1;
     var _cacheMonth = -1;
@@ -129,14 +133,24 @@ class CircadiaView extends WatchUi.WatchFace {
             }
         }
 
+        Stellar.setLowPower(_isSleeping);
         if (showSky && _skyStale) {
             updateSkyCache(g, t);
             _skyStale = false;
         }
 
         // The star sky is built a bounded step per update (see Stellar), so
-        // no single update runs long enough to trip the watchdog.
+        // no single update runs long enough to trip the watchdog. Skies are
+        // built ahead so each is ready the moment its minute starts: while
+        // awake, next minute's from late in this minute; in low power (an
+        // update a minute), the one a few minutes on.
         if (showSky && config.showStars()) {
+            if (_isSleeping) {
+                prepareNextSky(now, t, Stellar.leadMinutes());
+            } else if (t.sec >= PREBUILD_SEC && t.min != _aheadMin) {
+                _aheadMin = t.min;
+                prepareNextSky(now, t, 1);
+            }
             Stellar.continueWork();
         }
 
@@ -268,6 +282,29 @@ class CircadiaView extends WatchUi.WatchFace {
                 _latDeg, _lonDeg
             );
         }
+    }
+
+    // Ask Stellar to build the star sky for `minutes` from now, with the sun
+    // where it will be then (the same calculation updateAstronomy will make
+    // at that minute, so the two match exactly and the sky built ahead is
+    // used).
+    function prepareNextSky(now, t, minutes) {
+        var n      = Gregorian.info(now.add(new Time.Duration(60 * minutes)), Time.FORMAT_SHORT);
+        var sunAlt = Solar.solarAltAzApprox(
+            n.year, n.month, n.day, n.hour + n.min / 60.0, t.timeZoneOffset,
+            _latDeg, _lonDeg
+        )[0];
+        Stellar.prepareNextMinute(
+            [_layoutCache[0], _layoutCache[1], _layoutCache[2]],
+            [n.year, n.month, n.day, n.hour, n.min],
+            _latDeg,
+            _lonDeg,
+            t.timeZoneOffset,
+            sunAlt,
+            config.starCount(),
+            config.starMode(),
+            config.mipMode()
+        );
     }
 
     // Screen positions of sun, moon and stars, from the astronomy cache.
