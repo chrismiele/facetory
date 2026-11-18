@@ -7,7 +7,7 @@ using Toybox.Graphics;
 // rounded by the firmware, sometimes unpredictably, so every colour here is on
 // the palette and any blended colour is snapped to it with snap().
 //
-// The sun's sizes and its edge flare are shared with AMOLED and live in sun.mc.
+// The sun's sizes and the way it spreads along the horizon live in sun.mc.
 module MiPArt {
 
     const BLACK = 0x000000;
@@ -25,11 +25,8 @@ module MiPArt {
     // purples and blues of twilight. At step s the ball is RAMP[s], the inner
     // ring RAMP[s+1] and the outer ring RAMP[s+2], so as the sun sets it slides
     // one step down the ramp at a time and the three layers always differ.
-    // The edge flare is two crescents with the same tips (see
-    // SunArt.drawFlareCrescent): the full depth in the outer ring's colour,
-    // RAMP[s+2], then half the depth in the inner ring's colour, RAMP[s+1],
-    // so it reads as the halo spread along the horizon and tapers to a
-    // point at each end.
+    // With the horizon glow on, the ball and both rings spread along the
+    // horizon from +6, exactly as the AMOLED sun does (see SunArt.drawLayer).
     //
     //   step  sun altitude    ball     inner    outer
     //    0     9 and above    FFFFFF   FFFF55   FFFF00
@@ -38,10 +35,9 @@ module MiPArt {
     //    3    -6 to  -3       FFAA00   FF5500   FF0000
     //    4    -9 to  -6       FF5500   FF0000   FF00AA   (ball set at -6)
     //    5   -12 to  -9       FF0000   FF00AA   AA00AA   (inner ring set at -9)
-    //    6   -18 to -12       FF00AA   AA00AA   5500AA   (outer ring set at -12; flare only)
     //
     // Neighbouring ramp colours must look different on a MIP screen, since
-    // any two of them can sit side by side in the halo or the flare. Red is
+    // any two of them can sit side by side, also once spread out. Red is
     // followed by pink (FF00AA), not crimson (FF0055), which is hard to tell
     // from red.
     //
@@ -65,7 +61,7 @@ module MiPArt {
     //     7   below -18        55AAFF
     const SUN_RAMP = [
         0xFFFFFF, 0xFFFF55, 0xFFFF00, 0xFFAA00, 0xFF5500, 0xFF0000,
-        0xFF00AA, 0xAA00AA, 0x5500AA
+        0xFF00AA, 0xAA00AA
     ];
 
     // Minute-text colour for each stage. All bright enough to read on black.
@@ -75,7 +71,6 @@ module MiPArt {
 
     const INNER_RING_DEG     = 9.0;    // outer edge of the inner ring: half way from the ball to the outer ring
     const OUTER_RING_DEG     = 12.0;   // outer edge of the whole MIP sun: end of nautical twilight
-    const FLARE_LEVELS       = 2;      // one crescent per ring colour
 
     // ── Moon ─────────────────────────────────────────────────────────────────
     const MIP_MOON_BRIGHT   = 0xAAAAAA;   // lit face, every phase but full
@@ -152,41 +147,16 @@ module MiPArt {
         return (k < 1) ? 1 : k;
     }
 
-    // Rings and flare bands are merged dimmest-first (highest ramp index
-    // first), so the brighter of the two shows wherever they overlap. The
-    // ball goes on top.
+    // Outer ring, inner ring, ball: each brighter layer goes on top. With the
+    // horizon glow on they spread along the horizon (SunArt.drawLayer).
     function drawSun(dc, cx, cy, R, sx, sy, altDeg) {
-        var deg = R / 90.0;
-        var s   = sunRampStep(altDeg);
-        var xi  = MathUtil.roundNearest(sx);
-        var yi  = MathUtil.roundNearest(sy);
+        if (altDeg <= -OUTER_RING_DEG) { return; }      // the whole MIP sun has set
 
-        var rings  = (altDeg > -OUTER_RING_DEG) ? 2 : 0;
-        var levels = SunArt.prepareFlare(cx, cy, R, sx, sy, altDeg) ? FLARE_LEVELS : 0;
-
-        var ring  = 0;   // 0 = outer ring (ramp s+2), 1 = inner ring (ramp s+1)
-        var level = 0;   // 0 = deep crescent (ramp s+2), 1 = shallow crescent (ramp s+1)
-
-        while (ring < rings || level < levels) {
-            var ringIdx  = (ring < rings)   ? (s + 2 - ring)  : -1;
-            var levelIdx = (level < levels) ? (s + 2 - level) : -1;
-
-            if (levelIdx >= ringIdx) {
-                SunArt.drawFlareCrescent(dc, cx, cy, R, level, FLARE_LEVELS, SUN_RAMP[levelIdx]);
-                level += 1;
-            } else {
-                var rDeg = (ring == 0) ? OUTER_RING_DEG : INNER_RING_DEG;
-                dc.setColor(SUN_RAMP[ringIdx], BLACK);
-                dc.fillCircle(xi, yi, MathUtil.roundNearest(rDeg * deg));
-                ring += 1;
-            }
-        }
-
-        // The ball: the white disc itself, the same width as the largest moon.
-        if (altDeg > -SunArt.WHITE_DISC_DEG) {
-            dc.setColor(SUN_RAMP[s], BLACK);
-            dc.fillCircle(xi, yi, MathUtil.roundNearest(SunArt.WHITE_DISC_DEG * deg));
-        }
+        var s = sunRampStep(altDeg);
+        SunArt.prepareSpread(cx, cy, R, sx, sy, altDeg, OUTER_RING_DEG);
+        SunArt.drawLayer(dc, OUTER_RING_DEG,        SUN_RAMP[s + 2]);
+        SunArt.drawLayer(dc, INNER_RING_DEG,        SUN_RAMP[s + 1]);
+        SunArt.drawLayer(dc, SunArt.WHITE_DISC_DEG, SUN_RAMP[s]);
     }
 
     // Glow rings only for the full moon (no body disc): outerColor ring → innerColor ring.

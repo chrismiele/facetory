@@ -109,7 +109,7 @@ module AmoledArt {
 
         // With the horizon glow on, every layer below spreads along the
         // horizon after +6; otherwise each is a plain circle around the sun.
-        SunArt.prepareSpread(cx, cy, R, sx, sy, altDeg);
+        SunArt.prepareSpread(cx, cy, R, sx, sy, altDeg, SunArt.OUTER_DEG);
 
         // Corona, from the outside in.
         if (SunArt.coronaVisible(altDeg)) {

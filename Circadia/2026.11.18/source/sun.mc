@@ -27,40 +27,36 @@ using Toybox.Math;
 //
 // MIP draws a more compact sun: the white disc and two thin rings, the outer
 // one 12 deg (see MiPArt), so it is gone at the end of nautical twilight.
+// (Its inner ring, at 9 deg, sits half way and marks no boundary.)
 //
 // Timing. Each 6-degree stage has one change:
 //
 //   above +12     day                    white-hot centre, yellow rim
 //   +12 to  +6    low sun                the white centre fades to flat yellow
-//    +6 to   0    golden hour            yellow to orange; the sun starts to flatten
+//    +6 to   0    golden hour            yellow to orange; the sun starts to spread (glow on)
 //     0 to  -6    civil twilight         orange to red; the white disc sets
 //    -6 to -12    nautical twilight      red to purple; the core sets
 //   -12 to -18    astronomical twilight  purple to blue; the corona sets
 //   below -18     night                  no sun; the minute digits stay blue
 //
-// Horizon glow (the "Horizon glow at twilight" setting, off by default).
-//
-//   AMOLED: the sun itself spreads along the horizon. Every layer of the sun
-//   (each step of the core and each corona ring) keeps its top edge exactly
-//   where it is, at altitude h + r above the horizon on the sun's bearing,
-//   while its curvature blends from its own (a circle around the sun) toward
-//   that of a band of constant height through the same top point:
+// Horizon glow (the "Horizon glow at twilight" setting, off by default). The
+// sun itself spreads along the horizon, on both display types. Every layer of
+// the sun (each step of the AMOLED core and each corona ring; the MIP ball and
+// both rings) keeps its top edge exactly where it is, at altitude h + r above
+// the horizon on the sun's bearing, while its curvature blends from its own
+// (a circle around the sun) toward that of a band of constant height through
+// the same top point:
 //
 //       curvature = (1 - s) / r  -  s / (90 - (h + r))        (per degree)
 //
-//   s = 0 is the round sun, s = 1 a band right around the horizon. s rises
-//   from 0 at +6 (end of golden hour), reaches the value at which the
-//   corona's outer edge is exactly straight at -3, and SPREAD_MAX by the end
-//   of nautical twilight. A larger circle needs less change to go straight,
-//   so the outer corona flattens first while the white disc stays a dome
-//   until it sets. Past straight, a layer curves the other way and hugs the
-//   rim. Since every top edge stays put, every edge still leaves the sky at
-//   its twilight boundary.
-//
-//   MIP: two crescents on the rim in the corona's two ring colours, starting
-//   as a point just before sunset (+1.5), largest at the end of civil
-//   twilight (-6) and back to a point at full night (-18). See
-//   drawFlareCrescent().
+// s = 0 is the round sun, s = 1 a band right around the horizon. s rises from
+// 0 at +6 (end of golden hour), reaches the value at which the sun's outer
+// edge (the AMOLED corona, the MIP outer ring) is exactly straight at -3, and
+// SPREAD_MAX by the end of nautical twilight. A larger circle needs less
+// change to go straight, so the outer layers flatten first while the white
+// disc stays a dome until it sets. Past straight, a layer curves the other
+// way and hugs the rim. Since every top edge stays put, every edge still
+// leaves the sky when it would have as a circle.
 module SunArt {
 
     const BLACK = 0x000000;
@@ -70,21 +66,13 @@ module SunArt {
     const CORE_DEG       = 12.0;    // end of nautical twilight; white disc plus its coloured rim
     const OUTER_DEG      = 18.0;    // end of astronomical twilight; keep equal to -Stellar.FULL_NIGHT_ALT_DEG
 
-    // ── AMOLED: the sun spreads along the horizon ───────────────────────────
+    // ── The sun spreads along the horizon (horizon glow on) ──────────────────
     const SPREAD_START_ALT_DEG = 6.0;     // end of golden hour: the sun starts to flatten
-    const SPREAD_FLAT_ALT_DEG  = -3.0;    // the corona's outer edge is exactly straight
+    const SPREAD_FLAT_ALT_DEG  = -3.0;    // the sun's outer edge is exactly straight
     const SPREAD_FULL_ALT_DEG  = -12.0;   // end of nautical twilight: as far as it goes
     const SPREAD_MAX           = 0.88;    // share of the way to a band right around the horizon
     const STRAIGHT_RADIUS_PX   = 20000.0; // flatter than this, a layer is drawn with a straight edge
-
-    // ── MIP: edge flare ──────────────────────────────────────────────────────
-    const FLARE_START_ALT_DEG = 1.5;           // keep equal to Solar.SUNSET_ACCENT_ALT_DEG (hour digits start to turn orange)
-    const FLARE_PEAK_ALT_DEG  = -6.0;          // end of civil twilight
-    const FLARE_END_ALT_DEG   = -OUTER_DEG;    // full night
-    const FLARE_MAX_SPAN_DEG  = 65.0;          // bearing to each side of the sun, at the peak
-    const FLARE_MAX_DEPTH_DEG = 10.0;          // thickness at the sun's bearing, at the peak
-    const FLARE_MAX_FILL      = 0.8;           // crescent depth: fraction of the deepest circle possible
-    const RIM_OVERDRAW_PX     = 3.0;           // the sky disc stops 2px short of the screen edge
+    const RIM_OVERDRAW_PX      = 3.0;     // the sky disc stops 2px short of the screen edge
 
     // ── White-hot core ───────────────────────────────────────────────────────
     // The white disc is pure white while the sun is high and fades to the sun's
@@ -103,11 +91,6 @@ module SunArt {
     var _ux     = 1.0;    // unit vector from the screen centre toward the sun
     var _uy     = 0.0;
 
-    // Flare geometry for the frame being drawn; set by prepareFlare().
-    var _flareTheta   = 0.0;   // screen angle of the sun's bearing: 0 = 3 o'clock, counter-clockwise
-    var _flareSpan    = 0.0;   // half-breadth at the rim, degrees
-    var _flareDepthPx = 0.0;   // thickness at the sun's bearing, pixels
-
     // ── Entry point ──────────────────────────────────────────────────────────
 
     // (sx, sy) is the sun's projected position; it lies outside the sky disc
@@ -125,16 +108,6 @@ module SunArt {
     function coronaVisible(altDeg) { return altDeg > -OUTER_DEG; }
     function coreVisible(altDeg)   { return altDeg > -CORE_DEG;  }
 
-    // MIP flare: 0 = no flare, 1 = full size. Rises from 0 at +1.5 to 1 at
-    // the end of civil twilight, then falls back to 0 at full night.
-    function flareStrength(altDeg) {
-        if (altDeg >= FLARE_START_ALT_DEG || altDeg <= FLARE_END_ALT_DEG) { return 0.0; }
-        if (altDeg >= FLARE_PEAK_ALT_DEG) {
-            return (FLARE_START_ALT_DEG - altDeg) / (FLARE_START_ALT_DEG - FLARE_PEAK_ALT_DEG);
-        }
-        return (altDeg - FLARE_END_ALT_DEG) / (FLARE_PEAK_ALT_DEG - FLARE_END_ALT_DEG);
-    }
-
     // 1 = pure white disc, 0 = no white at all.
     function whiteHot(altDeg) {
         return MathUtil.clamp(
@@ -142,18 +115,17 @@ module SunArt {
             0.0, 1.0);
     }
 
-    // ── Edge flare ───────────────────────────────────────────────────────────
-
-    // ── AMOLED: spreading layers ─────────────────────────────────────────────
+    // ── Spreading layers ─────────────────────────────────────────────────────
 
     // How far the sun has spread toward a band along the horizon (s in the
-    // header formula). 0 above +6 and whenever the setting is off.
-    function spreadAmount(altDeg) {
+    // header formula). 0 above +6 and whenever the setting is off. outerDeg is
+    // the radius of this display's outermost layer.
+    function spreadAmount(altDeg, outerDeg) {
         if (!config.horizonFlare() || altDeg >= SPREAD_START_ALT_DEG) { return 0.0; }
 
-        // The s at which the corona's outer edge (height t) is straight.
-        var t     = SPREAD_FLAT_ALT_DEG + OUTER_DEG;
-        var sFlat = (90.0 - t) / (90.0 - t + OUTER_DEG);
+        // The s at which the outermost layer's edge (height t) is straight.
+        var t     = SPREAD_FLAT_ALT_DEG + outerDeg;
+        var sFlat = (90.0 - t) / (90.0 - t + outerDeg);
 
         if (altDeg >= SPREAD_FLAT_ALT_DEG) {
             return sFlat * (SPREAD_START_ALT_DEG - altDeg) / (SPREAD_START_ALT_DEG - SPREAD_FLAT_ALT_DEG);
@@ -164,8 +136,9 @@ module SunArt {
         return SPREAD_MAX;
     }
 
-    // Remember this frame's sun for drawLayer().
-    function prepareSpread(cx, cy, R, sx, sy, altDeg) {
+    // Remember this frame's sun for drawLayer(). outerDeg: the radius of the
+    // display's outermost layer (OUTER_DEG on AMOLED, MiPArt.OUTER_RING_DEG).
+    function prepareSpread(cx, cy, R, sx, sy, altDeg, outerDeg) {
         _cx  = cx;
         _cy  = cy;
         _R   = R;
@@ -182,7 +155,7 @@ module SunArt {
         }
         _ux     = dx / d;
         _uy     = dy / d;
-        _spread = spreadAmount(altDeg);
+        _spread = spreadAmount(altDeg, outerDeg);
     }
 
     // One layer of the sun, of true radius rDeg, in the current spread (see
@@ -255,64 +228,6 @@ module SunArt {
         dc.drawArc(
             MathUtil.roundNearest(_cx - gPx * _ux), MathUtil.roundNearest(_cy - gPx * _uy),
             MathUtil.roundNearest(rPx + 0.5 * pen),
-            Graphics.ARC_COUNTER_CLOCKWISE,
-            wrapDegrees(start), wrapDegrees(end)
-        );
-        dc.setPenWidth(1);
-    }
-
-    // ── MIP: edge flare ──────────────────────────────────────────────────────
-
-    // Work out this frame's flare. Returns false if there is none.
-    function prepareFlare(cx, cy, R, sx, sy, altDeg) {
-        if (!config.horizonFlare()) { return false; }
-        var f = flareStrength(altDeg);
-        if (f <= 0.0) { return false; }
-        _flareDepthPx = FLARE_MAX_DEPTH_DEG * f * (R / 90.0);
-        if (_flareDepthPx < 1.0) { return false; }
-        _flareSpan  = FLARE_MAX_SPAN_DEG * f;
-        _flareTheta = MathUtil.rad2deg(Math.atan2(cy - sy, sx - cx));
-        return true;
-    }
-
-    // Glow level k of `levels`, in one colour: a crescent between
-    // the rim and a slightly larger circle set back from the sun's bearing,
-    // so it is deepest at the bearing and tapers to a point at each end of
-    // the flare. Level 0 is the deepest; each level after it is shallower
-    // (1 - k/levels of the depth), shares the same tips, and is painted
-    // brighter on top. Each level is a single thick arc around that circle's
-    // centre, from the circle out past the rim.
-    //
-    // A circle through both tips can only be so deep: as deep as a straight
-    // chord between them, R(1 - cos span). The flare is kept to
-    // FLARE_MAX_FILL of that, which only matters for a very young or very
-    // old flare, when it is short.
-    function drawFlareCrescent(dc, cx, cy, R, k, levels, color) {
-        var span  = MathUtil.deg2rad(_flareSpan);
-        var cosS  = Math.cos(span);
-        var room  = R * (1.0 - cosS);
-        var depth = _flareDepthPx;
-        if (depth > FLARE_MAX_FILL * room) { depth = FLARE_MAX_FILL * room; }
-        depth = depth * (1.0 - k.toFloat() / levels);
-        if (depth < 0.5) { return; }
-
-        var e   = depth * (2.0 * R - depth) / (2.0 * (room - depth));
-        var rho = R - depth + e;
-        var th  = MathUtil.deg2rad(_flareTheta);
-        var ex  = cx - e * Math.cos(th);
-        var ey  = cy + e * Math.sin(th);
-
-        var beta  = MathUtil.rad2deg(Math.atan2(R * Math.sin(span), R * cosS + e));
-        var start = Math.floor(_flareTheta - beta).toNumber();
-        var end   = Math.ceil(_flareTheta + beta).toNumber();
-
-        var pen = (depth + RIM_OVERDRAW_PX + 1.0).toNumber();
-
-        dc.setColor(color, BLACK);
-        dc.setPenWidth(pen);
-        dc.drawArc(
-            MathUtil.roundNearest(ex), MathUtil.roundNearest(ey),
-            MathUtil.roundNearest(rho + 0.5 * pen),
             Graphics.ARC_COUNTER_CLOCKWISE,
             wrapDegrees(start), wrapDegrees(end)
         );

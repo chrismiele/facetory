@@ -149,8 +149,9 @@ module Drawing {
     }
 
     // Back to front: stars, sun, moon. Everything is painted opaque, so the
-    // sun's corona and flare and the moon hide the stars behind them simply
-    // by being drawn later; nothing has to test stars against them.
+    // sun (spread along the horizon or not) and the moon hide the stars
+    // behind them simply by being drawn later; nothing has to test stars
+    // against them.
     function drawSky(dc, cache, showSun, showMoon, showStars, mipMode) {
         clearBackground(dc);
 
