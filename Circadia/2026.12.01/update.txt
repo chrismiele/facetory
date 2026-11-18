@@ -1,0 +1,4 @@
+Changes since 2026.11.18:
+Real stars. The sky now shows the actual brightest stars, from the Yale Bright Star Catalogue, exactly where they are for your location and time: Orion rises in the east on winter evenings, the Plough circles the pole, and so on. "Some" shows the 100 brightest stars above your horizon at full night, "Lots" the 200 brightest.
+Star colours and sizes are real too: each star's colour comes from its measured colour (blue Rigel, white Vega, amber Arcturus, red Betelgeuse), and its size from its brightness.
+Stars pop in as they would to the eye: the brightest first, a few degrees after sunset; the brightest dozen or so by the end of civil twilight; nearly all by the end of nautical twilight; and the last faint ones low near the horizon, where the air dims them, by full night. At dawn they leave in reverse.

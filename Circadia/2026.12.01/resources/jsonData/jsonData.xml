@@ -1,0 +1,6 @@
+<resources>
+    <!-- The 520 brightest stars of the Yale Bright Star Catalogue, 5th ed.
+         (Hoffleit & Warren 1991, NASA HEASARC), brightest first, one packed
+         integer each. Built by tools/build_stars.py; see Stellar.decode(). -->
+    <jsonData id="StarCatalog" filename="stars.json" />
+</resources>
