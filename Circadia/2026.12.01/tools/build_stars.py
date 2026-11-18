@@ -4,6 +4,10 @@
   stars_constellations.json  well-known constellation figures first
   stars_lines.json           the lines of the well-known figures, for the
                              constellations table (drawn at full night)
+  stars_zodiac.json          the twelve zodiac figures' stars and the very
+                             brightest first, then the brightest
+  stars_zodiac_lines.json    the lines of the zodiac figures, for the
+                             zodiac table
 
 Sources
   Stars: Yale Bright Star Catalogue, 5th revised ed. (Hoffleit & Warren 1991),
@@ -63,6 +67,9 @@ CORE_ASTERISMS = ("BigDipper LittleDipper TheQueensW HouseofCepheus Belt WinterT
 CORE_FIGURES    = "Lyr CrB TrA Cru".split()
 CORE_ANCHOR_MAG = 2.5
 CORE_MAX_MAG    = 5.0
+ZODIAC = "Ari Tau Gem Cnc Leo Vir Lib Sco Sgr Cap Aqr Psc".split()
+ZODIAC_ANCHOR_MAG = 2.0      # stars this bright come first in the zodiac table too
+
 # Lines left out of a figure, as (figure, HR, HR): Orion's shoulders are
 # joined through the head only, as on the usual star charts.
 REMOVE_LINES    = [("Ori", 2061, 1790)]     # Betelgeuse - Bellatrix
@@ -197,8 +204,15 @@ def constellation_order(stars, figs, asterisms):
     return sorted(range(len(stars)), key=lambda i: (key[i], stars[i]['v']))
 
 
-def line_table(stars, segs, order):
-    """Lines of the FAMOUS figures as packed integers, grouped by figure:
+def zodiac_order(stars, figs):
+    """Zodiac figure stars and stars to ZODIAC_ANCHOR_MAG first, each group by
+    magnitude, then the rest by magnitude."""
+    first = set().union(*[figs[c] for c in ZODIAC]) | {i for i, s in enumerate(stars) if s['v'] <= ZODIAC_ANCHOR_MAG}
+    return sorted(range(len(stars)), key=lambda i: (i not in first, stars[i]['v']))
+
+
+def line_table(stars, segs, order, figure_ids=FAMOUS):
+    """Lines of the given figures as packed integers, grouped by figure:
          bits  0-8   table index of one end
          bits  9-17  table index of the other
          bits 18-24  figure number
@@ -206,7 +220,7 @@ def line_table(stars, segs, order):
        up and among the stars shown."""
     pos = {i: k for k, i in enumerate(order)}
     vals = []
-    for n, c in enumerate(FAMOUS):
+    for n, c in enumerate(figure_ids):
         seen = set()
         for a, b in segs[c]:
             if frozenset((a, b)) in seen:
@@ -264,6 +278,12 @@ if __name__ == '__main__':
     write(stars, list(range(len(stars))), out + '/stars_brightest.json')
     order = constellation_order(stars, figs, asterisms)
     write(stars, order, out + '/stars_constellations.json')
-    lines = line_table(stars, segments(stars, d3data + '/constellations.lines.json'), order)
+    segs = segments(stars, d3data + '/constellations.lines.json')
+    lines = line_table(stars, segs, order)
     json.dump(lines, open(out + '/stars_lines.json', 'w'), separators=(',', ':'))
     print(f"{out}/stars_lines.json: {len(lines)} lines")
+    zorder = zodiac_order(stars, figs)
+    write(stars, zorder, out + '/stars_zodiac.json')
+    zlines = line_table(stars, segs, zorder, ZODIAC)
+    json.dump(zlines, open(out + '/stars_zodiac_lines.json', 'w'), separators=(',', ':'))
+    print(f"{out}/stars_zodiac_lines.json: {len(zlines)} lines")

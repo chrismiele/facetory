@@ -65,6 +65,7 @@
         <string id="starModeTitle">Qué estrellas</string>
         <string id="starModeBrightest">Las más brillantes</string>
         <string id="starModeConstellations">Constelaciones</string>
+        <string id="starModeZodiac">Zodiaco</string>
 
         <!-- Moon size choices -->
         <string id="moonSizeSmall">Pequeña</string>

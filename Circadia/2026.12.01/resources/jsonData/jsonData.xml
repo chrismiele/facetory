@@ -6,8 +6,14 @@
          StarsConstellations: well-known constellation figures first
                               (figures from d3-celestial, Olaf Frohn).
          StarLines:           the lines of those figures, for the
-                              constellations table. -->
+                              constellations table.
+         StarsZodiac:         the zodiac figures and the very brightest
+                              first, then the brightest.
+         ZodiacLines:         the lines of the zodiac figures, for the
+                              zodiac table. -->
     <jsonData id="StarsBrightest"      filename="stars_brightest.json" />
     <jsonData id="StarsConstellations" filename="stars_constellations.json" />
     <jsonData id="StarLines"           filename="stars_lines.json" />
+    <jsonData id="StarsZodiac"         filename="stars_zodiac.json" />
+    <jsonData id="ZodiacLines"         filename="stars_zodiac_lines.json" />
 </resources>

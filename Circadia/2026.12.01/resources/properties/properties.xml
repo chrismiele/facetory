@@ -24,7 +24,7 @@
         <!-- Star count: 0 = none, 100 = some, 200 = lots -->
         <property id="starCount"   type="number">100</property>
 
-        <!-- Which stars: 0 = the brightest, 1 = well-known constellations first -->
+        <!-- Which stars: 0 = the brightest, 1 = well-known constellations first, 2 = zodiac -->
         <property id="starMode"    type="number">0</property>
 
         <!-- Location: 1 = use device GPS, 0 = use home coordinates -->

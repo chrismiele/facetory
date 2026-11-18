@@ -122,6 +122,7 @@
             <settingConfig type="list">
                 <listEntry value="0">@Strings.starModeBrightest</listEntry>
                 <listEntry value="1">@Strings.starModeConstellations</listEntry>
+                <listEntry value="2">@Strings.starModeZodiac</listEntry>
             </settingConfig>
         </setting>
 

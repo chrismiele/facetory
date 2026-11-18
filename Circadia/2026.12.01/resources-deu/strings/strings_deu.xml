@@ -65,6 +65,7 @@
         <string id="starModeTitle">Welche Sterne</string>
         <string id="starModeBrightest">Die hellsten</string>
         <string id="starModeConstellations">Sternbilder</string>
+        <string id="starModeZodiac">Tierkreis</string>
 
         <!-- Moon size choices -->
         <string id="moonSizeSmall">Klein</string>

@@ -59,7 +59,7 @@ module config {
     var _mipMode          = 0;       // 0 = AMOLED, 1 = MIP
     var _showSeconds      = false;
     var _starCount        = 100;
-    var _starMode         = 0;       // 0 = brightest, 1 = constellations
+    var _starMode         = 0;       // 0 = brightest, 1 = constellations, 2 = zodiac
     var _useGps           = 1;       // 1 = device GPS, 0 = home coordinates
     var _latDeg           = 49.29;
     var _lonDeg           = -123.12;

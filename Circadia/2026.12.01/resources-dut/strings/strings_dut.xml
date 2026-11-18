@@ -65,6 +65,7 @@
         <string id="starModeTitle">Welke sterren</string>
         <string id="starModeBrightest">De helderste</string>
         <string id="starModeConstellations">Sterrenbeelden</string>
+        <string id="starModeZodiac">Dierenriem</string>
 
         <!-- Moon size choices -->
         <string id="moonSizeSmall">Klein</string>
