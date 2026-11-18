@@ -38,9 +38,9 @@ using Toybox.Math;
 //   above  +6     day                    white-hot centre, yellow rim
 //    +6 to   0    golden hour            the sun turns yellow to orange while its
 //                                        white centre fades into it, ending orange
-//                                        without a flat-yellow stage; the sun
-//                                        starts to spread
-//     0 to  -6    civil twilight         orange to red
+//                                        without a flat-yellow stage
+//     0 to  -6    civil twilight         orange to red; from sunset the sun
+//                                        spreads, its outer edge going straight
 //    -6 to -12    nautical twilight      red to purple; the core sets
 //   -12 to -18    astronomical twilight  purple to blue; the corona sets
 //   below -18     night                  no sun; the minute digits stay blue
@@ -57,17 +57,17 @@ using Toybox.Math;
 //
 // s = 0 is the round sun, s = 1 a band of even depth right around the
 // horizon (the limit: past 1 the shape would wrap round to the far side). s
-// rises from 0 at +6 (end of golden hour) to the value at which the sun's
-// outer edge (the AMOLED corona, the MIP outer ring) is exactly straight at
-// -3. A larger circle needs less change to go straight, so the outer layers
+// rises from 0 at sunset to the value at which the sun's outer edge (the
+// AMOLED corona, the MIP outer ring) is exactly straight at the end of civil
+// twilight (-6). Above the horizon the sun stays round. A larger circle needs less change to go straight, so the outer layers
 // flatten first while the white disc stays a dome until it sets.
 //
 // Past straight, a layer curves the other way and hugs the rim. From there s
 // is set by how far along the horizon the outer edge reaches: where it meets
 // the rim, measured either side of the sun's bearing (on this face, the angle
 // around the centre is the compass bearing, so this is degrees of azimuth).
-// The reach widens from where the straight edge meets the rim at -3 (about
-// +/-34 deg) to +/-60 deg at the end of nautical twilight and +/-90 deg, a
+// The reach widens from where the straight edge meets the rim at -6 (about
+// +/-30 deg) to +/-60 deg at the end of nautical twilight and +/-90 deg, a
 // whole half of the horizon, as the glow sets at full night: lower and wider
 // as it fades. Inner layers take the same s and so curve less, which tapers
 // the glow toward its ends. Since every top edge stays put, every edge still
@@ -82,8 +82,8 @@ module SunArt {
     const OUTER_DEG      = 18.0;    // end of astronomical twilight; keep equal to -Stellar.FULL_NIGHT_ALT_DEG
 
     // ── The sun spreads along the horizon ───────────────────────────────────
-    const SPREAD_START_ALT_DEG = 6.0;     // end of golden hour: the sun starts to flatten
-    const SPREAD_FLAT_ALT_DEG  = -3.0;    // the sun's outer edge is exactly straight
+    const SPREAD_START_ALT_DEG = 0.0;     // sunset: the sun starts to flatten
+    const SPREAD_FLAT_ALT_DEG  = -6.0;    // end of civil twilight: the sun's outer edge is exactly straight
     // Past straight, how far either side of the sun's bearing the outer edge
     // meets the rim (degrees of azimuth): this much at the end of nautical
     // twilight (-CORE_DEG), and REACH_NIGHT_DEG as it sets at full night
@@ -139,12 +139,12 @@ module SunArt {
     // ── Spreading layers ─────────────────────────────────────────────────────
 
     // How far the sun has spread toward a band along the horizon (s in the
-    // header formula). 0 above +6. outerDeg is the radius of this display's
+    // header formula). 0 above the horizon. outerDeg is the radius of this display's
     // outermost layer.
     function spreadAmount(altDeg, outerDeg) {
         if (altDeg >= SPREAD_START_ALT_DEG) { return 0.0; }
 
-        // Down to -3: s rises evenly to the value at which the outermost
+        // Down to -6: s rises evenly to the value at which the outermost
         // layer's edge (top at height t) is straight.
         if (altDeg >= SPREAD_FLAT_ALT_DEG) {
             var t     = SPREAD_FLAT_ALT_DEG + outerDeg;
@@ -169,9 +169,9 @@ module SunArt {
         return (1.0 / outerDeg + 1.0 / rho) / (1.0 / outerDeg + 1.0 / d);
     }
 
-    // Past -3, how far either side of the sun's bearing the outermost edge
+    // Past -6, how far either side of the sun's bearing the outermost edge
     // meets the rim (degrees of azimuth): from where the straight edge meets
-    // it at -3, evenly out to REACH_NAUTICAL_DEG at -12, then on to
+    // it at -6, evenly out to REACH_NAUTICAL_DEG at -12, then on to
     // REACH_NIGHT_DEG at -18.
     function horizonReach(altDeg, outerDeg) {
         var nautical = -CORE_DEG;

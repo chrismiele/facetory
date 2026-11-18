@@ -123,7 +123,7 @@ module AmoledArt {
     function drawSun(dc, cx, cy, R, sx, sy, altDeg) {
         var col = sunColorForAlt(altDeg);
 
-        // Every layer below spreads along the horizon after +6 (see sun.mc).
+        // Every layer below spreads along the horizon after sunset (see sun.mc).
         SunArt.prepareSpread(cx, cy, R, sx, sy, altDeg, SunArt.OUTER_DEG);
 
         // Corona, from the outside in.
