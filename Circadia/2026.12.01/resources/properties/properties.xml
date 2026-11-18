@@ -21,8 +21,6 @@
         <!-- Optional extras, off by default so an update keeps the existing look -->
         <property id="moonDarkSide" type="boolean">false</property>
 
-        <!-- Star count: 0 = none, 100 = some, 200 = lots -->
-        <property id="starCount"   type="number">100</property>
 
         <!-- Which stars: 0 = the brightest, 1 = well-known constellations first, 2 = zodiac -->
         <property id="starMode"    type="number">0</property>

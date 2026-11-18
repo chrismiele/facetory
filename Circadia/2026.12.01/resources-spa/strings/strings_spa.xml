@@ -14,7 +14,6 @@
         <string id="mipModeTitle">Tipo de pantalla</string>
         <string id="showSecondsTitle">Mostrar segundos</string>
         <string id="moonDarkSideTitle">Mostrar el lado oscuro de la luna</string>
-        <string id="starCountTitle">Número de estrellas</string>
         <string id="moonSizeTitle">Tamaño de la luna</string>
         <string id="useGpsTitle">Ubicación</string>
         <string id="latDegTitle">Latitud de inicio (grados decimales, positivo = N)</string>
@@ -59,9 +58,6 @@
         <string id="displayMip">Simplificado (compatible con MIP)</string>
 
         <!-- Star choices -->
-        <string id="starsNone">Ninguna</string>
-        <string id="starsSome">Algunas</string>
-        <string id="starsLots">Muchas</string>
         <string id="starModeTitle">Qué estrellas</string>
         <string id="starModeBrightest">Las más brillantes</string>
         <string id="starModeConstellations">Constelaciones</string>

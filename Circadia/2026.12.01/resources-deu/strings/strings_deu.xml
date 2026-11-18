@@ -14,7 +14,6 @@
         <string id="mipModeTitle">Anzeigetyp</string>
         <string id="showSecondsTitle">Sekunden anzeigen</string>
         <string id="moonDarkSideTitle">Dunkle Mondseite anzeigen</string>
-        <string id="starCountTitle">Anzahl der Sterne</string>
         <string id="moonSizeTitle">Mondgröße</string>
         <string id="useGpsTitle">Standort</string>
         <string id="latDegTitle">Heimatbreitengrad (Dezimalgrad, positiv = N)</string>
@@ -59,9 +58,6 @@
         <string id="displayMip">Vereinfacht (MIP-tauglich)</string>
 
         <!-- Star choices -->
-        <string id="starsNone">Keine</string>
-        <string id="starsSome">Einige</string>
-        <string id="starsLots">Viele</string>
         <string id="starModeTitle">Welche Sterne</string>
         <string id="starModeBrightest">Die hellsten</string>
         <string id="starModeConstellations">Sternbilder</string>

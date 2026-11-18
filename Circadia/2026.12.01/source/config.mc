@@ -58,7 +58,9 @@ module config {
     var _distanceUnits    = DIST_KM;
     var _mipMode          = 0;       // 0 = AMOLED, 1 = MIP
     var _showSeconds      = false;
-    var _starCount        = 100;
+    // Stars shown at full night: always 200 ("Lots"), or 100 on watches with
+    // under 100 KB for a watch face (such as the Forerunner 245, 96 KB).
+    var _starCount        = 200;
     var _starMode         = 0;       // 0 = brightest, 1 = constellations, 2 = zodiac
     var _useGps           = 1;       // 1 = device GPS, 0 = home coordinates
     var _latDeg           = 49.29;
@@ -119,8 +121,7 @@ module config {
         _distanceUnits    = readNumber("distanceUnits",    _distanceUnits);
         _mipMode          = readNumber("mipMode",          _mipMode);
         _showSeconds      = readBool(  "showSeconds",      _showSeconds);
-        _starCount        = readNumber("starCount",        _starCount);
-        if (System.getSystemStats().totalMemory < 102400 && _starCount > 100) { _starCount = 100; }
+        _starCount        = (System.getSystemStats().totalMemory < 102400) ? 100 : 200;
         _starMode         = readNumber("starMode",         _starMode);
         _useGps           = readNumber("useGps",           _useGps);
         _latDeg           = readFloat( "latDeg",           _latDeg);

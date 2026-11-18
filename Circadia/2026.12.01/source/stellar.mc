@@ -5,8 +5,8 @@ using Toybox.WatchUi;
 // The real night sky: the brightest stars of the Yale Bright Star Catalogue,
 // placed where they are right now for the watch's location.
 //
-// Which stars. The "Number of stars" setting (100 or 200) is how many are
-// shown at full night: the first that many stars, in the order of the star
+// Which stars. 200 stars are shown at full night (100 on watches with under
+// 100 KB for a watch face; see config): the first that many stars, in the order of the star
 // table, that are above the horizon at this moment. "Which stars" picks the
 // table (resources/jsonData, built by tools/build_stars.py):
 //   Brightest       the brightest stars of the whole sky, brightest first.
@@ -18,8 +18,8 @@ using Toybox.WatchUi;
 //   Zodiac          the stars of the twelve zodiac figures and the very
 //                   brightest stars first, then the brightest, to fill the
 //                   sky to the same count.
-// Each table is long enough for the busiest sky at any latitude for either
-// setting. Positions are for the 2027.0 equinox, with proper motion applied;
+// Each table is long enough for the busiest sky at any latitude for 200
+// stars. Positions are for the 2027.0 equinox, with proper motion applied;
 // they drift about 0.014 deg a year, well under a pixel for decades.
 //
 // When they appear. Each star appears once it is bright enough to see
@@ -45,7 +45,7 @@ using Toybox.WatchUi;
 // Every figure is drawn complete: a line from a star above the horizon to
 // one below it runs on to the edge of the sky, so a figure low in the sky is
 // cut off by the horizon, as in a planetarium. Figure stars above the horizon
-// are always shown, even beyond the "Number of stars" or when the haze near
+// are always shown, even beyond the 200 or when the haze near
 // the horizon would hide them, so a figure never has a gap.
 module Stellar {
 

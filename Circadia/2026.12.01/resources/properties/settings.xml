@@ -110,14 +110,6 @@
         </setting>
 
         <!-- ─── Stars ──────────────────────────────────────────────────── -->
-        <setting propertyKey="@Properties.starCount" title="@Strings.starCountTitle">
-            <settingConfig type="list">
-                <listEntry value="0">@Strings.starsNone</listEntry>
-                <listEntry value="100">@Strings.starsSome</listEntry>
-                <listEntry value="200">@Strings.starsLots</listEntry>
-            </settingConfig>
-        </setting>
-
         <setting propertyKey="@Properties.starMode" title="@Strings.starModeTitle">
             <settingConfig type="list">
                 <listEntry value="0">@Strings.starModeBrightest</listEntry>
