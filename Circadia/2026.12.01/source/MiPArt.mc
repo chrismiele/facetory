@@ -159,51 +159,47 @@ module MiPArt {
 
     // ── Drawing functions ────────────────────────────────────────────────────
 
-    // The ramp step for the sun's own colours (see the table above).
-    // The outer edge of each colour, as shares of the outer edge, at this
-    // sun altitude.
-    function bandEdges(altDeg) {
-        var n    = BAND_COUNT;
-        var last = BAND_ALT.size() - 1;
-        var out  = new [n];
-        if (altDeg >= BAND_ALT[0] || altDeg <= BAND_ALT[last]) {
-            var row = (altDeg >= BAND_ALT[0]) ? 0 : last;
-            for (var k = 0; k < n; k += 1) { out[k] = BAND_EDGES[row * n + k]; }
-            return out;
-        }
-        var i = 1;
-        while (altDeg < BAND_ALT[i]) { i += 1; }
-        var t = (BAND_ALT[i - 1] - altDeg) / (BAND_ALT[i - 1] - BAND_ALT[i]);
-        for (var k = 0; k < n; k += 1) {
-            var e0 = BAND_EDGES[(i - 1) * n + k];
-            out[k] = e0 + (BAND_EDGES[i * n + k] - e0) * t;
-        }
-        return out;
-    }
+    // Band radii for the frame being drawn, reused (null = not drawn).
+    var _bandRadii = null;
 
     // scale: "Sun and moon size" (SunArt.sizeScale()).
     function drawSun(dc, cx, cy, R, sx, sy, altDeg, scale) {
         if (altDeg <= -SunArt.OUTER_DEG) { return; }    // full night: the whole MIP sun has set
         var ball  = SunArt.WHITE_DISC_DEG * scale;
         var outer = SunArt.glowOuterDeg(OUTER_RING_DEG * scale, altDeg);
-        var edges = bandEdges(altDeg);
+
+        // The two timetable rows around this altitude, and how far between.
+        var last = BAND_ALT.size() - 1;
+        var row0 = 0;
+        var row1 = 0;
+        var t    = 0.0;
+        if (altDeg <= BAND_ALT[last]) {
+            row0 = last;
+            row1 = last;
+        } else if (altDeg < BAND_ALT[0]) {
+            row1 = 1;
+            while (altDeg < BAND_ALT[row1]) { row1 += 1; }
+            row0 = row1 - 1;
+            t    = (BAND_ALT[row0] - altDeg) / (BAND_ALT[row0] - BAND_ALT[row1]);
+        }
 
         // From the middle out: each colour fills from the edge before it to
         // its own; keep the ones wide enough to read.
-        var radii = new [BAND_COUNT];
-        var prev  = 0.0;
+        if (_bandRadii == null) { _bandRadii = new [BAND_COUNT]; }
+        var prev = 0.0;
         for (var k = 0; k < BAND_COUNT; k += 1) {
-            var e = (edges[k] > prev) ? edges[k] : prev;
-            if ((e - prev) * outer >= MIN_RING_DEG && !(prev <= 0.0 && e * outer < ball / 3.0)) {
-                radii[k] = e * outer;
-            }
+            var e0 = BAND_EDGES[row0 * BAND_COUNT + k];
+            var e  = e0 + (BAND_EDGES[row1 * BAND_COUNT + k] - e0) * t;
+            if (e < prev) { e = prev; }
+            _bandRadii[k] = ((e - prev) * outer >= MIN_RING_DEG && !(prev <= 0.0 && e * outer < ball / 3.0))
+                            ? e * outer : null;
             prev = e;
         }
 
         // Outermost first; each brighter colour goes on top.
         SunArt.prepareSpread(cx, cy, R, sx, sy, altDeg, outer);
         for (var k = BAND_COUNT - 1; k >= 0; k -= 1) {
-            if (radii[k] != null) { SunArt.drawLayer(dc, radii[k], SUN_COLORS[k]); }
+            if (_bandRadii[k] != null) { SunArt.drawLayer(dc, _bandRadii[k], SUN_COLORS[k]); }
         }
     }
 

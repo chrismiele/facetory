@@ -63,7 +63,7 @@
         <string id="starModeConstellations">Constelaciones</string>
         <string id="starModeZodiac">Zodiaco</string>
 
-        <!-- Moon size choices -->
+        <!-- Sun and moon size choices -->
         <string id="moonSizeSmall">Pequeña</string>
         <string id="moonSizeMedium">Mediana</string>
         <string id="moonSizeLarge">Grande</string>

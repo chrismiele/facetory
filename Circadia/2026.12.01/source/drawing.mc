@@ -14,8 +14,8 @@ module Drawing {
     // Star-colour bin indices, used to index AmoledArt.starColors() and
     // MiPArt.STAR_COLORS, and stored in the star catalogue (from each star's
     // B-V colour index: blue below -0.02, white to 0.30, soft yellow to 0.65,
-    // yellow to 1.35, red beyond). Don't renumber without rebuilding
-    // resources/jsonData/stars.json.
+    // yellow to 1.35, red beyond). Don't renumber without rebuilding the
+    // star tables (tools/build_stars.py).
     const STAR_BIN_YELLOW      = 0;
     const STAR_BIN_SOFT_YELLOW = 1;
     const STAR_BIN_RED         = 2;

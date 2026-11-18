@@ -63,7 +63,7 @@
         <string id="starModeConstellations">Sterrenbeelden</string>
         <string id="starModeZodiac">Dierenriem</string>
 
-        <!-- Moon size choices -->
+        <!-- Sun and moon size choices -->
         <string id="moonSizeSmall">Klein</string>
         <string id="moonSizeMedium">Middel</string>
         <string id="moonSizeLarge">Groot</string>

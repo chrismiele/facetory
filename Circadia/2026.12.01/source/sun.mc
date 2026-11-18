@@ -10,28 +10,30 @@ using Toybox.Math;
 //
 // Sizes. On this face one degree of sun altitude is one degree of distance
 // from the rim, so a circle of radius N degrees around the sun has left the
-// screen when the sun is N degrees below the horizon. Each edge is sized to
-// one twilight boundary, so the sun leaves the sky in three steps (and comes
-// back in the same three at dawn):
+// screen when the sun is N degrees below the horizon. The full-size (Large)
+// sun has each edge sized to a twilight boundary:
 //
 //   core         12 deg radius   gone at -12, the end of nautical twilight.
 //                                A white disc (while the sun is high) with a
 //                                thin rim where white gives way to the sun's
 //                                colour.
-//   white disc   10 deg radius   inside the core. 20 deg across, exactly the
-//                                largest moon setting: a large new moon in
-//                                front of the sun covers the white disc and
-//                                nothing more. The white has faded into
-//                                the core's colour by sunset, long before
-//                                this edge would set at -10, so it never
-//                                shows as an edge at the horizon.
+//   white disc   10 deg radius   inside the core; 20 deg across, the size of
+//                                the Large moon. The white has faded into the
+//                                core's colour by sunset, so it never shows
+//                                as an edge at the horizon.
 //   corona       18 deg radius   gone at -18, the end of astronomical
-//                                twilight: full night, and the moment the
-//                                stars reach full count.
+//                                twilight: full night.
 //
-// MIP draws a more compact sun: a ball the size of the white disc and two
-// thin rings, to 12 and 14 deg (see MiPArt). The outer ring widens through
-// twilight to 18 deg, so the MIP sun also leaves the sky at full night.
+// "Sun and moon size" scales every edge by sizeScale(), so the white disc
+// always matches the moon. A smaller sun would set before full night, so
+// through twilight its outer edge widens to 18 deg (glowOuterDeg()): every
+// size glows at the horizon until full night, and the stage of twilight is
+// told by the sun's colour. The timing of the spread below stays tied to the
+// full-size sun.
+//
+// MIP draws a more compact sun: flat bands of colour, 14 deg across by day
+// at full size, that flow from yellow to blue as the sun goes down, in step
+// with the AMOLED colours (see MiPArt).
 //
 // Timing. Each 6-degree stage has one change:
 //
@@ -47,9 +49,8 @@ using Toybox.Math;
 //   below -18     night                  no sun; the minute digits stay blue
 //
 // Horizon glow. Around sunset the sun itself spreads along the horizon, on
-// both display types. Every layer of
-// the sun (each step of the AMOLED core and each corona ring; the MIP ball and
-// both rings) keeps its top edge exactly where it is, at altitude h + r above
+// both display types. Every layer of the sun (each step of the AMOLED core
+// and each corona ring; each MIP band) keeps its top edge exactly where it is, at altitude h + r above
 // the horizon on the sun's bearing, while its curvature blends from its own
 // (a circle around the sun) toward that of a band of constant height through
 // the same top point:
@@ -60,7 +61,7 @@ using Toybox.Math;
 // horizon (the limit: past 1 the shape would wrap round to the far side). s
 // rises from 0 at +3 (half way through golden hour, as the sun nears the
 // horizon) to the value at which the sun's outer edge (the AMOLED corona, the
-// MIP outer ring) is exactly straight at the end of civil twilight (-6). A
+// outermost MIP band) is exactly straight at the end of civil twilight (-6). A
 // larger circle needs less change to go straight, so the outer layers
 // flatten first while the white disc stays a dome until it sets.
 //

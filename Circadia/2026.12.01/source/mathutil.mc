@@ -24,8 +24,6 @@ module MathUtil {
 
     function abs(x) { return (x < 0.0) ? -x : x; }
 
-    function frac(x) { return x - Math.floor(x); }
-
     function roundNearest(x) {
         return (x >= 0.0) ? (x + 0.5).toNumber() : (x - 0.5).toNumber();
     }

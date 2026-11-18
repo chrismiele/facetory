@@ -14,8 +14,10 @@ using Toybox.WatchUi;
 // Two caches keep the per-frame work small:
 //   astronomy  sun and moon positions and colours, recomputed when the minute
 //              (or the display type) changes
-//   sky        screen positions of sun, moon and stars, rebuilt from the
-//              astronomy when it changes or the screen size changes
+//   sky        screen positions of sun and moon, rebuilt from the astronomy
+//              when it changes or the screen size changes
+// The stars are built separately, a bounded step per update, with next
+// minute's sky started ahead so it is ready on the minute (see Stellar).
 class CircadiaView extends WatchUi.WatchFace {
 
     var _latDeg;
@@ -56,7 +58,8 @@ class CircadiaView extends WatchUi.WatchFace {
 
     // [hour, min, sec] of the last full paint; reused by region repaints so the
     // clock digits match what is on screen.
-    var _sceneTime = [0, 0, 0];
+    var _sceneTime = [0, 0, 0];               // [hour, min, sec] of the frame on screen; reused
+    const NO_FIELDS = [null, null, null];     // field texts when the fields are hidden
 
     function initialize() {
         WatchFace.initialize();
@@ -146,15 +149,17 @@ class CircadiaView extends WatchUi.WatchFace {
         // update a minute), the one a few minutes on.
         if (showSky && config.showStars()) {
             if (_isSleeping) {
-                prepareNextSky(now, t, Stellar.leadMinutes());
+                if (Stellar.canPrepare()) { prepareNextSky(now, t, Stellar.leadMinutes()); }
             } else if (t.sec >= PREBUILD_SEC && t.min != _aheadMin) {
                 _aheadMin = t.min;
-                prepareNextSky(now, t, 1);
+                if (Stellar.canPrepare()) { prepareNextSky(now, t, 1); }
             }
             Stellar.continueWork();
         }
 
-        _sceneTime = [t.hour, t.min, t.sec];
+        _sceneTime[0] = t.hour;
+        _sceneTime[1] = t.min;
+        _sceneTime[2] = t.sec;
 
         if (showSky) {
             Drawing.drawSky(
@@ -171,7 +176,7 @@ class CircadiaView extends WatchUi.WatchFace {
                 dc, _layoutCache,
                 _sceneTime,
                 config.showSeconds() && showFields, _cachedSunsetAccent, _sunColor,
-                showFields ? DataFields.texts() : [null, null, null],
+                showFields ? DataFields.texts() : NO_FIELDS,
                 mipMode
             );
         }

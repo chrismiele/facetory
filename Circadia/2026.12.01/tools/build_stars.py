@@ -56,7 +56,7 @@ from astropy.time import Time
 import astropy.units as u
 
 EPOCH = 2027.0
-K_MAX = 200                  # the "Lots" setting
+K_MAX = 200                  # stars shown at full night (config.mc)
 MARGIN = 1.08                # extra stars beyond the worst case found on the grid
 
 FAMOUS = ("UMa UMi Cas Cep Dra Cyg Lyr Aql Del Her CrB Boo Leo Vir Crv Gem Tau Ori "

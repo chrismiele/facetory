@@ -29,9 +29,9 @@ module AmoledArt {
     const MOON_DARK   = 0x2D3035;   // unlit side: faint against the black sky
 
     // ── Stars (colour-bin lookup) ─────────────────────────────────────────────
-    const STAR_YELLOW       = 0xFFD080;   // warmer, more amber
-    const STAR_SOFT_YELLOW  = 0xFFE8B0;   // pale cream (was nearly white)
-    const STAR_RED          = 0xFF6B4A;   // genuinely red-orange
+    const STAR_YELLOW       = 0xFFD080;   // amber
+    const STAR_SOFT_YELLOW  = 0xFFE8B0;   // pale cream
+    const STAR_RED          = 0xFF6B4A;   // red-orange
     const STAR_BLUE         = 0x80A8FF;   // clearly blue, not tinted white
     const STAR_WHITE        = 0xF4F4FF;
     const STAR_BRIGHTNESS   = 0.8;
@@ -41,7 +41,8 @@ module AmoledArt {
     const SUNSET_ACCENT = 0xFF8000;   // tinges the hour text near sunrise/sunset
 
     // ── Sun ───────────────────────────────────────────────────────────────────
-    // The sun from the centre out, by day:
+    // The full-size sun from the centre out, by day (smaller sizes scale every
+    // radius by SunArt.sizeScale()):
     //    0 -  9 deg   pure white
     //    9 - 11 deg   an S-curve from white to the sun's colour (half white at
     //                 the 10 deg edge of the white disc)
@@ -50,7 +51,8 @@ module AmoledArt {
     //                 onto a straight fade by 14 deg, and reaches 20% at its
     //                 hard outer edge
     // After sunset the white is gone, so the core is the sun's colour all the
-    // way out to 12 deg.
+    // way out to 12 deg. Through twilight a smaller sun's corona stretches out
+    // to 18 deg (SunArt.glowOuterDeg()); its rings keep their share of it.
 
     // Corona: rings between the core's edge and the sun's outer edge, listed
     // from the outside in. FRAC is each ring's outer radius as a position
@@ -66,7 +68,7 @@ module AmoledArt {
 
     // The white disc's soft edge: steps from WHITE_EDGE_DEG outside the white
     // disc's edge to WHITE_EDGE_DEG inside it, listed from the outside in. POS
-    // is each step's radius as WHITE_DISC_DEG + POS * WHITE_EDGE_DEG; WHITE is
+    // is each step's radius as (WHITE_DISC_DEG + POS * WHITE_EDGE_DEG) * scale; WHITE is
     // how far toward white it has gone, along a half cosine taken at the
     // middle of the step. The last step is the pure white disc.
     const WHITE_EDGE_DEG  = 1.0;

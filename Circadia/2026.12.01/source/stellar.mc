@@ -85,8 +85,8 @@ module Stellar {
     const LINE_GAP_PX = [3, 4, 4, 5];
 
     // Each line is one integer: bits 0-8 and 9-17 are the star table indices
-    // of its ends, bits 18-24 the figure. Lines are grouped by figure.
-    const LINE_FIGURE_SHIFT = 18;
+    // of its ends (bits 18-24 number the figure in the table; the watch does
+    // not need them).
 
     // Shown stars, one integer each:
     //   bits 0-10 x, bits 11-21 y (pixels), bits 22-23 size (Drawing.STAR_*),
@@ -234,6 +234,12 @@ module Stellar {
 
     // The view says whether the watch is in low power (an update a minute).
     function setLowPower(lowPower) { _lowPower = lowPower; }
+
+    // Whether a sky could be started ahead now (nothing being built, queued
+    // or waiting), so the view can skip working one out otherwise.
+    function canPrepare() {
+        return _jobPhase == JOB_IDLE && _nextArgs == null && _readyKey == null;
+    }
 
     // How many minutes ahead to start a sky in low power, so it is done by
     // then (one step per update, an update a minute): the steps the last
