@@ -187,13 +187,13 @@ module Stellar {
         var stars        = [];
 
         // Lines: only at full night, in Constellations. For each table entry,
-        // slot = k + 1 for stars[k], -(k + 1) for hidden[k], null for neither.
-        // hidden holds figure stars that are up but not shown: beyond the
+        // slot = k + 1 for stars[k], -(k + 1) for extraStars[k], null for neither.
+        // extraStars holds figure stars that are up but not shown: beyond the
         // starCount, or too faint to see near the horizon.
         var withLines  = (starMode == MODE_CONSTELLATIONS) && (sunAltDeg <= FULL_NIGHT_ALT_DEG);
         var figureStar = withLines ? figureStars(cat.size()) : null;
         var slot       = withLines ? new [cat.size()] : null;
-        var hidden     = withLines ? [] : null;
+        var extraStars = withLines ? [] : null;
 
         for (var i = 0; i < cat.size(); i += 1) {
             var v      = cat[i] as Lang.Number;
@@ -250,12 +250,12 @@ module Stellar {
                 stars.add(star);
                 if (withLines) { slot[i] = stars.size(); }
             } else {
-                hidden.add(star);
-                slot[i] = -hidden.size();
+                extraStars.add(star);
+                slot[i] = -extraStars.size();
             }
         }
 
-        _projectedLines = withLines ? projectLines(stars, slot, hidden) : [];
+        _projectedLines = withLines ? projectLines(stars, slot, extraStars) : [];
         _projectedStars = stars;
         _lineColor      = mipMode ? MiPArt.CONSTELLATION_LINE : AmoledArt.CONSTELLATION_LINE;
         _lineAntiAlias  = !mipMode;
@@ -263,8 +263,8 @@ module Stellar {
     }
 
     // The lines to draw: for each figure with at least half its lines up,
-    // every line whose two stars are up. Their hidden stars join stars.
-    function projectLines(stars, slot, hidden) {
+    // every line whose two stars are up. Their extraStars join stars.
+    function projectLines(stars, slot, extraStars) {
         var lines = lineTable();
         var n     = lines.size();
         var out   = [];
@@ -282,8 +282,8 @@ module Stellar {
                     var a = lines[k] & 0x1FF;
                     var b = (lines[k] >> 9) & 0x1FF;
                     if (slot[a] == null || slot[b] == null) { continue; }
-                    reveal(a, stars, slot, hidden);
-                    reveal(b, stars, slot, hidden);
+                    reveal(a, stars, slot, extraStars);
+                    reveal(b, stars, slot, extraStars);
                     addLine(out, stars[slot[a] - 1] as Lang.Array, stars[slot[b] - 1] as Lang.Array);
                 }
             }
@@ -292,10 +292,10 @@ module Stellar {
         return out;
     }
 
-    // Move a hidden figure star into stars.
-    function reveal(t, stars, slot, hidden) {
+    // Move a figure star from extraStars into stars.
+    function reveal(t, stars, slot, extraStars) {
         if (slot[t] > 0) { return; }
-        stars.add(hidden[-slot[t] - 1]);
+        stars.add(extraStars[-slot[t] - 1]);
         slot[t] = stars.size();
     }
 
