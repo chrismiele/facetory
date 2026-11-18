@@ -28,7 +28,7 @@ module MiPArt {
     // purples and blues of twilight. At step s the ball is RAMP[s], the inner
     // ring RAMP[s+1] and the outer ring RAMP[s+2], so as the sun sets it slides
     // one step down the ramp at a time and the three layers always differ.
-    // The ball and both rings spread along the horizon from sunset, exactly as
+    // The ball and both rings spread along the horizon from +3, exactly as
     // the AMOLED sun does, with the same reach (see sun.mc).
     //
     //   step  sun altitude    ball     inner    outer

@@ -38,9 +38,10 @@ using Toybox.Math;
 //   above  +6     day                    white-hot centre, yellow rim
 //    +6 to   0    golden hour            the sun turns yellow to orange while its
 //                                        white centre fades into it, ending orange
-//                                        without a flat-yellow stage
-//     0 to  -6    civil twilight         orange to red; from sunset the sun
-//                                        spreads, its outer edge going straight
+//                                        without a flat-yellow stage; from +3 the
+//                                        sun starts to spread
+//     0 to  -6    civil twilight         orange to red; the sun's outer edge
+//                                        goes straight
 //    -6 to -12    nautical twilight      red to purple; the core sets
 //   -12 to -18    astronomical twilight  purple to blue; the corona sets
 //   below -18     night                  no sun; the minute digits stay blue
@@ -57,9 +58,10 @@ using Toybox.Math;
 //
 // s = 0 is the round sun, s = 1 a band of even depth right around the
 // horizon (the limit: past 1 the shape would wrap round to the far side). s
-// rises from 0 at sunset to the value at which the sun's outer edge (the
-// AMOLED corona, the MIP outer ring) is exactly straight at the end of civil
-// twilight (-6). Above the horizon the sun stays round. A larger circle needs less change to go straight, so the outer layers
+// rises from 0 at +3 (half way through golden hour, as the sun nears the
+// horizon) to the value at which the sun's outer edge (the AMOLED corona, the
+// MIP outer ring) is exactly straight at the end of civil twilight (-6). A
+// larger circle needs less change to go straight, so the outer layers
 // flatten first while the white disc stays a dome until it sets.
 //
 // Past straight, a layer curves the other way and hugs the rim. From there s
@@ -82,7 +84,7 @@ module SunArt {
     const OUTER_DEG      = 18.0;    // end of astronomical twilight; keep equal to -Stellar.FULL_NIGHT_ALT_DEG
 
     // ── The sun spreads along the horizon ───────────────────────────────────
-    const SPREAD_START_ALT_DEG = 0.0;     // sunset: the sun starts to flatten
+    const SPREAD_START_ALT_DEG = 3.0;     // late golden hour: the sun starts to flatten
     const SPREAD_FLAT_ALT_DEG  = -6.0;    // end of civil twilight: the sun's outer edge is exactly straight
     // Past straight, how far either side of the sun's bearing the outer edge
     // meets the rim (degrees of azimuth): this much at the end of nautical
@@ -139,7 +141,7 @@ module SunArt {
     // ── Spreading layers ─────────────────────────────────────────────────────
 
     // How far the sun has spread toward a band along the horizon (s in the
-    // header formula). 0 above the horizon. outerDeg is the radius of this display's
+    // header formula). 0 above +3. outerDeg is the radius of this display's
     // outermost layer.
     function spreadAmount(altDeg, outerDeg) {
         if (altDeg >= SPREAD_START_ALT_DEG) { return 0.0; }
