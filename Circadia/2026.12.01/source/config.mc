@@ -71,7 +71,7 @@ module config {
     var _minuteSaturation = 3;       // 0-5 step index, mapped to 0.0-1.0 in step of 0.2
     // Week start day: 1=Sun, 2=Mon, ..., 7=Sat (matches Gregorian.Info.day_of_week)
     var _weekStartDay     = 2;       // default: Monday
-    var _moonSize         = MOON_SIZE_SMALL;
+    var _moonSize         = MOON_SIZE_MEDIUM;   // default: Medium
     var _moonDarkSide     = false;   // optional extra, off by default
 
     // True on displays that enforce burn-in protection (AMOLED). Read from the

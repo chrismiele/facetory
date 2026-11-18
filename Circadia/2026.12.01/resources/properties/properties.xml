@@ -45,7 +45,7 @@
         <!-- Week start day: 1=Sun, 2=Mon, 3=Tue, 4=Wed, 5=Thu, 6=Fri, 7=Sat -->
         <property id="weekStartDay" type="number">2</property>
 
-        <!-- Moon size: 0 = small (12°), 1 = medium (14°), 2 = large (16°) -->
-        <property id="moonSize" type="number">0</property>
+        <!-- Sun and moon size: 0 = small (moon 15°), 1 = medium (17.5°, default), 2 = large (20°, the full-size sun) -->
+        <property id="moonSize" type="number">1</property>
     </properties>
 </resources>
