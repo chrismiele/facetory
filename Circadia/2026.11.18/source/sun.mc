@@ -30,7 +30,8 @@ using Toybox.Math;
 //                                stars reach full count.
 //
 // MIP draws a more compact sun: a ball the size of the white disc and two
-// thin rings, to 12 and 14 deg (see MiPArt).
+// thin rings, to 12 and 14 deg (see MiPArt). The outer ring widens through
+// twilight to 18 deg, so the MIP sun also leaves the sky at full night.
 //
 // Timing. Each 6-degree stage has one change:
 //

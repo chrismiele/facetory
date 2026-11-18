@@ -17,8 +17,12 @@ module MiPArt {
     //
     // Three layers at every stage: a ball the size of the white disc (10
     // degrees, the largest moon) and two thin rings around it, 2 degrees each,
-    // so the MIP sun is 28 degrees across and gone at -14. (AMOLED's 36-degree
-    // corona, gone at full night, is too heavy in flat MIP colours.)
+    // so by day the MIP sun is 28 degrees across. (AMOLED's 36-degree corona
+    // is too heavy in flat MIP colours.) Through twilight the outer ring
+    // widens evenly, from 14 degrees at sunset to 18 at the end of
+    // astronomical twilight, so like the AMOLED corona its last trace leaves
+    // the sky exactly when full night begins. The inner ring sets at the end
+    // of nautical twilight.
     //
     // One colour ramp, from white-hot through yellow, orange and red to the
     // purples and blues of twilight. At step s the ball is RAMP[s], the inner
@@ -34,7 +38,7 @@ module MiPArt {
     //    3    -6 to  -3       FFAA00   FF5500   FF0000
     //    4    -9 to  -6       FF5500   FF0000   FF00AA
     //    5   -12 to  -9       FF0000   FF00AA   AA00AA   (ball set at -10)
-    //    6   -18 to -12       FF00AA   AA00AA   5500AA   (rings set at -12 and -14)
+    //    6   -18 to -12       FF00AA   AA00AA   5500AA   (inner ring set at -12; outer ring sets at -18)
     //
     // Neighbouring ramp colours must look different on a MIP screen, since
     // any two of them can sit side by side, also once spread out. Red is
@@ -70,7 +74,7 @@ module MiPArt {
     ];
 
     const INNER_RING_DEG     = 12.0;   // outer edge of the inner ring: the AMOLED core's edge
-    const OUTER_RING_DEG     = 14.0;   // outer edge of the whole MIP sun
+    const OUTER_RING_DEG     = 14.0;   // outer edge of the whole MIP sun until sunset; see outerRingDeg()
 
     // ── Moon ─────────────────────────────────────────────────────────────────
     const MIP_MOON_BRIGHT   = 0xAAAAAA;   // lit face, every phase but full
@@ -147,14 +151,24 @@ module MiPArt {
         return (k < 1) ? 1 : k;
     }
 
+    // The outer ring's radius: OUTER_RING_DEG until sunset, then widening
+    // evenly to SunArt.OUTER_DEG at the end of astronomical twilight. Its top
+    // edge, (altitude + radius) above the horizon, then reaches the horizon
+    // exactly at full night.
+    function outerRingDeg(altDeg) {
+        var t = MathUtil.clamp(-altDeg / SunArt.OUTER_DEG, 0.0, 1.0);
+        return OUTER_RING_DEG + (SunArt.OUTER_DEG - OUTER_RING_DEG) * t;
+    }
+
     // Outer ring, inner ring, ball: each brighter layer goes on top. With the
     // horizon glow on they spread along the horizon (SunArt.drawLayer).
     function drawSun(dc, cx, cy, R, sx, sy, altDeg) {
-        if (altDeg <= -OUTER_RING_DEG) { return; }      // the whole MIP sun has set
+        if (altDeg <= -SunArt.OUTER_DEG) { return; }    // full night: the whole MIP sun has set
 
-        var s = sunRampStep(altDeg);
-        SunArt.prepareSpread(cx, cy, R, sx, sy, altDeg, OUTER_RING_DEG);
-        SunArt.drawLayer(dc, OUTER_RING_DEG,        SUN_RAMP[s + 2]);
+        var s     = sunRampStep(altDeg);
+        var outer = outerRingDeg(altDeg);
+        SunArt.prepareSpread(cx, cy, R, sx, sy, altDeg, outer);
+        SunArt.drawLayer(dc, outer,                 SUN_RAMP[s + 2]);
         SunArt.drawLayer(dc, INNER_RING_DEG,        SUN_RAMP[s + 1]);
         SunArt.drawLayer(dc, SunArt.WHITE_DISC_DEG, SUN_RAMP[s]);
     }
