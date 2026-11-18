@@ -28,8 +28,8 @@ module MiPArt {
     // horizon from +6, exactly as the AMOLED sun does (see SunArt.drawLayer).
     //
     //   step  sun altitude    ball     inner    outer
-    //    0     9 and above    FFFFFF   FFFF55   FFFF00
-    //    1     0 to   9       FFFF55   FFFF00   FFAA00
+    //    0     3 and above    FFFFFF   FFFF55   FFFF00
+    //    1     0 to   3       FFFF55   FFFF00   FFAA00
     //    2    -3 to   0       FFFF00   FFAA00   FF5500
     //    3    -6 to  -3       FFAA00   FF5500   FF0000
     //    4    -9 to  -6       FF5500   FF0000   FF00AA
@@ -41,9 +41,9 @@ module MiPArt {
     // followed by pink (FF00AA), not crimson (FF0055), which is hard to tell
     // from red.
     //
-    // The step follows sunStage(), except that the white ball gives way to
-    // pale yellow at +9, half way through the white-hot fade (MIP cannot fade
-    // it), and the rings move down with it.
+    // The step follows sunStage(), except that the white ball stays until +3,
+    // half way through the white-hot fade (+6 to sunset; MIP cannot fade it),
+    // then gives way to pale yellow, and the rings move down with it.
     //
     // The minute text takes MINUTE_COLORS[sunStage()], which follows the same
     // timing as the AMOLED palette: orange around sunset, red by the end of
@@ -143,7 +143,7 @@ module MiPArt {
     // The ramp step for the sun's own colours (see the table above).
     function sunRampStep(altDeg) {
         var k = sunStage(altDeg);
-        if (k == 0 && SunArt.whiteHot(altDeg) >= 0.5) { return 0; }
+        if (SunArt.whiteHot(altDeg) >= 0.5) { return 0; }
         return (k < 1) ? 1 : k;
     }
 

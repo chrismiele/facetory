@@ -21,9 +21,10 @@ using Toybox.Math;
 //   white disc   10 deg radius   inside the core. 20 deg across, exactly the
 //                                largest moon setting: a large new moon in
 //                                front of the sun covers the white disc and
-//                                nothing more. The white fades into the
-//                                core's colour by +6, so this edge never
-//                                shows at the horizon.
+//                                nothing more. The white has faded into
+//                                the core's colour by sunset, long before
+//                                this edge would set at -10, so it never
+//                                shows as an edge at the horizon.
 //   corona       18 deg radius   gone at -18, the end of astronomical
 //                                twilight: full night, and the moment the
 //                                stars reach full count.
@@ -33,9 +34,11 @@ using Toybox.Math;
 //
 // Timing. Each 6-degree stage has one change:
 //
-//   above +12     day                    white-hot centre, yellow rim
-//   +12 to  +6    low sun                the white centre fades to flat yellow
-//    +6 to   0    golden hour            yellow to orange; the sun starts to spread
+//   above  +6     day                    white-hot centre, yellow rim
+//    +6 to   0    golden hour            the sun turns yellow to orange while its
+//                                        white centre fades into it, ending orange
+//                                        without a flat-yellow stage; the sun
+//                                        starts to spread
 //     0 to  -6    civil twilight         orange to red
 //    -6 to -12    nautical twilight      red to purple; the core sets
 //   -12 to -18    astronomical twilight  purple to blue; the corona sets
@@ -77,10 +80,11 @@ module SunArt {
     const RIM_OVERDRAW_PX      = 3.0;     // the sky disc stops 2px short of the screen edge
 
     // ── White-hot core ───────────────────────────────────────────────────────
-    // The white disc is pure white while the sun is high and fades to the sun's
-    // own colour, leaving a flat yellow core, between +12 and +6.
-    const WHITE_HOT_FULL_ALT_DEG = 12.0;
-    const WHITE_HOT_GONE_ALT_DEG = 6.0;
+    // The white disc is pure white while the sun is high and fades into the
+    // sun's own colour during golden hour, from +6 to sunset, in step with
+    // that colour turning from yellow to orange.
+    const WHITE_HOT_FULL_ALT_DEG = 6.0;
+    const WHITE_HOT_GONE_ALT_DEG = 0.0;
 
     // Spread geometry for the frame being drawn; set by prepareSpread().
     var _spread = 0.0;    // s in the header formula; 0 = the round sun
