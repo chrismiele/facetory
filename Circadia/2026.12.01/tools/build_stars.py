@@ -2,6 +2,8 @@
 
   stars_brightest.json       the brightest stars, brightest first
   stars_constellations.json  well-known constellation figures first
+  stars_lines.json           the lines of the well-known figures, for the
+                             constellations table
 
 Sources
   Stars: Yale Bright Star Catalogue, 5th revised ed. (Hoffleit & Warren 1991),
@@ -125,6 +127,22 @@ def figures(stars, lines_path, strict=True):
     return out
 
 
+def segments(stars, lines_path):
+    """{figure id: list of (i, j) star index pairs}, one per line of its figure"""
+    out = {}
+    for f in json.load(open(lines_path))['features']:
+        segs = out.setdefault(f['id'], [])
+        for line in f['geometry']['coordinates']:
+            idx = []
+            for lon, lat in line:
+                ra = lon % 360
+                best = min((i for i, s in enumerate(stars) if abs(s['de'] - lat) < 0.3),
+                           key=lambda i: sep(ra, lat, stars[i]['ra'], stars[i]['de']))
+                idx.append(best)
+            segs += [(a, b) for a, b in zip(idx, idx[1:]) if a != b]
+    return out
+
+
 def to_epoch(stars, epoch=EPOCH):
     dt = epoch - 2000.0
     ra = np.array([s['ra'] + s['pmra']*dt/3600/max(1e-6, math.cos(math.radians(s['de']))) for s in stars])
@@ -173,6 +191,30 @@ def constellation_order(stars, figs, asterisms):
     return sorted(range(len(stars)), key=lambda i: (key[i], stars[i]['v']))
 
 
+def line_table(stars, figs, asterisms, segs, order):
+    """Lines of the FAMOUS figures, in two tiers per figure, as packed integers:
+         bits  0-8   table index of one end      bits 18-24  figure number
+         bits  9-17  table index of the other    bit  25     tier (0 core, 1 full)
+       Tier 0: the figure's lines between core-shape stars. Tier 1: all its
+       lines between stars to MEMBER_MAX_MAG (or core stars). The watch draws
+       a figure's highest tier whose stars are all on screen."""
+    pos = {i: k for k, i in enumerate(order)}
+    core = set().union(*core_groups(stars, figs, asterisms).values())
+    fam = famous_groups(stars, figs)
+    vals = []
+    for n, c in enumerate(FAMOUS):
+        tiers = (core, core | fam[c])
+        for t, ok in enumerate(tiers):
+            seen = set()
+            for a, b in segs[c]:
+                if a in ok and b in ok and a in pos and b in pos and frozenset((a, b)) not in seen:
+                    seen.add(frozenset((a, b)))
+                    pa, pb = pos[a], pos[b]
+                    assert pa < 512 and pb < 512
+                    vals.append(pa | (pb << 9) | (n << 18) | (t << 25))
+    return vals
+
+
 def needed(stars, order, k=K_MAX):
     """How far down the list the busiest sky reaches for k stars above the horizon."""
     ra = np.radians([stars[i]['ra_e'] for i in order]); de = np.radians([stars[i]['de_e'] for i in order])
@@ -203,6 +245,7 @@ def pack(s):
 
 def write(stars, order, path):
     n = min(len(order), int(math.ceil(needed(stars, order)*MARGIN)))
+    order[:] = order[:n]
     vals = [pack(stars[i]) for i in order[:n]]
     assert 0 <= min(vals) and max(vals) < 2**31
     json.dump(vals, open(path, 'w'), separators=(',', ':'))
@@ -216,4 +259,8 @@ if __name__ == '__main__':
     asterisms = figures(stars, d3data + '/asterisms.json', strict=False)
     to_epoch(stars)
     write(stars, list(range(len(stars))), out + '/stars_brightest.json')
-    write(stars, constellation_order(stars, figs, asterisms), out + '/stars_constellations.json')
+    order = constellation_order(stars, figs, asterisms)
+    write(stars, order, out + '/stars_constellations.json')
+    lines = line_table(stars, figs, asterisms, segments(stars, d3data + '/constellations.lines.json'), order)
+    json.dump(lines, open(out + '/stars_lines.json', 'w'), separators=(',', ':'))
+    print(f"{out}/stars_lines.json: {len(lines)} lines ({sum(1 for v in lines if not v >> 25)} core)")

@@ -34,6 +34,16 @@ using Toybox.WatchUi;
 // from its catalogue magnitude (*_MAG thresholds), colour from its B-V colour
 // index, binned when the table was built (Drawing.STAR_BIN_*). The dimming
 // near the horizon only decides when a star appears.
+//
+// Constellation lines (Constellations only). Faint lines join the stars of
+// the well-known figures, drawn under the stars and stopping just short of
+// them. A figure's lines appear only once every one of its stars is on
+// screen, so a figure is drawn the moment its last star appears, and goes
+// when its first star sets or fades. Each figure has two sets of lines
+// (resources/jsonData/stars_lines.json): its core shape, such as Orion's
+// hourglass or the Big Dipper, and its full figure, which also needs its
+// fainter stars. The fullest complete set is drawn, so with "Lots" a figure
+// first appears as its core shape and fills out later in twilight.
 module Stellar {
 
     const FULL_NIGHT_ALT_DEG = -18.0;    // end of astronomical twilight; keep equal to -SunArt.OUTER_DEG
@@ -66,9 +76,24 @@ module Stellar {
     const MODE_BRIGHTEST      = 0;
     const MODE_CONSTELLATIONS = 1;
 
+    // Lines stop this many pixels short of a star's centre, by star size
+    // (Drawing.STAR_*), and are left out if nothing would remain.
+    const LINE_GAP_PX = [3, 4, 4, 5];
+
+    // Each line is one integer: bits 0-8 and 9-17 are the constellations
+    // table indices of its ends, bits 18-24 the figure, bit 25 the set
+    // (0 = core shape, 1 = full figure). Lines are grouped by figure, core
+    // set first.
+    const LINE_FIGURE_SHIFT = 18;
+    const LINE_FULL_SHIFT   = 25;
+
     var _catalog        = null;
     var _catalogMode    = -1;
+    var _lineTable      = null;
     var _projectedStars = [];
+    var _projectedLines = [];      // x0, y0, x1, y1 for each line to draw
+    var _lineColor      = 0;
+    var _lineAntiAlias  = false;
     var _projectionKey  = null;
 
     function keysEqual(a, b) {
@@ -92,6 +117,13 @@ module Stellar {
         return _catalog;
     }
 
+    function lineTable() {
+        if (_lineTable == null) {
+            _lineTable = WatchUi.loadResource(Rez.JsonData.StarLines) as Lang.Array;
+        }
+        return _lineTable;
+    }
+
     // layout = [cx, cy, skyRadiusPx]; datetime = [year, month, day, hour, min]
     // (local clock); offsetSec = the local time zone's offset from UTC.
     //
@@ -101,6 +133,7 @@ module Stellar {
         var limitMag = limitingMagnitude(sunAltDeg);
         if (limitMag <= LIMIT_MAG[0] || starCount <= 0) {
             _projectedStars = [];
+            _projectedLines = [];
             _projectionKey  = null;
             return;
         }
@@ -134,6 +167,10 @@ module Stellar {
         var cat          = catalog(starMode) as Lang.Array;
         var above        = 0;       // catalogue stars found above the horizon so far
         var stars        = [];
+
+        // For lines: for each table entry, 1 + its place in stars (0 = not shown).
+        var withLines = (starMode == MODE_CONSTELLATIONS);
+        var shownAt   = withLines ? new [cat.size()]b : null;
 
         for (var i = 0; i < cat.size(); i += 1) {
             var v      = cat[i] as Lang.Number;
@@ -180,15 +217,91 @@ module Stellar {
             var colorBin = v & 0x7;
             var color    = mipMode ? MiPArt.starColor(size, colorBin) : amoledColors[colorBin];
             stars.add([MathUtil.roundNearest(x), MathUtil.roundNearest(y), size, color]);
+            if (withLines) { shownAt[i] = stars.size(); }
         }
 
         _projectedStars = stars;
+        _projectedLines = withLines ? projectLines(stars, shownAt) : [];
+        _lineColor      = mipMode ? MiPArt.CONSTELLATION_LINE : AmoledArt.CONSTELLATION_LINE;
+        _lineAntiAlias  = !mipMode;
         _projectionKey  = key;
     }
 
+    // The lines to draw: for each figure, its full set if every one of its
+    // stars is shown, else its core set if that is complete, else none.
+    function projectLines(stars, shownAt) {
+        var lines = lineTable();
+        var n     = lines.size();
+        var out   = [];
+        var i     = 0;
+        while (i < n) {
+            var figure  = (lines[i] >> LINE_FIGURE_SHIFT) & 0x7F;
+            var fullAt  = -1;            // first line of the full set
+            var coreOk  = true;
+            var fullOk  = true;
+            var j       = i;
+            while (j < n && ((lines[j] >> LINE_FIGURE_SHIFT) & 0x7F) == figure) {
+                var v    = lines[j];
+                var both = shownAt[v & 0x1FF] != 0 && shownAt[(v >> 9) & 0x1FF] != 0;
+                if (((v >> LINE_FULL_SHIFT) & 1) == 0) {
+                    if (!both) { coreOk = false; }
+                } else {
+                    if (fullAt < 0) { fullAt = j; }
+                    if (!both) { fullOk = false; }
+                }
+                j += 1;
+            }
+            if (fullAt >= 0 && fullOk) {
+                addLines(out, lines, fullAt, j, stars, shownAt);
+            } else if (coreOk && (fullAt < 0 ? j : fullAt) > i) {
+                addLines(out, lines, i, (fullAt < 0) ? j : fullAt, stars, shownAt);
+            }
+            i = j;
+        }
+        return out;
+    }
+
+    // Lines from..to-1, each shortened at both ends to clear its stars.
+    function addLines(out, lines, from, to, stars, shownAt) {
+        for (var k = from; k < to; k += 1) {
+            var v  = lines[k];
+            var a  = stars[shownAt[v & 0x1FF] - 1] as Lang.Array;
+            var b  = stars[shownAt[(v >> 9) & 0x1FF] - 1] as Lang.Array;
+            var dx = (b[0] - a[0]).toFloat();
+            var dy = (b[1] - a[1]).toFloat();
+            var len  = Math.sqrt(dx * dx + dy * dy);
+            var gapA = LINE_GAP_PX[a[2]];
+            var gapB = LINE_GAP_PX[b[2]];
+            if (len <= gapA + gapB + 1) { continue; }
+            out.add(MathUtil.roundNearest(a[0] + dx * gapA / len));
+            out.add(MathUtil.roundNearest(a[1] + dy * gapA / len));
+            out.add(MathUtil.roundNearest(b[0] - dx * gapB / len));
+            out.add(MathUtil.roundNearest(b[1] - dy * gapB / len));
+        }
+    }
+
     function drawProjectedStars(dc) {
-        // During a region repaint only the stars inside the region are drawn.
+        // During a region repaint only the lines and stars inside the region
+        // are drawn.
         var b = Drawing.regionBounds(3);
+
+        if (_projectedLines.size() > 0) {
+            var aa = _lineAntiAlias && (dc has :setAntiAlias);
+            if (aa) { dc.setAntiAlias(true); }
+            dc.setColor(_lineColor, Drawing.BLACK);
+            for (var i = 0; i < _projectedLines.size(); i += 4) {
+                var x0 = _projectedLines[i];
+                var y0 = _projectedLines[i + 1];
+                var x1 = _projectedLines[i + 2];
+                var y1 = _projectedLines[i + 3];
+                if (b != null && ((x0 < b[0] && x1 < b[0]) || (x0 > b[2] && x1 > b[2])
+                               || (y0 < b[1] && y1 < b[1]) || (y0 > b[3] && y1 > b[3]))) {
+                    continue;
+                }
+                dc.drawLine(x0, y0, x1, y1);
+            }
+            if (aa) { dc.setAntiAlias(false); }
+        }
         for (var i = 0; i < _projectedStars.size(); i += 1) {
             var s = _projectedStars[i] as Lang.Array;
             if (b != null && (s[0] < b[0] || s[0] > b[2] || s[1] < b[1] || s[1] > b[3])) {

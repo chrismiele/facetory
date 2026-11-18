@@ -4,7 +4,10 @@
          NASA HEASARC). Built by tools/build_stars.py.
          StarsBrightest:      the brightest stars, brightest first.
          StarsConstellations: well-known constellation figures first
-                              (figures from d3-celestial, Olaf Frohn). -->
+                              (figures from d3-celestial, Olaf Frohn).
+         StarLines:           the lines of those figures, for the
+                              constellations table. -->
     <jsonData id="StarsBrightest"      filename="stars_brightest.json" />
     <jsonData id="StarsConstellations" filename="stars_constellations.json" />
+    <jsonData id="StarLines"           filename="stars_lines.json" />
 </resources>
