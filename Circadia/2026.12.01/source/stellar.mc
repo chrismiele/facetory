@@ -88,14 +88,30 @@ module Stellar {
     // of its ends, bits 18-24 the figure. Lines are grouped by figure.
     const LINE_FIGURE_SHIFT = 18;
 
+    // Shown stars, one integer each:
+    //   bits 0-10 x, bits 11-21 y (pixels), bits 22-23 size (Drawing.STAR_*),
+    //   bits 24-26 colour bin (Drawing.STAR_BIN_*).
+    // Figure star positions (line modes, at full night), one integer per
+    // star table entry, 0 when not placed this minute:
+    //   bits 0-10 x + 1024, bits 11-21 y + 1024 (below-horizon stars can lie
+    //   past the screen), bit 22 above the horizon, bit 23 in the shown stars,
+    //   bit 24 placed.
+    // Lines, two integers each: x0 | y0 << 11, then x1 | y1 << 11.
+    const POS_OFFSET = 1024;
+    const POS_UP     = 0x400000;
+    const POS_SHOWN  = 0x800000;
+    const POS_PLACED = 0x1000000;
+
     var _catalog        = null;
     var _catalogMode    = -1;
     var _lineTable      = null;
     var _lineMode       = -1;
     var _figureStar     = null;    // per star table entry: 1 if in a figure's lines
     var _lastFigureStar = -1;      // highest such entry
+    var _figurePos      = null;    // reused each minute; see POS_*
     var _projectedStars = [];
-    var _projectedLines = [];      // x0, y0, x1, y1 for each line to draw
+    var _projectedLines = [];
+    var _starColorBins  = null;    // AMOLED star colours, or null for MIP
     var _lineColor      = 0;
     var _lineAntiAlias  = false;
     var _projectionKey  = null;
@@ -127,26 +143,38 @@ module Stellar {
 
     // The figure lines for this mode (Constellations or Zodiac), and which
     // star table entries they use. Loaded on first use, one mode at a time.
-    function lineTable(mode, tableSize) {
+    function lineTable(mode) {
         if (_lineTable == null || mode != _lineMode) {
             _lineTable  = null;
             _figureStar = null;
+            _figurePos  = null;
             _lineTable  = WatchUi.loadResource(mode == MODE_ZODIAC
                               ? Rez.JsonData.ZodiacLines
                               : Rez.JsonData.StarLines) as Lang.Array;
-            _figureStar     = new [tableSize]b;
             _lastFigureStar = -1;
             for (var k = 0; k < _lineTable.size(); k += 1) {
                 var a = _lineTable[k] & 0x1FF;
                 var b = (_lineTable[k] >> 9) & 0x1FF;
-                _figureStar[a] = 1;
-                _figureStar[b] = 1;
                 if (a > _lastFigureStar) { _lastFigureStar = a; }
                 if (b > _lastFigureStar) { _lastFigureStar = b; }
             }
-            _lineMode = mode;
+            _figureStar = new [_lastFigureStar + 1]b;
+            for (var k = 0; k < _lineTable.size(); k += 1) {
+                _figureStar[_lineTable[k] & 0x1FF] = 1;
+                _figureStar[(_lineTable[k] >> 9) & 0x1FF] = 1;
+            }
+            _figurePos = new [_lastFigureStar + 1];
+            _lineMode  = mode;
         }
         return _lineTable;
+    }
+
+    // Drop what only the line modes need.
+    function releaseLines() {
+        _lineTable  = null;
+        _figureStar = null;
+        _figurePos  = null;
+        _lineMode   = -1;
     }
 
     // layout = [cx, cy, skyRadiusPx]; datetime = [year, month, day, hour, min]
@@ -180,6 +208,10 @@ module Stellar {
             return;
         }
 
+        // Let last minute's sky go before building this one.
+        _projectedStars = [];
+        _projectedLines = [];
+
         var utc = MathUtil.utcFromLocal(datetime[0], datetime[1], datetime[2],
                                         datetime[3] + datetime[4] / 60.0, offsetSec) as Lang.Array;
         var lstDeg = localSiderealDeg(utc, lonDeg);
@@ -188,27 +220,30 @@ module Stellar {
         var sinLat = Math.sin(lat);
         var cosLat = Math.cos(lat);
 
-        var amoledColors = mipMode ? null : AmoledArt.starColors();
-        var cat          = catalog(starMode) as Lang.Array;
-        var above        = 0;       // catalogue stars found above the horizon so far
-        var stars        = [];
+        var cat   = catalog(starMode) as Lang.Array;
+        var above = 0;              // catalogue stars found above the horizon so far
+        var stars = [];
 
-        // Lines: only at full night, in Constellations and Zodiac. For each
-        // table entry, slot = k + 1 for stars[k], -(k + 1) for extraStars[k],
-        // null for neither. extraStars holds the other figure stars: up but
-        // not shown (beyond the starCount, or too faint near the horizon), or
-        // below the horizon (marked by a fifth element), placed only so the
-        // lines to them can be drawn.
-        var withLines  = (starMode != MODE_BRIGHTEST) && (sunAltDeg <= FULL_NIGHT_ALT_DEG);
-        var lines      = withLines ? lineTable(starMode, cat.size()) : null;
-        var figureStar = withLines ? _figureStar : null;
-        var slot       = withLines ? new [cat.size()] : null;
-        var extraStars = withLines ? [] : null;
+        // Lines: only at full night, in Constellations and Zodiac. Figure stars
+        // that are not shown are still placed (in _figurePos): up but beyond
+        // the starCount or too faint near the horizon, or below the horizon,
+        // so the lines to them can be drawn.
+        var withLines = (starMode != MODE_BRIGHTEST) && (sunAltDeg <= FULL_NIGHT_ALT_DEG);
+        var lines     = null;
+        var figPos    = null;
+        if (withLines) {
+            lines  = lineTable(starMode);
+            figPos = _figurePos;
+        } else if (starMode == MODE_BRIGHTEST) {
+            releaseLines();
+        }
 
         for (var i = 0; i < cat.size(); i += 1) {
-            var v        = cat[i] as Lang.Number;
-            var isFigure = withLines && i <= _lastFigureStar && figureStar[i] != 0;
-            var decDeg   = ((v >> 10) & 0x3FF) * DEC_STEP_DEG - 90.0;
+            var isFigure = withLines && i <= _lastFigureStar && _figureStar[i] != 0;
+            if (withLines && i <= _lastFigureStar) { figPos[i] = 0; }
+
+            var v      = cat[i] as Lang.Number;
+            var decDeg = ((v >> 10) & 0x3FF) * DEC_STEP_DEG - 90.0;
 
             // Never rises at this latitude.
             if (!isFigure && (latDeg >= 0.0 ? (decDeg < latDeg - 90.0) : (decDeg > latDeg + 90.0))) { continue; }
@@ -258,67 +293,73 @@ module Stellar {
                 x += rho * east  / len;
                 y -= rho * north / len;
             }
+            var xi = MathUtil.roundNearest(x);
+            var yi = MathUtil.roundNearest(y);
 
-            var size     = starSizeForMag(mag);       // fixed per star, whatever its height
-            var colorBin = v & 0x7;
-            var color    = mipMode ? MiPArt.starColor(size, colorBin) : amoledColors[colorBin];
             if (visible) {
-                stars.add([MathUtil.roundNearest(x), MathUtil.roundNearest(y), size, color]);
-                if (withLines) { slot[i] = stars.size(); }
-            } else if (up) {
-                extraStars.add([MathUtil.roundNearest(x), MathUtil.roundNearest(y), size, color]);
-                slot[i] = -extraStars.size();
-            } else {
-                extraStars.add([x, y, size, color, true]);
-                slot[i] = -extraStars.size();
+                stars.add(packStar(xi, yi, starSizeForMag(mag), v & 0x7));
+            }
+            if (isFigure) {
+                var p = POS_PLACED | ((xi + POS_OFFSET) & 0x7FF) | (((yi + POS_OFFSET) & 0x7FF) << 11);
+                if (up)      { p |= POS_UP; }
+                if (visible) { p |= POS_SHOWN; }
+                figPos[i] = p;
             }
         }
 
-        _projectedLines = withLines ? projectLines(lines, stars, slot, extraStars, cx, cy, skyRadiusPx) : [];
+        if (withLines) {
+            _projectedLines = projectLines(lines, cat, stars, figPos, cx, cy, skyRadiusPx);
+        }
         _projectedStars = stars;
+        _starColorBins  = mipMode ? null : AmoledArt.starColors();
         _lineColor      = mipMode ? MiPArt.CONSTELLATION_LINE : AmoledArt.CONSTELLATION_LINE;
         _lineAntiAlias  = !mipMode;
         _projectionKey  = key;
     }
 
+    function packStar(x, y, size, colorBin) {
+        return (x & 0x7FF) | ((y & 0x7FF) << 11) | (size << 22) | (colorBin << 24);
+    }
+
     // Every figure line with at least one star above the horizon, cut at the
-    // edge of the sky. The figure stars it reaches that are up join stars.
-    function projectLines(lines, stars, slot, extraStars, cx, cy, skyR) {
+    // edge of the sky. Figure stars it reaches that are up but not yet shown
+    // join the shown stars.
+    function projectLines(lines, cat, stars, figPos, cx, cy, skyR) {
         var out = [];
         for (var k = 0; k < lines.size(); k += 1) {
             var ia = lines[k] & 0x1FF;
             var ib = (lines[k] >> 9) & 0x1FF;
-            if (slot[ia] == null || slot[ib] == null) { continue; }
-            var a = starInSlot(slot[ia], stars, extraStars) as Lang.Array;
-            var b = starInSlot(slot[ib], stars, extraStars) as Lang.Array;
-            var aUp = (a.size() == 4);
-            var bUp = (b.size() == 4);
+            var pa = figPos[ia];
+            var pb = figPos[ib];
+            if (pa == null || pb == null || pa == 0 || pb == 0) { continue; }
+            var aUp = (pa & POS_UP) != 0;
+            var bUp = (pb & POS_UP) != 0;
             if (!aUp && !bUp) { continue; }
-            if (aUp) { reveal(ia, stars, slot, extraStars); }
-            if (bUp) { reveal(ib, stars, slot, extraStars); }
-            addLine(out, a, b, aUp, bUp, cx, cy, skyR);
+            if (aUp && (pa & POS_SHOWN) == 0) { pa = reveal(ia, pa, cat, stars, figPos); }
+            if (bUp && (pb & POS_SHOWN) == 0) { pb = reveal(ib, pb, cat, stars, figPos); }
+            var gapA = aUp ? LINE_GAP_PX[starSizeForMag(MAG_ZERO + ((cat[ia] >> 3) & 0x7F) * MAG_STEP)] : 0;
+            var gapB = bUp ? LINE_GAP_PX[starSizeForMag(MAG_ZERO + ((cat[ib] >> 3) & 0x7F) * MAG_STEP)] : 0;
+            addLine(out, (pa & 0x7FF) - POS_OFFSET, ((pa >> 11) & 0x7FF) - POS_OFFSET, gapA,
+                         (pb & 0x7FF) - POS_OFFSET, ((pb >> 11) & 0x7FF) - POS_OFFSET, gapB, cx, cy, skyR);
         }
         return out;
     }
 
-    function starInSlot(s, stars, extraStars) {
-        return (s > 0) ? stars[s - 1] : extraStars[-s - 1];
+    // Show a figure star that is up: add it to the shown stars.
+    function reveal(t, p, cat, stars, figPos) {
+        var v = cat[t] as Lang.Number;
+        stars.add(packStar((p & 0x7FF) - POS_OFFSET, ((p >> 11) & 0x7FF) - POS_OFFSET,
+                           starSizeForMag(MAG_ZERO + ((v >> 3) & 0x7F) * MAG_STEP), v & 0x7));
+        p |= POS_SHOWN;
+        figPos[t] = p;
+        return p;
     }
 
-    // Move a figure star that is up from extraStars into stars.
-    function reveal(t, stars, slot, extraStars) {
-        if (slot[t] > 0) { return; }
-        stars.add(extraStars[-slot[t] - 1]);
-        slot[t] = stars.size();
-    }
-
-    // A line from star a to star b, cut to the sky disc (centre cx, cy,
-    // radius skyR) and kept clear of the stars at the ends that are up.
-    function addLine(out, a, b, aUp, bUp, cx, cy, skyR) {
-        var ax = a[0].toFloat();
-        var ay = a[1].toFloat();
-        var dx = b[0] - ax;
-        var dy = b[1] - ay;
+    // A line from (ax, ay) to (bx, by), cut to the sky disc (centre cx, cy,
+    // radius skyR) and kept gapA and gapB pixels clear of its ends.
+    function addLine(out, ax, ay, gapA, bx, by, gapB, cx, cy, skyR) {
+        var dx   = (bx - ax).toFloat();
+        var dy   = (by - ay).toFloat();
         var len2 = dx * dx + dy * dy;
         if (len2 < 1.0) { return; }
         var len = Math.sqrt(len2);
@@ -333,16 +374,16 @@ module Stellar {
         var root = Math.sqrt(disc);
         var lo   = (-bq - root) / len2;
         var hi   = (-bq + root) / len2;
-        if (lo < 0.0) { lo = 0.0; }
-        if (hi > 1.0) { hi = 1.0; }
-        if (aUp && lo < LINE_GAP_PX[a[2]] / len)       { lo = LINE_GAP_PX[a[2]] / len; }
-        if (bUp && hi > 1.0 - LINE_GAP_PX[b[2]] / len) { hi = 1.0 - LINE_GAP_PX[b[2]] / len; }
+        if (lo < gapA / len)       { lo = gapA / len; }
+        if (hi > 1.0 - gapB / len) { hi = 1.0 - gapB / len; }
         if ((hi - lo) * len < 1.0) { return; }
 
-        out.add(MathUtil.roundNearest(ax + dx * lo));
-        out.add(MathUtil.roundNearest(ay + dy * lo));
-        out.add(MathUtil.roundNearest(ax + dx * hi));
-        out.add(MathUtil.roundNearest(ay + dy * hi));
+        var x0 = MathUtil.roundNearest(ax + dx * lo);
+        var y0 = MathUtil.roundNearest(ay + dy * lo);
+        var x1 = MathUtil.roundNearest(ax + dx * hi);
+        var y1 = MathUtil.roundNearest(ay + dy * hi);
+        out.add((x0 & 0x7FF) | ((y0 & 0x7FF) << 11));
+        out.add((x1 & 0x7FF) | ((y1 & 0x7FF) << 11));
     }
 
     function drawProjectedStars(dc) {
@@ -354,11 +395,13 @@ module Stellar {
             var aa = _lineAntiAlias && (dc has :setAntiAlias);
             if (aa) { dc.setAntiAlias(true); }
             dc.setColor(_lineColor, Drawing.BLACK);
-            for (var i = 0; i < _projectedLines.size(); i += 4) {
-                var x0 = _projectedLines[i];
-                var y0 = _projectedLines[i + 1];
-                var x1 = _projectedLines[i + 2];
-                var y1 = _projectedLines[i + 3];
+            for (var i = 0; i < _projectedLines.size(); i += 2) {
+                var p0 = _projectedLines[i];
+                var p1 = _projectedLines[i + 1];
+                var x0 = p0 & 0x7FF;
+                var y0 = (p0 >> 11) & 0x7FF;
+                var x1 = p1 & 0x7FF;
+                var y1 = (p1 >> 11) & 0x7FF;
                 if (b != null && ((x0 < b[0] && x1 < b[0]) || (x0 > b[2] && x1 > b[2])
                                || (y0 < b[1] && y1 < b[1]) || (y0 > b[3] && y1 > b[3]))) {
                     continue;
@@ -367,12 +410,18 @@ module Stellar {
             }
             if (aa) { dc.setAntiAlias(false); }
         }
+
         for (var i = 0; i < _projectedStars.size(); i += 1) {
-            var s = _projectedStars[i] as Lang.Array;
-            if (b != null && (s[0] < b[0] || s[0] > b[2] || s[1] < b[1] || s[1] > b[3])) {
+            var s  = _projectedStars[i];
+            var x  = s & 0x7FF;
+            var y  = (s >> 11) & 0x7FF;
+            if (b != null && (x < b[0] || x > b[2] || y < b[1] || y > b[3])) {
                 continue;
             }
-            Drawing.drawProjectedStar(dc, s[0], s[1], s[2], s[3]);
+            var size = (s >> 22) & 0x3;
+            var bin  = (s >> 24) & 0x7;
+            var color = (_starColorBins == null) ? MiPArt.starColor(size, bin) : _starColorBins[bin];
+            Drawing.drawProjectedStar(dc, x, y, size, color);
         }
     }
 
