@@ -14,7 +14,7 @@
         <string id="mipModeTitle">Schermtype</string>
         <string id="showSecondsTitle">Seconden tonen</string>
         <string id="moonDarkSideTitle">Donkere kant van de maan tonen</string>
-        <string id="moonSizeTitle">Maangrootte</string>
+        <string id="moonSizeTitle">Grootte van zon en maan</string>
         <string id="useGpsTitle">Locatie</string>
         <string id="latDegTitle">Thuisbreedtegraad (decimale graden, positief = N)</string>
         <string id="lonDegTitle">Thuislengtegraat (decimale graden, positief = O)</string>

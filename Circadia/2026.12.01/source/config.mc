@@ -161,9 +161,10 @@ module config {
     function weekStartDay()     { return _weekStartDay;     }
     function moonSize()         { return _moonSize;         }
     function moonDarkSide()     { return _moonDarkSide;     }
-    // Moon diameter in degrees of sky. The largest setting (20) matches the
-    // sun's white disc: keep it equal to 2 * SunArt.WHITE_DISC_DEG. The
-    // smaller settings keep their original proportions to it (3/4 and 7/8).
+    // Moon diameter in degrees of sky, from the "Sun and moon size" setting.
+    // The sun's white disc always matches it (SunArt.sizeScale()), and the
+    // rest of the sun scales with it; Large (20) is the full-size sun: keep it
+    // equal to 2 * SunArt.WHITE_DISC_DEG. The smaller settings are 3/4 and 7/8.
     function moonDiameterDeg() {
         if (_moonSize == MOON_SIZE_MEDIUM) { return 17.5; }
         if (_moonSize == MOON_SIZE_LARGE)  { return 20.0; }

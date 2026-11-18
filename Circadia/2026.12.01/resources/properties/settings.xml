@@ -118,7 +118,7 @@
             </settingConfig>
         </setting>
 
-        <!-- ─── Moon Size ─────────────────────────────────────────────── -->
+        <!-- ─── Sun and Moon Size ─────────────────────────────────────── -->
         <setting propertyKey="@Properties.moonSize" title="@Strings.moonSizeTitle">
             <settingConfig type="list">
                 <listEntry value="0">@Strings.moonSizeSmall</listEntry>

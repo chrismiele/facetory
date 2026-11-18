@@ -15,39 +15,38 @@ module MiPArt {
 
     // ── Sun ──────────────────────────────────────────────────────────────────
     //
-    // Three layers at every stage: a ball the size of the white disc (10
-    // degrees, the largest moon) and two thin rings around it, 2 degrees each,
-    // so by day the MIP sun is 28 degrees across. (AMOLED's 36-degree corona
-    // is too heavy in flat MIP colours.) Through twilight the outer ring
-    // widens evenly, from 14 degrees at sunset to 18 at the end of
-    // astronomical twilight, so like the AMOLED corona its last trace leaves
-    // the sky exactly when full night begins. The inner ring sets at the end
-    // of nautical twilight.
+    // The MIP sun is flat rings of colour, and as it goes down the colours
+    // flow: each new colour grows in at the outside and pushes the one inside
+    // it down, while the brightest colours shrink toward the middle and are
+    // lost below the horizon. No ring ever changes colour all at once.
     //
-    // One colour ramp, from white-hot through yellow, orange and red to the
-    // purples and blues of twilight. At step s the ball is RAMP[s], the inner
-    // ring RAMP[s+1] and the outer ring RAMP[s+2], so as the sun sets it slides
-    // one step down the ramp at a time and the three layers always differ.
-    // The ball and both rings spread along the horizon from +3, exactly as
-    // the AMOLED sun does, with the same reach (see sun.mc).
+    // It follows the AMOLED sun stage for stage: the colour that fills what is
+    // left above the horizon is the AMOLED sun's colour at that moment, with at
+    // most a hint of the next one at the outer edge:
     //
-    //   step  sun altitude    ball     inner    outer
-    //    0     3 and above    FFFFFF   FFFF55   FFFF00
-    //    1     0 to   3       FFFF55   FFFF00   FFAA00
-    //    2    -3 to   0       FFFF00   FFAA00   FF5500
-    //    3    -6 to  -3       FFAA00   FF5500   FF0000
-    //    4    -9 to  -6       FF5500   FF0000   FF00AA
-    //    5   -12 to  -9       FF0000   FF00AA   AA00AA   (ball set at -10)
-    //    6   -18 to -12       FF00AA   AA00AA   5500AA   (inner ring set at -12; outer ring sets at -18)
+    //   +6 and above   white ball in yellow rings
+    //   +3             white shrinking, amber at the edge
+    //   sunset         white gone: yellow in the middle, amber, orange edge
+    //   -3             orange
+    //   -6             red (end of civil twilight)
+    //   -9             red into magenta
+    //   -12            purple (end of nautical twilight)
+    //   -15            indigo
+    //   -18            blue, setting exactly as full night begins
     //
-    // Neighbouring ramp colours must look different on a MIP screen, since
-    // any two of them can sit side by side, also once spread out. Red is
+    // BAND_EDGES gives, at each BAND_ALT, the outer edge of each colour of
+    // SUN_COLORS as a share of the sun's outer edge; a colour not yet in sits
+    // at 1 (no width), one gone at 0. In between, edges move evenly. Sizes
+    // scale with "Sun and moon size" (the ball matches the moon); the outer
+    // edge is OUTER_RING_DEG by day and widens to 18 deg through twilight
+    // (SunArt.glowOuterDeg()). Bands too thin to read (MIN_RING_DEG), or a
+    // centre disc under a third of the ball, are left out, so a colour leaves
+    // cleanly. All of it spreads along the horizon from +3 like the AMOLED
+    // sun (see sun.mc).
+    //
+    // Neighbouring colours must look different on a MIP screen. Red is
     // followed by pink (FF00AA), not crimson (FF0055), which is hard to tell
     // from red.
-    //
-    // The step follows sunStage(), except that the white ball stays until +3,
-    // half way through the white-hot fade (+6 to sunset; MIP cannot fade it),
-    // then gives way to pale yellow, and the rings move down with it.
     //
     // The minute text takes MINUTE_COLORS[sunStage()], which follows the same
     // timing as the AMOLED palette: orange around sunset, red by the end of
@@ -63,18 +62,33 @@ module MiPArt {
     //     5   -12 to  -9       FF55AA
     //     6   -18 to -12       AA55FF
     //     7   below -18        55AAFF
-    const SUN_RAMP = [
-        0xFFFFFF, 0xFFFF55, 0xFFFF00, 0xFFAA00, 0xFF5500, 0xFF0000,
-        0xFF00AA, 0xAA00AA, 0x5500AA
+    //
+    //   white, pale yellow, yellow, amber, orange, red, pink, purple, indigo, blue
+    const SUN_COLORS = [
+        0xFFFFFF, 0xFFFF55, 0xFFFF00, 0xFFAA00, 0xFF5500,
+        0xFF0000, 0xFF00AA, 0xAA00AA, 0x5500AA, 0x5555FF
     ];
+    const BAND_ALT   = [6.0, 3.0, 0.0, -3.0, -6.0, -9.0, -12.0, -15.0, -18.0];
+    const BAND_EDGES = [
+        0.714, 0.857, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000,   // +6
+        0.500, 0.660, 0.840, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000,   // +3
+        0.000, 0.000, 0.350, 0.800, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000,   // +0
+        0.000, 0.000, 0.000, 0.400, 0.800, 1.000, 1.000, 1.000, 1.000, 1.000,   // -3
+        0.000, 0.000, 0.000, 0.000, 0.500, 0.920, 1.000, 1.000, 1.000, 1.000,   // -6
+        0.000, 0.000, 0.000, 0.000, 0.000, 0.600, 0.860, 1.000, 1.000, 1.000,   // -9
+        0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.620, 1.000, 1.000, 1.000,   // -12
+        0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.800, 1.000, 1.000,   // -15
+        0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.000, 0.850, 1.000    // -18
+    ];
+    const BAND_COUNT   = 10;
+    const MIN_RING_DEG = 0.8;
 
     // Minute-text colour for each stage. All bright enough to read on black.
     const MINUTE_COLORS = [
         0xFFFF00, 0xFFAA00, 0xFF5500, 0xFF0000, 0xFF0055, 0xFF55AA, 0xAA55FF, 0x55AAFF
     ];
 
-    const INNER_RING_DEG     = 12.0;   // outer edge of the inner ring: the AMOLED core's edge
-    const OUTER_RING_DEG     = 14.0;   // outer edge of the whole MIP sun until sunset; see outerRingDeg()
+    const OUTER_RING_DEG     = 14.0;   // the Large sun's outer edge by day (ball 10, rings to 12 and 14)
 
     // ── Moon ─────────────────────────────────────────────────────────────────
     const MIP_MOON_BRIGHT   = 0xAAAAAA;   // lit face, every phase but full
@@ -146,32 +160,51 @@ module MiPArt {
     // ── Drawing functions ────────────────────────────────────────────────────
 
     // The ramp step for the sun's own colours (see the table above).
-    function sunRampStep(altDeg) {
-        var k = sunStage(altDeg);
-        if (SunArt.whiteHot(altDeg) >= 0.5) { return 0; }
-        return (k < 1) ? 1 : k;
+    // The outer edge of each colour, as shares of the outer edge, at this
+    // sun altitude.
+    function bandEdges(altDeg) {
+        var n    = BAND_COUNT;
+        var last = BAND_ALT.size() - 1;
+        var out  = new [n];
+        if (altDeg >= BAND_ALT[0] || altDeg <= BAND_ALT[last]) {
+            var row = (altDeg >= BAND_ALT[0]) ? 0 : last;
+            for (var k = 0; k < n; k += 1) { out[k] = BAND_EDGES[row * n + k]; }
+            return out;
+        }
+        var i = 1;
+        while (altDeg < BAND_ALT[i]) { i += 1; }
+        var t = (BAND_ALT[i - 1] - altDeg) / (BAND_ALT[i - 1] - BAND_ALT[i]);
+        for (var k = 0; k < n; k += 1) {
+            var e0 = BAND_EDGES[(i - 1) * n + k];
+            out[k] = e0 + (BAND_EDGES[i * n + k] - e0) * t;
+        }
+        return out;
     }
 
-    // The outer ring's radius: OUTER_RING_DEG until sunset, then widening
-    // evenly to SunArt.OUTER_DEG at the end of astronomical twilight. Its top
-    // edge, (altitude + radius) above the horizon, then reaches the horizon
-    // exactly at full night.
-    function outerRingDeg(altDeg) {
-        var t = MathUtil.clamp(-altDeg / SunArt.OUTER_DEG, 0.0, 1.0);
-        return OUTER_RING_DEG + (SunArt.OUTER_DEG - OUTER_RING_DEG) * t;
-    }
-
-    // Outer ring, inner ring, ball: each brighter layer goes on top. All
-    // three spread along the horizon (SunArt.drawLayer).
-    function drawSun(dc, cx, cy, R, sx, sy, altDeg) {
+    // scale: "Sun and moon size" (SunArt.sizeScale()).
+    function drawSun(dc, cx, cy, R, sx, sy, altDeg, scale) {
         if (altDeg <= -SunArt.OUTER_DEG) { return; }    // full night: the whole MIP sun has set
+        var ball  = SunArt.WHITE_DISC_DEG * scale;
+        var outer = SunArt.glowOuterDeg(OUTER_RING_DEG * scale, altDeg);
+        var edges = bandEdges(altDeg);
 
-        var s     = sunRampStep(altDeg);
-        var outer = outerRingDeg(altDeg);
+        // From the middle out: each colour fills from the edge before it to
+        // its own; keep the ones wide enough to read.
+        var radii = new [BAND_COUNT];
+        var prev  = 0.0;
+        for (var k = 0; k < BAND_COUNT; k += 1) {
+            var e = (edges[k] > prev) ? edges[k] : prev;
+            if ((e - prev) * outer >= MIN_RING_DEG && !(prev <= 0.0 && e * outer < ball / 3.0)) {
+                radii[k] = e * outer;
+            }
+            prev = e;
+        }
+
+        // Outermost first; each brighter colour goes on top.
         SunArt.prepareSpread(cx, cy, R, sx, sy, altDeg, outer);
-        SunArt.drawLayer(dc, outer,                 SUN_RAMP[s + 2]);
-        SunArt.drawLayer(dc, INNER_RING_DEG,        SUN_RAMP[s + 1]);
-        SunArt.drawLayer(dc, SunArt.WHITE_DISC_DEG, SUN_RAMP[s]);
+        for (var k = BAND_COUNT - 1; k >= 0; k -= 1) {
+            if (radii[k] != null) { SunArt.drawLayer(dc, radii[k], SUN_COLORS[k]); }
+        }
     }
 
     // Glow rings only for the full moon (no body disc): outerColor ring → innerColor ring.

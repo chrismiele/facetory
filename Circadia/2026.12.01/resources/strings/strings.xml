@@ -13,7 +13,7 @@
         <string id="mipModeTitle">Display type</string>
         <string id="showSecondsTitle">Show seconds</string>
         <string id="moonDarkSideTitle">Show the moon's dark side</string>
-        <string id="moonSizeTitle">Moon size</string>
+        <string id="moonSizeTitle">Sun and moon size</string>
         <string id="useGpsTitle">Location</string>
         <string id="latDegTitle">Home latitude (decimal degrees, positive = N)</string>
         <string id="lonDegTitle">Home longitude (decimal degrees, positive = E)</string>

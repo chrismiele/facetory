@@ -14,7 +14,7 @@
         <string id="mipModeTitle">Tipo de pantalla</string>
         <string id="showSecondsTitle">Mostrar segundos</string>
         <string id="moonDarkSideTitle">Mostrar el lado oscuro de la luna</string>
-        <string id="moonSizeTitle">Tamaño de la luna</string>
+        <string id="moonSizeTitle">Tamaño del sol y la luna</string>
         <string id="useGpsTitle">Ubicación</string>
         <string id="latDegTitle">Latitud de inicio (grados decimales, positivo = N)</string>
         <string id="lonDegTitle">Longitud de inicio (grados decimales, positivo = E)</string>

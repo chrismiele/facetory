@@ -79,6 +79,9 @@ module SunArt {
     const BLACK = 0x000000;
 
     // ── Calibrated sizes (degrees) ───────────────────────────────────────────
+    // Sizes of the Large sun ("Sun and moon size"); the smaller sizes scale
+    // every edge by sizeScale(). The timing of twilight never scales: it is
+    // tied to CORE_DEG (end of nautical twilight) and OUTER_DEG (full night).
     const WHITE_DISC_DEG = 10.0;    // keep equal to half of config's largest moon diameter
     const CORE_DEG       = 12.0;    // end of nautical twilight; white disc plus its coloured rim
     const OUTER_DEG      = 18.0;    // end of astronomical twilight; keep equal to -Stellar.FULL_NIGHT_ALT_DEG
@@ -119,17 +122,30 @@ module SunArt {
     // (sx, sy) is the sun's projected position; it lies outside the sky disc
     // when the sun is below the horizon.
     function draw(dc, cx, cy, R, sx, sy, altDeg, mipMode) {
+        var scale = sizeScale();
         if (mipMode) {
-            MiPArt.drawSun(dc, cx, cy, R, sx, sy, altDeg);
+            MiPArt.drawSun(dc, cx, cy, R, sx, sy, altDeg, scale);
         } else {
-            AmoledArt.drawSun(dc, cx, cy, R, sx, sy, altDeg);
+            AmoledArt.drawSun(dc, cx, cy, R, sx, sy, altDeg, scale);
         }
     }
 
     // ── Calibration helpers ──────────────────────────────────────────────────
 
-    function coronaVisible(altDeg) { return altDeg > -OUTER_DEG; }
-    function coreVisible(altDeg)   { return altDeg > -CORE_DEG;  }
+    // The "Sun and moon size" setting as a share of the Large sun: the white
+    // disc always matches the moon (Small 0.75, Medium 0.875, Large 1).
+    function sizeScale() {
+        return config.moonDiameterDeg() / (2.0 * WHITE_DISC_DEG);
+    }
+
+    // The sun's outer edge. A smaller sun's glow would set before full night,
+    // so through twilight its edge widens evenly from baseDeg at sunset to
+    // OUTER_DEG at full night: every size keeps glowing at the horizon until
+    // full night begins, and the stage of twilight is told by its colour.
+    // The Large sun (baseDeg = OUTER_DEG) never widens.
+    function glowOuterDeg(baseDeg, altDeg) {
+        return baseDeg + (OUTER_DEG - baseDeg) * MathUtil.clamp(-altDeg / OUTER_DEG, 0.0, 1.0);
+    }
 
     // 1 = pure white disc, 0 = no white at all.
     function whiteHot(altDeg) {
@@ -188,7 +204,7 @@ module SunArt {
     }
 
     // Remember this frame's sun for drawLayer(). outerDeg: the radius of the
-    // display's outermost layer (OUTER_DEG on AMOLED, MiPArt.OUTER_RING_DEG).
+    // display's outermost layer this frame (see glowOuterDeg()).
     function prepareSpread(cx, cy, R, sx, sy, altDeg, outerDeg) {
         _cx  = cx;
         _cy  = cy;

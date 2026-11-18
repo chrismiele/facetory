@@ -26,7 +26,7 @@ module AmoledArt {
 
     // ── Moon ─────────────────────────────────────────────────────────────────
     const MOON_AMOLED = 0xC8CDD3;   // soft silver disc on AMOLED
-    const MOON_DARK   = 0x24262A;   // unlit side: just visible against the black sky
+    const MOON_DARK   = 0x2D3035;   // unlit side: faint against the black sky
 
     // ── Stars (colour-bin lookup) ─────────────────────────────────────────────
     const STAR_YELLOW       = 0xFFD080;   // warmer, more amber
@@ -120,35 +120,39 @@ module AmoledArt {
 
     // Layers are painted from the outside in, so each brighter layer goes on
     // top of the dimmer one around it. The core goes on top of the corona.
-    function drawSun(dc, cx, cy, R, sx, sy, altDeg) {
-        var col = sunColorForAlt(altDeg);
+    // scale: "Sun and moon size" (SunArt.sizeScale()); every edge scales with
+    // it, and the corona widens through twilight to reach full night
+    // (SunArt.glowOuterDeg()).
+    function drawSun(dc, cx, cy, R, sx, sy, altDeg, scale) {
+        var col   = sunColorForAlt(altDeg);
+        var core  = SunArt.CORE_DEG * scale;
+        var outer = SunArt.glowOuterDeg(SunArt.OUTER_DEG * scale, altDeg);
+        if (altDeg <= -outer) { return; }
 
         // Every layer below spreads along the horizon after +3 (see sun.mc).
-        SunArt.prepareSpread(cx, cy, R, sx, sy, altDeg, SunArt.OUTER_DEG);
+        SunArt.prepareSpread(cx, cy, R, sx, sy, altDeg, outer);
 
         // Corona, from the outside in.
-        if (SunArt.coronaVisible(altDeg)) {
-            for (var i = 0; i < CORONA_FRAC.size(); i += 1) {
-                var rDeg = SunArt.CORE_DEG + CORONA_FRAC[i] * (SunArt.OUTER_DEG - SunArt.CORE_DEG);
-                SunArt.drawLayer(dc, rDeg, MathUtil.scaleColor(col, CORONA_BRIGHTNESS[i]));
-            }
+        for (var i = 0; i < CORONA_FRAC.size(); i += 1) {
+            var rDeg = core + CORONA_FRAC[i] * (outer - core);
+            SunArt.drawLayer(dc, rDeg, MathUtil.scaleColor(col, CORONA_BRIGHTNESS[i]));
         }
 
-        if (SunArt.coreVisible(altDeg)) {
-            drawSunCore(dc, col, SunArt.whiteHot(altDeg));
+        if (altDeg > -core) {
+            drawSunCore(dc, col, SunArt.whiteHot(altDeg), core, SunArt.WHITE_DISC_DEG * scale, scale);
         }
     }
 
     // A disc in the sun's colour out to the core's edge, then (while whiteHot
     // > 0) the white disc on top, with its soft edge. whiteHot = 1: pure white
     // at the centre; whiteHot = 0: no white at all.
-    function drawSunCore(dc, col, whiteHot) {
-        SunArt.drawLayer(dc, SunArt.CORE_DEG, col);
+    function drawSunCore(dc, col, whiteHot, coreDeg, whiteDeg, scale) {
+        SunArt.drawLayer(dc, coreDeg, col);
         if (whiteHot <= 0.0) { return; }
 
         var centre = MathUtil.blendColor(col, WHITE, whiteHot);
         for (var i = 0; i < CORE_STEP_POS.size(); i += 1) {
-            var rDeg = SunArt.WHITE_DISC_DEG + CORE_STEP_POS[i] * WHITE_EDGE_DEG;
+            var rDeg = whiteDeg + CORE_STEP_POS[i] * WHITE_EDGE_DEG * scale;
             SunArt.drawLayer(dc, rDeg, MathUtil.blendColor(col, centre, CORE_STEP_WHITE[i]));
         }
     }

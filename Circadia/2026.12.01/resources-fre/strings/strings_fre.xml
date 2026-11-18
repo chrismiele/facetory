@@ -13,7 +13,7 @@
         <string id="mipModeTitle">Type d'affichage</string>
         <string id="showSecondsTitle">Afficher les secondes</string>
         <string id="moonDarkSideTitle">Afficher la face sombre de la lune</string>
-        <string id="moonSizeTitle">Taille de la lune</string>
+        <string id="moonSizeTitle">Taille du soleil et de la lune</string>
         <string id="useGpsTitle">Localisation</string>
         <string id="latDegTitle">Latitude du domicile (degrés décimaux, positif = N)</string>
         <string id="lonDegTitle">Longitude du domicile (degrés décimaux, positif = E)</string>

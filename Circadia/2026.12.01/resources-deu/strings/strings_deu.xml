@@ -14,7 +14,7 @@
         <string id="mipModeTitle">Anzeigetyp</string>
         <string id="showSecondsTitle">Sekunden anzeigen</string>
         <string id="moonDarkSideTitle">Dunkle Mondseite anzeigen</string>
-        <string id="moonSizeTitle">Mondgröße</string>
+        <string id="moonSizeTitle">Größe von Sonne und Mond</string>
         <string id="useGpsTitle">Standort</string>
         <string id="latDegTitle">Heimatbreitengrad (Dezimalgrad, positiv = N)</string>
         <string id="lonDegTitle">Heimatlängengrad (Dezimalgrad, positiv = O)</string>
