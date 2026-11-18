@@ -3,4 +3,4 @@ The sun's visible edges at sunset now set at twilight boundaries: the core (12°
 Moon sizes follow the white disc: Small 15°, Medium 17.5°, Large 20° (the largest matches the white disc exactly).
 MIP: a ball the size of the white disc (10°) and two thin rings, to 12° and 14°.
 AMOLED: a stronger sun halo.
-The horizon glow is now built in and the setting is gone. From the end of golden hour (+6°) the sun itself spreads along the horizon, on AMOLED and MIP: every layer keeps its top edge in place while its curve flattens, goes straight and then hugs the edge. The sun's outer edge is straight exactly at sunset; the spread is greatest at the end of nautical twilight.
+The horizon glow is now built in and the setting is gone. From the end of golden hour (+6°) the sun itself spreads along the horizon, on AMOLED and MIP: every layer keeps its top edge in place while its curve flattens, goes straight and then hugs the edge. The sun's outer edge is straight at -3°; the spread is greatest at the end of nautical twilight.

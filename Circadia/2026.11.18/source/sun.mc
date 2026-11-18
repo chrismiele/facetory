@@ -53,7 +53,7 @@ using Toybox.Math;
 //
 // s = 0 is the round sun, s = 1 a band right around the horizon. s rises from
 // 0 at +6 (end of golden hour), reaches the value at which the sun's outer
-// edge (the AMOLED corona, the MIP outer ring) is exactly straight at sunset,
+// edge (the AMOLED corona, the MIP outer ring) is exactly straight at -3,
 // and SPREAD_MAX by the end of nautical twilight. A larger circle needs less
 // change to go straight, so the outer layers flatten first while the white
 // disc stays a dome until it sets. Past straight, a layer curves the other
@@ -70,9 +70,9 @@ module SunArt {
 
     // ── The sun spreads along the horizon ───────────────────────────────────
     const SPREAD_START_ALT_DEG = 6.0;     // end of golden hour: the sun starts to flatten
-    const SPREAD_FLAT_ALT_DEG  = 0.0;     // sunset: the sun's outer edge is exactly straight
+    const SPREAD_FLAT_ALT_DEG  = -3.0;    // the sun's outer edge is exactly straight
     const SPREAD_FULL_ALT_DEG  = -12.0;   // end of nautical twilight: as far as it goes
-    const SPREAD_MAX           = 0.92;    // share of the way to a band right around the horizon
+    const SPREAD_MAX           = 0.88;    // share of the way to a band right around the horizon
     const STRAIGHT_RADIUS_PX   = 20000.0; // flatter than this, a layer is drawn with a straight edge
     const RIM_OVERDRAW_PX      = 3.0;     // the sky disc stops 2px short of the screen edge
 
