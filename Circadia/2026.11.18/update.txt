@@ -1,0 +1,6 @@
+Changes since 2026.11.17:
+Every edge of the sun now leaves the sky at a twilight boundary: white disc 6° (end of civil twilight), core 12° (end of nautical), halo 18° (end of astronomical). On MIP: ball 6°, rings 9° and 12°, so the MIP sun sets at the end of nautical twilight.
+Moon sizes follow: the largest moon (12°) matches the sun's white disc; Small and Medium keep their old proportions (9° and 10.5°).
+AMOLED: a stronger sun halo.
+AMOLED, horizon glow on: there is no separate glow any more. From the end of golden hour (+6°) the sun itself spreads along the horizon: every layer keeps its top edge in place while its curve flattens, goes straight and then hugs the edge. The outer halo is straight at -3°; the spread is greatest at the end of nautical twilight. With the setting off the sun stays round.
+MIP keeps its two-crescent horizon glow.
