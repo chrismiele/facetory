@@ -55,13 +55,22 @@ using Toybox.Math;
 //
 //       curvature = (1 - s) / r  -  s / (90 - (h + r))        (per degree)
 //
-// s = 0 is the round sun, s = 1 a band right around the horizon. s rises from
-// 0 at +6 (end of golden hour), reaches the value at which the sun's outer
-// edge (the AMOLED corona, the MIP outer ring) is exactly straight at -3,
-// and SPREAD_MAX by the end of nautical twilight. A larger circle needs less
-// change to go straight, so the outer layers flatten first while the white
-// disc stays a dome until it sets. Past straight, a layer curves the other
-// way and hugs the rim. Since every top edge stays put, every edge still
+// s = 0 is the round sun, s = 1 a band of even depth right around the
+// horizon (the limit: past 1 the shape would wrap round to the far side). s
+// rises from 0 at +6 (end of golden hour) to the value at which the sun's
+// outer edge (the AMOLED corona, the MIP outer ring) is exactly straight at
+// -3. A larger circle needs less change to go straight, so the outer layers
+// flatten first while the white disc stays a dome until it sets.
+//
+// Past straight, a layer curves the other way and hugs the rim. From there s
+// is set by how far along the horizon the outer edge reaches: where it meets
+// the rim, measured either side of the sun's bearing (on this face, the angle
+// around the centre is the compass bearing, so this is degrees of azimuth).
+// The reach widens from where the straight edge meets the rim at -3 (about
+// +/-34 deg) to +/-60 deg at the end of nautical twilight and +/-90 deg, a
+// whole half of the horizon, as the glow sets at full night: lower and wider
+// as it fades. Inner layers take the same s and so curve less, which tapers
+// the glow toward its ends. Since every top edge stays put, every edge still
 // leaves the sky when it would have as a circle.
 module SunArt {
 
@@ -75,10 +84,15 @@ module SunArt {
     // ── The sun spreads along the horizon ───────────────────────────────────
     const SPREAD_START_ALT_DEG = 6.0;     // end of golden hour: the sun starts to flatten
     const SPREAD_FLAT_ALT_DEG  = -3.0;    // the sun's outer edge is exactly straight
-    const SPREAD_FULL_ALT_DEG  = -12.0;   // end of nautical twilight: as far as it goes
-    const SPREAD_MAX           = 0.88;    // share of the way to a band right around the horizon
+    // Past straight, how far either side of the sun's bearing the outer edge
+    // meets the rim (degrees of azimuth): this much at the end of nautical
+    // twilight (-CORE_DEG), and REACH_NIGHT_DEG as it sets at full night
+    // (-OUTER_DEG).
+    const REACH_NAUTICAL_DEG   = 60.0;
+    const REACH_NIGHT_DEG      = 90.0;
     const STRAIGHT_RADIUS_PX   = 20000.0; // flatter than this, a layer is drawn with a straight edge
     const RIM_OVERDRAW_PX      = 3.0;     // the sky disc stops 2px short of the screen edge
+    const MAX_ARC_HALF_DEG     = 179.0;   // a band hugging the rim never closes into a full ring
 
     // ── White-hot core ───────────────────────────────────────────────────────
     // The white disc is pure white while the sun is high and fades into the
@@ -130,17 +144,45 @@ module SunArt {
     function spreadAmount(altDeg, outerDeg) {
         if (altDeg >= SPREAD_START_ALT_DEG) { return 0.0; }
 
-        // The s at which the outermost layer's edge (height t) is straight.
-        var t     = SPREAD_FLAT_ALT_DEG + outerDeg;
-        var sFlat = (90.0 - t) / (90.0 - t + outerDeg);
-
+        // Down to -3: s rises evenly to the value at which the outermost
+        // layer's edge (top at height t) is straight.
         if (altDeg >= SPREAD_FLAT_ALT_DEG) {
+            var t     = SPREAD_FLAT_ALT_DEG + outerDeg;
+            var sFlat = (90.0 - t) / (90.0 - t + outerDeg);
             return sFlat * (SPREAD_START_ALT_DEG - altDeg) / (SPREAD_START_ALT_DEG - SPREAD_FLAT_ALT_DEG);
         }
-        if (altDeg > SPREAD_FULL_ALT_DEG) {
-            return sFlat + (SPREAD_MAX - sFlat) * (SPREAD_FLAT_ALT_DEG - altDeg) / (SPREAD_FLAT_ALT_DEG - SPREAD_FULL_ALT_DEG);
+
+        // Past straight: the s that makes the outermost edge meet the rim at
+        // horizonReach() either side of the sun's bearing. That edge's top is
+        // d from the centre (degrees; the rim is at 90). A circle through it,
+        // curving back around the centre, that meets the rim at reach phi has
+        // radius rho = (180 d cos phi - d^2 - 8100) / (180 cos phi - 2 d),
+        // and the header formula gives curvature -1/rho at
+        // s = (1/r + 1/rho) / (1/r + 1/d).
+        var top = altDeg + outerDeg;
+        if (top <= 0.0) { return 0.0; }        // the whole sun has set
+        var d   = 90.0 - top;
+        var c   = MathUtil.cosDeg(horizonReach(altDeg, outerDeg));
+        var den = 180.0 * c - 2.0 * d;
+        if (den >= 0.0) { return d / (d + outerDeg); }     // exactly straight
+        var rho = (180.0 * d * c - d * d - 8100.0) / den;
+        return (1.0 / outerDeg + 1.0 / rho) / (1.0 / outerDeg + 1.0 / d);
+    }
+
+    // Past -3, how far either side of the sun's bearing the outermost edge
+    // meets the rim (degrees of azimuth): from where the straight edge meets
+    // it at -3, evenly out to REACH_NAUTICAL_DEG at -12, then on to
+    // REACH_NIGHT_DEG at -18.
+    function horizonReach(altDeg, outerDeg) {
+        var nautical = -CORE_DEG;
+        if (altDeg >= nautical) {
+            var t        = SPREAD_FLAT_ALT_DEG + outerDeg;
+            var straight = MathUtil.rad2deg(Math.acos((90.0 - t) / 90.0));
+            return straight + (REACH_NAUTICAL_DEG - straight)
+                * (SPREAD_FLAT_ALT_DEG - altDeg) / (SPREAD_FLAT_ALT_DEG - nautical);
         }
-        return SPREAD_MAX;
+        var u = MathUtil.clamp((nautical - altDeg) / (OUTER_DEG - CORE_DEG), 0.0, 1.0);
+        return REACH_NAUTICAL_DEG + (REACH_NIGHT_DEG - REACH_NAUTICAL_DEG) * u;
     }
 
     // Remember this frame's sun for drawLayer(). outerDeg: the radius of the
@@ -220,10 +262,15 @@ module SunArt {
     function fillOutsideCircle(dc, gPx, rPx) {
         if (rPx >= gPx + _R) { return; }       // the circle covers the whole sky
 
-        var beta = 180.0;                      // half-angle of the arc, seen from the circle's centre
-        if (gPx >= 0.5) {
-            var c = (gPx * gPx + rPx * rPx - _R * _R) / (2.0 * gPx * rPx);
+        // Half-angle of the arc, seen from the circle's centre (law of cosines,
+        // written so it stays accurate when that centre is a fraction of a
+        // pixel from the screen centre, as it is just before full night).
+        // Kept under 180 so the arc's ends never meet.
+        var beta = MAX_ARC_HALF_DEG;
+        if (gPx > 0.0) {
+            var c = (gPx * gPx + (rPx - _R) * (rPx + _R)) / (2.0 * gPx * rPx);
             beta = MathUtil.rad2deg(Math.acos(MathUtil.clamp(c, -1.0, 1.0)));
+            if (beta > MAX_ARC_HALF_DEG) { beta = MAX_ARC_HALF_DEG; }
         }
 
         var theta = MathUtil.rad2deg(Math.atan2(-_uy, _ux));     // the sun's bearing, as drawArc measures angles

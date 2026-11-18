@@ -28,8 +28,8 @@ module MiPArt {
     // purples and blues of twilight. At step s the ball is RAMP[s], the inner
     // ring RAMP[s+1] and the outer ring RAMP[s+2], so as the sun sets it slides
     // one step down the ramp at a time and the three layers always differ.
-    // With the horizon glow on, the ball and both rings spread along the
-    // horizon from +6, exactly as the AMOLED sun does (see SunArt.drawLayer).
+    // The ball and both rings spread along the horizon from +6, exactly as
+    // the AMOLED sun does, with the same reach (see sun.mc).
     //
     //   step  sun altitude    ball     inner    outer
     //    0     3 and above    FFFFFF   FFFF55   FFFF00
@@ -160,8 +160,8 @@ module MiPArt {
         return OUTER_RING_DEG + (SunArt.OUTER_DEG - OUTER_RING_DEG) * t;
     }
 
-    // Outer ring, inner ring, ball: each brighter layer goes on top. With the
-    // horizon glow on they spread along the horizon (SunArt.drawLayer).
+    // Outer ring, inner ring, ball: each brighter layer goes on top. All
+    // three spread along the horizon (SunArt.drawLayer).
     function drawSun(dc, cx, cy, R, sx, sy, altDeg) {
         if (altDeg <= -SunArt.OUTER_DEG) { return; }    // full night: the whole MIP sun has set
 

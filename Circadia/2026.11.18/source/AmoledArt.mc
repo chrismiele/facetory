@@ -40,22 +40,37 @@ module AmoledArt {
     const SUNSET_ACCENT = 0xFF8000;   // tinges the hour text near sunrise/sunset
 
     // ── Sun ───────────────────────────────────────────────────────────────────
-    // Corona: rings between the core's edge and the sun's outer edge, listed
-    // from the outside in. FRAC is the position across the corona (1 = outer
-    // edge, 0 = edge of the core); BRIGHTNESS scales the sun's colour.
-    // Twelve evenly spaced rings, brightness 0.20 + 0.65 * t, where t runs
-    // from 0 at the outer edge to 1 at the innermost ring.
-    const CORONA_FRAC       = [1.000, 0.915, 0.829, 0.744, 0.658, 0.573,
-                               0.487, 0.402, 0.316, 0.231, 0.145, 0.060];
-    const CORONA_BRIGHTNESS = [0.200, 0.259, 0.318, 0.377, 0.436, 0.495,
-                               0.555, 0.614, 0.673, 0.732, 0.791, 0.850];
+    // The sun from the centre out, by day:
+    //    0 -  9 deg   pure white
+    //    9 - 11 deg   an S-curve from white to the sun's colour (half white at
+    //                 the 10 deg edge of the white disc)
+    //   11 - 12 deg   a ring of the sun's colour at full brightness
+    //   12 - 18 deg   the corona: it leaves the core's colour smoothly, bends
+    //                 onto a straight fade by 14 deg, and reaches 20% at its
+    //                 hard outer edge
+    // After sunset the white is gone, so the core is the sun's colour all the
+    // way out to 12 deg.
 
-    // Core: the sun's colour at its edge, grading to white at the edge of the
-    // white disc; everything inside that is pure white. POS is the position
-    // across the rim (1 = edge of the core, 0 = edge of the white disc); WHITE
-    // is how far toward white each step has gone.
-    const CORE_STEP_POS   = [1.00, 0.75, 0.50, 0.25, 0.00];
-    const CORE_STEP_WHITE = [0.00, 0.18, 0.42, 0.70, 1.00];
+    // Corona: rings between the core's edge and the sun's outer edge, listed
+    // from the outside in. FRAC is each ring's outer radius as a position
+    // across the corona (1 = outer edge, 0 = edge of the core); BRIGHTNESS
+    // scales the sun's colour, taken at the middle of the ring. Sixteen evenly
+    // spaced rings. The straight fade, 0.20 + 0.65 * (1 - t) / 0.94 for t
+    // across the corona, is bent up to full brightness at the core's edge
+    // over the first third (12 to 14 deg) along a half cosine.
+    const CORONA_FRAC       = [1.0000, 0.9375, 0.8750, 0.8125, 0.7500, 0.6875, 0.6250, 0.5625,
+                               0.5000, 0.4375, 0.3750, 0.3125, 0.2500, 0.1875, 0.1250, 0.0625];
+    const CORONA_BRIGHTNESS = [0.222, 0.265, 0.308, 0.351, 0.394, 0.438, 0.481, 0.524,
+                               0.567, 0.611, 0.654, 0.715, 0.809, 0.902, 0.968, 0.997];
+
+    // The white disc's soft edge: steps from WHITE_EDGE_DEG outside the white
+    // disc's edge to WHITE_EDGE_DEG inside it, listed from the outside in. POS
+    // is each step's radius as WHITE_DISC_DEG + POS * WHITE_EDGE_DEG; WHITE is
+    // how far toward white it has gone, along a half cosine taken at the
+    // middle of the step. The last step is the pure white disc.
+    const WHITE_EDGE_DEG  = 1.0;
+    const CORE_STEP_POS   = [1.00, 0.75, 0.50, 0.25, 0.00, -0.25, -0.50, -0.75, -1.00];
+    const CORE_STEP_WHITE = [0.010, 0.084, 0.222, 0.402, 0.598, 0.778, 0.916, 0.990, 1.000];
 
     // ── Moon glow drawing constants ───────────────────────────────────────────
     const MOON_GLOW_DEG                 = 45.0;
@@ -107,8 +122,7 @@ module AmoledArt {
     function drawSun(dc, cx, cy, R, sx, sy, altDeg) {
         var col = sunColorForAlt(altDeg);
 
-        // With the horizon glow on, every layer below spreads along the
-        // horizon after +6; otherwise each is a plain circle around the sun.
+        // Every layer below spreads along the horizon after +6 (see sun.mc).
         SunArt.prepareSpread(cx, cy, R, sx, sy, altDeg, SunArt.OUTER_DEG);
 
         // Corona, from the outside in.
@@ -124,17 +138,16 @@ module AmoledArt {
         }
     }
 
-    // whiteHot = 1: a pure white disc, giving way to the sun's colour at the
-    // edge of the core. whiteHot = 0: one flat disc in the sun's colour.
+    // A disc in the sun's colour out to the core's edge, then (while whiteHot
+    // > 0) the white disc on top, with its soft edge. whiteHot = 1: pure white
+    // at the centre; whiteHot = 0: no white at all.
     function drawSunCore(dc, col, whiteHot) {
-        if (whiteHot <= 0.0) {
-            SunArt.drawLayer(dc, SunArt.CORE_DEG, col);
-            return;
-        }
+        SunArt.drawLayer(dc, SunArt.CORE_DEG, col);
+        if (whiteHot <= 0.0) { return; }
 
         var centre = MathUtil.blendColor(col, WHITE, whiteHot);
         for (var i = 0; i < CORE_STEP_POS.size(); i += 1) {
-            var rDeg = SunArt.WHITE_DISC_DEG + CORE_STEP_POS[i] * (SunArt.CORE_DEG - SunArt.WHITE_DISC_DEG);
+            var rDeg = SunArt.WHITE_DISC_DEG + CORE_STEP_POS[i] * WHITE_EDGE_DEG;
             SunArt.drawLayer(dc, rDeg, MathUtil.blendColor(col, centre, CORE_STEP_WHITE[i]));
         }
     }
