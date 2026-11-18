@@ -134,6 +134,12 @@ class CircadiaView extends WatchUi.WatchFace {
             _skyStale = false;
         }
 
+        // The star sky is built a bounded step per update (see Stellar), so
+        // no single update runs long enough to trip the watchdog.
+        if (showSky && config.showStars()) {
+            Stellar.continueWork();
+        }
+
         _sceneTime = [t.hour, t.min, t.sec];
 
         if (showSky) {
