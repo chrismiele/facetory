@@ -3,7 +3,7 @@
   stars_brightest.json       the brightest stars, brightest first
   stars_constellations.json  well-known constellation figures first
   stars_lines.json           the lines of the well-known figures, for the
-                             constellations table
+                             constellations table (drawn at full night)
 
 Sources
   Stars: Yale Bright Star Catalogue, 5th revised ed. (Hoffleit & Warren 1991),
@@ -32,7 +32,8 @@ Constellations order: a star's rank is its magnitude, less a bonus:
     the small figures in CORE_FIGURES, the Pleiades, and the bright stars
     (to CORE_ANCHOR_MAG) of the FAMOUS figures, such as Orion's shoulders
     and feet. Stars to CORE_MAX_MAG.
-  FAMOUS_BONUS for the rest of a FAMOUS figure, to MEMBER_MAX_MAG.
+  FAMOUS_BONUS for every other star of a FAMOUS figure (all of them, so a
+    figure's lines can be drawn).
   FIGURE_BONUS for a star in any other constellation figure.
 Within each core shape and each famous figure, stars fainter than its median
 are ranked at the median, so a shape comes in as a whole rather than star by
@@ -62,7 +63,9 @@ CORE_ASTERISMS = ("BigDipper LittleDipper TheQueensW HouseofCepheus Belt WinterT
 CORE_FIGURES    = "Lyr CrB TrA Cru".split()
 CORE_ANCHOR_MAG = 2.5
 CORE_MAX_MAG    = 5.0
-MEMBER_MAX_MAG  = 4.5
+# Lines left out of a figure, as (figure, HR, HR): Orion's shoulders are
+# joined through the head only, as on the usual star charts.
+REMOVE_LINES    = [("Ori", 2061, 1790)]     # Betelgeuse - Bellatrix
 CORE_BONUS      = 3.0
 FAMOUS_BONUS    = 1.5
 FIGURE_BONUS    = 0.5
@@ -140,6 +143,9 @@ def segments(stars, lines_path):
                            key=lambda i: sep(ra, lat, stars[i]['ra'], stars[i]['de']))
                 idx.append(best)
             segs += [(a, b) for a, b in zip(idx, idx[1:]) if a != b]
+    for c, h1, h2 in REMOVE_LINES:
+        drop = {i for i, s in enumerate(stars) if s['hr'] in (h1, h2)}
+        out[c] = [ab for ab in out[c] if set(ab) != drop]
     return out
 
 
@@ -155,8 +161,8 @@ def to_epoch(stars, epoch=EPOCH):
 
 
 def famous_groups(stars, figs):
-    """{figure id: its stars to MEMBER_MAX_MAG} for the FAMOUS figures"""
-    return {c: {i for i in figs[c] if stars[i]['v'] <= MEMBER_MAX_MAG} for c in FAMOUS}
+    """{figure id: all its stars} for the FAMOUS figures"""
+    return {c: set(figs[c]) for c in FAMOUS}
 
 
 def core_groups(stars, figs, asterisms):
@@ -191,27 +197,24 @@ def constellation_order(stars, figs, asterisms):
     return sorted(range(len(stars)), key=lambda i: (key[i], stars[i]['v']))
 
 
-def line_table(stars, figs, asterisms, segs, order):
-    """Lines of the FAMOUS figures, in two tiers per figure, as packed integers:
-         bits  0-8   table index of one end      bits 18-24  figure number
-         bits  9-17  table index of the other    bit  25     tier (0 core, 1 full)
-       Tier 0: the figure's lines between core-shape stars. Tier 1: all its
-       lines between stars to MEMBER_MAX_MAG (or core stars). The watch draws
-       a figure's highest tier whose stars are all on screen."""
+def line_table(stars, segs, order):
+    """Lines of the FAMOUS figures as packed integers, grouped by figure:
+         bits  0-8   table index of one end
+         bits  9-17  table index of the other
+         bits 18-24  figure number
+       The watch draws a figure's lines at full night when all its stars are
+       up and among the stars shown."""
     pos = {i: k for k, i in enumerate(order)}
-    core = set().union(*core_groups(stars, figs, asterisms).values())
-    fam = famous_groups(stars, figs)
     vals = []
     for n, c in enumerate(FAMOUS):
-        tiers = (core, core | fam[c])
-        for t, ok in enumerate(tiers):
-            seen = set()
-            for a, b in segs[c]:
-                if a in ok and b in ok and a in pos and b in pos and frozenset((a, b)) not in seen:
-                    seen.add(frozenset((a, b)))
-                    pa, pb = pos[a], pos[b]
-                    assert pa < 512 and pb < 512
-                    vals.append(pa | (pb << 9) | (n << 18) | (t << 25))
+        seen = set()
+        for a, b in segs[c]:
+            if frozenset((a, b)) in seen:
+                continue
+            seen.add(frozenset((a, b)))
+            assert a in pos and b in pos, f"{c}: figure star not in the table"
+            assert pos[a] < 512 and pos[b] < 512
+            vals.append(pos[a] | (pos[b] << 9) | (n << 18))
     return vals
 
 
@@ -261,6 +264,6 @@ if __name__ == '__main__':
     write(stars, list(range(len(stars))), out + '/stars_brightest.json')
     order = constellation_order(stars, figs, asterisms)
     write(stars, order, out + '/stars_constellations.json')
-    lines = line_table(stars, figs, asterisms, segments(stars, d3data + '/constellations.lines.json'), order)
+    lines = line_table(stars, segments(stars, d3data + '/constellations.lines.json'), order)
     json.dump(lines, open(out + '/stars_lines.json', 'w'), separators=(',', ':'))
-    print(f"{out}/stars_lines.json: {len(lines)} lines ({sum(1 for v in lines if not v >> 25)} core)")
+    print(f"{out}/stars_lines.json: {len(lines)} lines")

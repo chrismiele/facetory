@@ -35,15 +35,14 @@ using Toybox.WatchUi;
 // index, binned when the table was built (Drawing.STAR_BIN_*). The dimming
 // near the horizon only decides when a star appears.
 //
-// Constellation lines (Constellations only). Faint lines join the stars of
-// the well-known figures, drawn under the stars and stopping just short of
-// them. A figure's lines appear only once every one of its stars is on
-// screen, so a figure is drawn the moment its last star appears, and goes
-// when its first star sets or fades. Each figure has two sets of lines
-// (resources/jsonData/stars_lines.json): its core shape, such as Orion's
-// hourglass or the Big Dipper, and its full figure, which also needs its
-// fainter stars. The fullest complete set is drawn, so with "Lots" a figure
-// first appears as its core shape and fills out later in twilight.
+// Constellation lines (Constellations only). At full night (sun at -18 deg
+// or lower) faint lines join the stars of the well-known figures
+// (resources/jsonData/stars_lines.json), drawn under the stars and stopping
+// just short of them. They all come out together when full night begins and
+// all go when it ends. Only whole figures are drawn: every star of the
+// figure must be above the horizon and among the stars shown. The faintest
+// stars of a drawn figure are shown even when the haze near the horizon
+// would otherwise hide them, so the figure is never drawn with a gap.
 module Stellar {
 
     const FULL_NIGHT_ALT_DEG = -18.0;    // end of astronomical twilight; keep equal to -SunArt.OUTER_DEG
@@ -81,11 +80,9 @@ module Stellar {
     const LINE_GAP_PX = [3, 4, 4, 5];
 
     // Each line is one integer: bits 0-8 and 9-17 are the constellations
-    // table indices of its ends, bits 18-24 the figure, bit 25 the set
-    // (0 = core shape, 1 = full figure). Lines are grouped by figure, core
-    // set first.
+    // table indices of its ends, bits 18-24 the figure. Lines are grouped by
+    // figure.
     const LINE_FIGURE_SHIFT = 18;
-    const LINE_FULL_SHIFT   = 25;
 
     var _catalog        = null;
     var _catalogMode    = -1;
@@ -168,9 +165,14 @@ module Stellar {
         var above        = 0;       // catalogue stars found above the horizon so far
         var stars        = [];
 
-        // For lines: for each table entry, 1 + its place in stars (0 = not shown).
-        var withLines = (starMode == MODE_CONSTELLATIONS);
+        // Lines: only at full night, in Constellations. For each table entry,
+        // shownAt = 1 + its place in stars (0 = not shown); hiddenAt = 1 + its
+        // place in hidden, the stars that are up and among the starCount but
+        // too faint to see near the horizon.
+        var withLines = (starMode == MODE_CONSTELLATIONS) && (sunAltDeg <= FULL_NIGHT_ALT_DEG);
         var shownAt   = withLines ? new [cat.size()]b : null;
+        var hiddenAt  = withLines ? new [cat.size()]b : null;
+        var hidden    = withLines ? [] : null;
 
         for (var i = 0; i < cat.size(); i += 1) {
             var v      = cat[i] as Lang.Number;
@@ -195,7 +197,8 @@ module Stellar {
             var mag      = MAG_ZERO + ((v >> 3) & 0x7F) * MAG_STEP;
             var airmass  = 1.0 / (sinAlt + 0.025);
             var apparent = mag + EXTINCTION_PER_AIRMASS * (airmass - 1.0);
-            if (apparent > limitMag) { continue; }
+            var visible  = (apparent <= limitMag);
+            if (!visible && !withLines) { continue; }
 
             var altDeg = MathUtil.rad2deg(Math.asin(sinAlt));
             altDeg += MathUtil.refractionDeg(altDeg);
@@ -216,49 +219,58 @@ module Stellar {
             var size     = starSizeForMag(mag);       // fixed per star, whatever its height
             var colorBin = v & 0x7;
             var color    = mipMode ? MiPArt.starColor(size, colorBin) : amoledColors[colorBin];
-            stars.add([MathUtil.roundNearest(x), MathUtil.roundNearest(y), size, color]);
-            if (withLines) { shownAt[i] = stars.size(); }
+            var star     = [MathUtil.roundNearest(x), MathUtil.roundNearest(y), size, color];
+            if (visible) {
+                stars.add(star);
+                if (withLines) { shownAt[i] = stars.size(); }
+            } else if (hidden.size() < 255) {
+                hidden.add(star);
+                hiddenAt[i] = hidden.size();
+            }
         }
 
+        _projectedLines = withLines ? projectLines(stars, shownAt, hidden, hiddenAt) : [];
         _projectedStars = stars;
-        _projectedLines = withLines ? projectLines(stars, shownAt) : [];
         _lineColor      = mipMode ? MiPArt.CONSTELLATION_LINE : AmoledArt.CONSTELLATION_LINE;
         _lineAntiAlias  = !mipMode;
         _projectionKey  = key;
     }
 
-    // The lines to draw: for each figure, its full set if every one of its
-    // stars is shown, else its core set if that is complete, else none.
-    function projectLines(stars, shownAt) {
+    // The lines of every whole figure: one whose stars are all up and among
+    // the starCount. Its stars hidden by the haze are added to stars.
+    function projectLines(stars, shownAt, hidden, hiddenAt) {
         var lines = lineTable();
         var n     = lines.size();
         var out   = [];
         var i     = 0;
         while (i < n) {
-            var figure  = (lines[i] >> LINE_FIGURE_SHIFT) & 0x7F;
-            var fullAt  = -1;            // first line of the full set
-            var coreOk  = true;
-            var fullOk  = true;
-            var j       = i;
+            var figure = (lines[i] >> LINE_FIGURE_SHIFT) & 0x7F;
+            var whole  = true;
+            var j      = i;
             while (j < n && ((lines[j] >> LINE_FIGURE_SHIFT) & 0x7F) == figure) {
-                var v    = lines[j];
-                var both = shownAt[v & 0x1FF] != 0 && shownAt[(v >> 9) & 0x1FF] != 0;
-                if (((v >> LINE_FULL_SHIFT) & 1) == 0) {
-                    if (!both) { coreOk = false; }
-                } else {
-                    if (fullAt < 0) { fullAt = j; }
-                    if (!both) { fullOk = false; }
-                }
+                var v = lines[j];
+                var a = v & 0x1FF;
+                var b = (v >> 9) & 0x1FF;
+                if ((shownAt[a] == 0 && hiddenAt[a] == 0) || (shownAt[b] == 0 && hiddenAt[b] == 0)) { whole = false; }
                 j += 1;
             }
-            if (fullAt >= 0 && fullOk) {
-                addLines(out, lines, fullAt, j, stars, shownAt);
-            } else if (coreOk && (fullAt < 0 ? j : fullAt) > i) {
-                addLines(out, lines, i, (fullAt < 0) ? j : fullAt, stars, shownAt);
+            if (whole) {
+                for (var k = i; k < j; k += 1) {
+                    reveal(lines[k] & 0x1FF, stars, shownAt, hidden, hiddenAt);
+                    reveal((lines[k] >> 9) & 0x1FF, stars, shownAt, hidden, hiddenAt);
+                }
+                addLines(out, lines, i, j, stars, shownAt);
             }
             i = j;
         }
         return out;
+    }
+
+    // Move a hidden star of a drawn figure into stars.
+    function reveal(t, stars, shownAt, hidden, hiddenAt) {
+        if (shownAt[t] != 0 || stars.size() >= 255) { return; }
+        stars.add(hidden[hiddenAt[t] - 1]);
+        shownAt[t] = stars.size();
     }
 
     // Lines from..to-1, each shortened at both ends to clear its stars.
