@@ -6,12 +6,18 @@ using Toybox.WatchUi;
 // placed where they are right now for the watch's location.
 //
 // Which stars. The "Number of stars" setting (100 or 200) is how many are
-// shown at full night: the brightest that many stars above the horizon at
-// this moment. The catalogue (resources/jsonData/stars.json) holds the 520
-// brightest stars of the whole sky, brightest first, which covers the
-// busiest sky at any latitude for either setting (the worst case needs 481).
-// Positions are for the 2027.0 equinox, with proper motion applied; they
-// drift about 0.014 deg a year, well under a pixel for decades.
+// shown at full night: the first that many stars, in the order of the star
+// table, that are above the horizon at this moment. "Which stars" picks the
+// table (resources/jsonData, built by tools/build_stars.py):
+//   Brightest       the brightest stars of the whole sky, brightest first.
+//   Constellations  the stars of about 30 well-known constellation figures
+//                   (and the Pleiades) first, a figure's fainter stars ranked
+//                   together so the figure comes in whole, then other figure
+//                   stars, then the rest. The preference is soft: a very
+//                   bright star outside the figures still makes the cut.
+// Each table is long enough for the busiest sky at any latitude for either
+// setting. Positions are for the 2027.0 equinox, with proper motion applied;
+// they drift about 0.014 deg a year, well under a pixel for decades.
 //
 // When they appear. Each star appears once it is bright enough to see
 // against the twilight sky: when its apparent magnitude is no fainter than
@@ -24,9 +30,10 @@ using Toybox.WatchUi;
 // near full night. Stars pop in one by one, brightest first, as the sun sinks,
 // and leave in reverse order at dawn.
 //
-// How they look. Size follows the apparent magnitude (*_MAG thresholds);
-// colour follows the star's B-V colour index, binned when the table was built
-// (Drawing.STAR_BIN_*).
+// How they look. Each star keeps one size and one colour all night: size
+// from its catalogue magnitude (*_MAG thresholds), colour from its B-V colour
+// index, binned when the table was built (Drawing.STAR_BIN_*). The dimming
+// near the horizon only decides when a star appears.
 module Stellar {
 
     const FULL_NIGHT_ALT_DEG = -18.0;    // end of astronomical twilight; keep equal to -SunArt.OUTER_DEG
@@ -40,23 +47,27 @@ module Stellar {
     // zenith (a typical clear sky in visible light).
     const EXTINCTION_PER_AIRMASS = 0.25;
 
-    // Apparent magnitude at or brighter than which a star is drawn XL, large
-    // or medium; fainter stars are a single pixel.
+    // Catalogue magnitude at or brighter than which a star is drawn XL,
+    // large or medium; fainter stars are a single pixel.
     const XL_MAG     = 0.5;
     const LARGE_MAG  = 1.5;
     const MEDIUM_MAG = 2.5;
 
     // Each catalogue entry is one integer:
-    //   bits 19-30  right ascension, in steps of 360/4096 deg
-    //   bits  9-18  declination + 90, in steps of 180/1023 deg
-    //   bits  3-8   V magnitude, as (V - MAG_ZERO) / MAG_STEP
+    //   bits 20-30  right ascension, in steps of 360/2048 deg
+    //   bits 10-19  declination + 90, in steps of 180/1023 deg
+    //   bits  3-9   V magnitude, as (V - MAG_ZERO) / MAG_STEP
     //   bits  0-2   colour bin (Drawing.STAR_BIN_*)
-    const RA_STEP_DEG  = 0.087890625;      // 360 / 4096
+    const RA_STEP_DEG  = 0.17578125;       // 360 / 2048
     const DEC_STEP_DEG = 0.17595307918;    // 180 / 1023
     const MAG_ZERO     = -1.5;
     const MAG_STEP     = 0.1;
 
+    const MODE_BRIGHTEST      = 0;
+    const MODE_CONSTELLATIONS = 1;
+
     var _catalog        = null;
+    var _catalogMode    = -1;
     var _projectedStars = [];
     var _projectionKey  = null;
 
@@ -68,10 +79,15 @@ module Stellar {
         return true;
     }
 
-    // The packed catalogue, loaded once on first use.
-    function catalog() {
-        if (_catalog == null) {
-            _catalog = WatchUi.loadResource(Rez.JsonData.StarCatalog) as Lang.Array;
+    // The packed star table for this mode, loaded on first use. Only one
+    // table is in memory at a time.
+    function catalog(mode) {
+        if (_catalog == null || mode != _catalogMode) {
+            _catalog     = null;
+            _catalog     = WatchUi.loadResource(mode == MODE_CONSTELLATIONS
+                               ? Rez.JsonData.StarsConstellations
+                               : Rez.JsonData.StarsBrightest) as Lang.Array;
+            _catalogMode = mode;
         }
         return _catalog;
     }
@@ -81,7 +97,7 @@ module Stellar {
     //
     // Stars are only placed here, once a minute. They are drawn first in the
     // sky, so the sun and moon, painted over them, hide the ones behind them.
-    function updateProjectedStars(layout, datetime, latDeg, lonDeg, offsetSec, sunAltDeg, starCount, mipMode) {
+    function updateProjectedStars(layout, datetime, latDeg, lonDeg, offsetSec, sunAltDeg, starCount, starMode, mipMode) {
         var limitMag = limitingMagnitude(sunAltDeg);
         if (limitMag <= LIMIT_MAG[0] || starCount <= 0) {
             _projectedStars = [];
@@ -100,7 +116,7 @@ module Stellar {
             (lonDeg    * 100.0).toNumber(),
             offsetSec,
             (sunAltDeg * 100.0).toNumber(),
-            starCount, mipMode
+            starCount, starMode, mipMode
         ];
         if (_projectionKey != null && keysEqual(key, _projectionKey)) {
             return;
@@ -115,18 +131,18 @@ module Stellar {
         var cosLat = Math.cos(lat);
 
         var amoledColors = mipMode ? null : AmoledArt.starColors();
-        var cat          = catalog() as Lang.Array;
+        var cat          = catalog(starMode) as Lang.Array;
         var above        = 0;       // catalogue stars found above the horizon so far
         var stars        = [];
 
         for (var i = 0; i < cat.size(); i += 1) {
             var v      = cat[i] as Lang.Number;
-            var decDeg = ((v >> 9) & 0x3FF) * DEC_STEP_DEG - 90.0;
+            var decDeg = ((v >> 10) & 0x3FF) * DEC_STEP_DEG - 90.0;
 
             // Never rises at this latitude.
             if (latDeg >= 0.0 ? (decDeg < latDeg - 90.0) : (decDeg > latDeg + 90.0)) { continue; }
 
-            var h      = MathUtil.deg2rad(lstDeg - ((v >> 19) & 0xFFF) * RA_STEP_DEG);   // hour angle
+            var h      = MathUtil.deg2rad(lstDeg - ((v >> 20) & 0x7FF) * RA_STEP_DEG);   // hour angle
             var dec    = MathUtil.deg2rad(decDeg);
             var sinDec = Math.sin(dec);
             var cosDec = Math.cos(dec);
@@ -134,14 +150,14 @@ module Stellar {
             var sinAlt = sinLat * sinDec + cosLat * cosDec * cosH;
             if (sinAlt <= 0.0) { continue; }
 
-            // The brightest starCount stars above the horizon make up the sky.
+            // The first starCount stars above the horizon make up the sky.
             above += 1;
             if (above > starCount) { break; }
 
             // Not visible yet: too faint for the twilight sky at its height.
+            var mag      = MAG_ZERO + ((v >> 3) & 0x7F) * MAG_STEP;
             var airmass  = 1.0 / (sinAlt + 0.025);
-            var apparent = MAG_ZERO + ((v >> 3) & 0x3F) * MAG_STEP
-                           + EXTINCTION_PER_AIRMASS * (airmass - 1.0);
+            var apparent = mag + EXTINCTION_PER_AIRMASS * (airmass - 1.0);
             if (apparent > limitMag) { continue; }
 
             var altDeg = MathUtil.rad2deg(Math.asin(sinAlt));
@@ -160,7 +176,7 @@ module Stellar {
                 y -= rho * north / len;
             }
 
-            var size     = starSizeForMag(apparent);
+            var size     = starSizeForMag(mag);       // fixed per star, whatever its height
             var colorBin = v & 0x7;
             var color    = mipMode ? MiPArt.starColor(size, colorBin) : amoledColors[colorBin];
             stars.add([MathUtil.roundNearest(x), MathUtil.roundNearest(y), size, color]);

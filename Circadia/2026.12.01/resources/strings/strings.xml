@@ -61,6 +61,9 @@
         <string id="starsNone">None</string>
         <string id="starsSome">Some</string>
         <string id="starsLots">Lots</string>
+        <string id="starModeTitle">Which stars</string>
+        <string id="starModeBrightest">Brightest</string>
+        <string id="starModeConstellations">Constellations</string>
 
         <!-- Moon size choices -->
         <string id="moonSizeSmall">Small</string>

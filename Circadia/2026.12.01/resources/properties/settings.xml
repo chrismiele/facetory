@@ -118,6 +118,13 @@
             </settingConfig>
         </setting>
 
+        <setting propertyKey="@Properties.starMode" title="@Strings.starModeTitle">
+            <settingConfig type="list">
+                <listEntry value="0">@Strings.starModeBrightest</listEntry>
+                <listEntry value="1">@Strings.starModeConstellations</listEntry>
+            </settingConfig>
+        </setting>
+
         <!-- ─── Moon Size ─────────────────────────────────────────────── -->
         <setting propertyKey="@Properties.moonSize" title="@Strings.moonSizeTitle">
             <settingConfig type="list">

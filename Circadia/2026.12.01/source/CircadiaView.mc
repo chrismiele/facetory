@@ -298,6 +298,7 @@ class CircadiaView extends WatchUi.WatchFace {
                 t.timeZoneOffset,
                 _cachedSunAltAz[0],
                 config.starCount(),
+                config.starMode(),
                 config.mipMode()
             );
         }

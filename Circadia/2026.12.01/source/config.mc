@@ -59,6 +59,7 @@ module config {
     var _mipMode          = 0;       // 0 = AMOLED, 1 = MIP
     var _showSeconds      = false;
     var _starCount        = 100;
+    var _starMode         = 0;       // 0 = brightest, 1 = constellations
     var _useGps           = 1;       // 1 = device GPS, 0 = home coordinates
     var _latDeg           = 49.29;
     var _lonDeg           = -123.12;
@@ -120,6 +121,7 @@ module config {
         _showSeconds      = readBool(  "showSeconds",      _showSeconds);
         _starCount        = readNumber("starCount",        _starCount);
         if (System.getSystemStats().totalMemory < 102400 && _starCount > 100) { _starCount = 100; }
+        _starMode         = readNumber("starMode",         _starMode);
         _useGps           = readNumber("useGps",           _useGps);
         _latDeg           = readFloat( "latDeg",           _latDeg);
         _lonDeg           = readFloat( "lonDeg",           _lonDeg);
@@ -147,6 +149,7 @@ module config {
     function showMoon()         { return true;              }
     function showSun()          { return true;              }
     function starCount()        { return _starCount;        }
+    function starMode()         { return _starMode;         }
     function useGps()           { return _useGps > 0;       }
     function latDeg()           { return _latDeg;           }
     function lonDeg()           { return _lonDeg;           }

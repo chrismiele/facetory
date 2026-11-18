@@ -62,6 +62,9 @@
         <string id="starsNone">Geen</string>
         <string id="starsSome">Enkele</string>
         <string id="starsLots">Veel</string>
+        <string id="starModeTitle">Welke sterren</string>
+        <string id="starModeBrightest">De helderste</string>
+        <string id="starModeConstellations">Sterrenbeelden</string>
 
         <!-- Moon size choices -->
         <string id="moonSizeSmall">Klein</string>
