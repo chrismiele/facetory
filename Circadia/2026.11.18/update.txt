@@ -1,6 +1,6 @@
 Changes since 2026.11.17:
-Every edge of the AMOLED sun now leaves the sky at a twilight boundary: white disc 6° (end of civil twilight), core 12° (end of nautical), halo 18° (end of astronomical). MIP keeps a compact sun: ball 6°, rings 9° and 12°, so it sets at the end of nautical twilight.
-Moon sizes follow: the largest moon (12°) matches the sun's white disc; Small and Medium keep their old proportions (9° and 10.5°).
+The sun's visible edges at sunset now set at twilight boundaries: the core (12°) at the end of nautical twilight, the halo (18°) at the end of astronomical twilight (full night). The big white disc is kept at 10°, with a thin coloured rim.
+Moon sizes follow the white disc: Small 15°, Medium 17.5°, Large 20° (the largest matches the white disc exactly).
+MIP: a ball the size of the white disc (10°) and two thin rings, to 12° and 14°.
 AMOLED: a stronger sun halo.
-Horizon glow on (AMOLED and MIP): there is no separate glow any more. From the end of golden hour (+6°) the sun itself spreads along the horizon: every layer keeps its top edge in place while its curve flattens, goes straight and then hugs the edge. The outer halo is straight at -3°; the spread is greatest at the end of nautical twilight. With the setting off the sun stays round.
-On MIP the ball and both rings spread the same way, so the MIP glow ends with its sun at -12°.
+The horizon glow is now built in and the setting is gone. From the end of golden hour (+6°) the sun itself spreads along the horizon, on AMOLED and MIP: every layer keeps its top edge in place while its curve flattens, goes straight and then hugs the edge. The sun's outer edge is straight exactly at sunset; the spread is greatest at the end of nautical twilight.

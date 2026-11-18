@@ -70,7 +70,6 @@ module config {
     var _weekStartDay     = 2;       // default: Monday
     var _moonSize         = MOON_SIZE_SMALL;
     var _moonDarkSide     = false;   // optional extra, off by default
-    var _horizonFlare     = false;   // optional extra, off by default
 
     // True on displays that enforce burn-in protection (AMOLED). Read from the
     // device, not from a setting: it decides whether low power means "always-on
@@ -131,7 +130,6 @@ module config {
         _weekStartDay     = readNumber("weekStartDay",     _weekStartDay);
         _moonSize         = readNumber("moonSize",         _moonSize);
         _moonDarkSide     = readBool(  "moonDarkSide",     _moonDarkSide);
-        _horizonFlare     = readBool(  "horizonFlare",     _horizonFlare);
 
         var ds = System.getDeviceSettings();
         _burnIn = (ds has :requiresBurnInProtection) && ds.requiresBurnInProtection;
@@ -159,15 +157,13 @@ module config {
     function weekStartDay()     { return _weekStartDay;     }
     function moonSize()         { return _moonSize;         }
     function moonDarkSide()     { return _moonDarkSide;     }
-    function horizonFlare()     { return _horizonFlare;     }
-    // Moon diameter in degrees of sky. The largest setting (12) matches the
-    // sun's white disc, whose edge sets at the end of civil twilight: keep it
-    // equal to 2 * SunArt.WHITE_DISC_DEG. The smaller settings keep their old
-    // proportions to it (3/4 and 7/8).
+    // Moon diameter in degrees of sky. The largest setting (20) matches the
+    // sun's white disc: keep it equal to 2 * SunArt.WHITE_DISC_DEG. The
+    // smaller settings keep their original proportions to it (3/4 and 7/8).
     function moonDiameterDeg() {
-        if (_moonSize == MOON_SIZE_MEDIUM) { return 10.5; }
-        if (_moonSize == MOON_SIZE_LARGE)  { return 12.0; }
-        return 9.0;
+        if (_moonSize == MOON_SIZE_MEDIUM) { return 17.5; }
+        if (_moonSize == MOON_SIZE_LARGE)  { return 20.0; }
+        return 15.0;
     }
 
     function showStars()        { return _starCount > 0;    }

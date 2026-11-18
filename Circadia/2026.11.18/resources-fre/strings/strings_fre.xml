@@ -13,7 +13,6 @@
         <string id="mipModeTitle">Type d'affichage</string>
         <string id="showSecondsTitle">Afficher les secondes</string>
         <string id="moonDarkSideTitle">Afficher la face sombre de la lune</string>
-        <string id="horizonFlareTitle">Lueur à l'horizon au crépuscule</string>
         <string id="starCountTitle">Nombre d'étoiles</string>
         <string id="moonSizeTitle">Taille de la lune</string>
         <string id="useGpsTitle">Localisation</string>

@@ -14,33 +14,35 @@ using Toybox.Math;
 // one twilight boundary, so the sun leaves the sky in three steps (and comes
 // back in the same three at dawn):
 //
-//   white disc    6 deg radius   gone at -6, the end of civil twilight.
-//                                12 deg across, exactly the largest moon
-//                                setting: a large new moon in front of the
-//                                sun covers the white disc and nothing more.
 //   core         12 deg radius   gone at -12, the end of nautical twilight.
-//                                The white disc plus the rim where white gives
-//                                way to the sun's colour.
+//                                A white disc (while the sun is high) with a
+//                                thin rim where white gives way to the sun's
+//                                colour.
+//   white disc   10 deg radius   inside the core. 20 deg across, exactly the
+//                                largest moon setting: a large new moon in
+//                                front of the sun covers the white disc and
+//                                nothing more. The white fades into the
+//                                core's colour by +6, so this edge never
+//                                shows at the horizon.
 //   corona       18 deg radius   gone at -18, the end of astronomical
 //                                twilight: full night, and the moment the
 //                                stars reach full count.
 //
-// MIP draws a more compact sun: the white disc and two thin rings, the outer
-// one 12 deg (see MiPArt), so it is gone at the end of nautical twilight.
-// (Its inner ring, at 9 deg, sits half way and marks no boundary.)
+// MIP draws a more compact sun: a ball the size of the white disc and two
+// thin rings, to 12 and 14 deg (see MiPArt).
 //
 // Timing. Each 6-degree stage has one change:
 //
 //   above +12     day                    white-hot centre, yellow rim
 //   +12 to  +6    low sun                the white centre fades to flat yellow
-//    +6 to   0    golden hour            yellow to orange; the sun starts to spread (glow on)
-//     0 to  -6    civil twilight         orange to red; the white disc sets
+//    +6 to   0    golden hour            yellow to orange; the sun starts to spread
+//     0 to  -6    civil twilight         orange to red
 //    -6 to -12    nautical twilight      red to purple; the core sets
 //   -12 to -18    astronomical twilight  purple to blue; the corona sets
 //   below -18     night                  no sun; the minute digits stay blue
 //
-// Horizon glow (the "Horizon glow at twilight" setting, off by default). The
-// sun itself spreads along the horizon, on both display types. Every layer of
+// Horizon glow. Around sunset the sun itself spreads along the horizon, on
+// both display types. Every layer of
 // the sun (each step of the AMOLED core and each corona ring; the MIP ball and
 // both rings) keeps its top edge exactly where it is, at altitude h + r above
 // the horizon on the sun's bearing, while its curvature blends from its own
@@ -51,8 +53,8 @@ using Toybox.Math;
 //
 // s = 0 is the round sun, s = 1 a band right around the horizon. s rises from
 // 0 at +6 (end of golden hour), reaches the value at which the sun's outer
-// edge (the AMOLED corona, the MIP outer ring) is exactly straight at -3, and
-// SPREAD_MAX by the end of nautical twilight. A larger circle needs less
+// edge (the AMOLED corona, the MIP outer ring) is exactly straight at sunset,
+// and SPREAD_MAX by the end of nautical twilight. A larger circle needs less
 // change to go straight, so the outer layers flatten first while the white
 // disc stays a dome until it sets. Past straight, a layer curves the other
 // way and hugs the rim. Since every top edge stays put, every edge still
@@ -62,15 +64,15 @@ module SunArt {
     const BLACK = 0x000000;
 
     // ── Calibrated sizes (degrees) ───────────────────────────────────────────
-    const WHITE_DISC_DEG = 6.0;     // end of civil twilight; keep equal to half of config's largest moon diameter
+    const WHITE_DISC_DEG = 10.0;    // keep equal to half of config's largest moon diameter
     const CORE_DEG       = 12.0;    // end of nautical twilight; white disc plus its coloured rim
     const OUTER_DEG      = 18.0;    // end of astronomical twilight; keep equal to -Stellar.FULL_NIGHT_ALT_DEG
 
-    // ── The sun spreads along the horizon (horizon glow on) ──────────────────
+    // ── The sun spreads along the horizon ───────────────────────────────────
     const SPREAD_START_ALT_DEG = 6.0;     // end of golden hour: the sun starts to flatten
-    const SPREAD_FLAT_ALT_DEG  = -3.0;    // the sun's outer edge is exactly straight
+    const SPREAD_FLAT_ALT_DEG  = 0.0;     // sunset: the sun's outer edge is exactly straight
     const SPREAD_FULL_ALT_DEG  = -12.0;   // end of nautical twilight: as far as it goes
-    const SPREAD_MAX           = 0.88;    // share of the way to a band right around the horizon
+    const SPREAD_MAX           = 0.92;    // share of the way to a band right around the horizon
     const STRAIGHT_RADIUS_PX   = 20000.0; // flatter than this, a layer is drawn with a straight edge
     const RIM_OVERDRAW_PX      = 3.0;     // the sky disc stops 2px short of the screen edge
 
@@ -118,10 +120,10 @@ module SunArt {
     // ── Spreading layers ─────────────────────────────────────────────────────
 
     // How far the sun has spread toward a band along the horizon (s in the
-    // header formula). 0 above +6 and whenever the setting is off. outerDeg is
-    // the radius of this display's outermost layer.
+    // header formula). 0 above +6. outerDeg is the radius of this display's
+    // outermost layer.
     function spreadAmount(altDeg, outerDeg) {
-        if (!config.horizonFlare() || altDeg >= SPREAD_START_ALT_DEG) { return 0.0; }
+        if (altDeg >= SPREAD_START_ALT_DEG) { return 0.0; }
 
         // The s at which the outermost layer's edge (height t) is straight.
         var t     = SPREAD_FLAT_ALT_DEG + outerDeg;

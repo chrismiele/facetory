@@ -15,11 +15,10 @@ module MiPArt {
 
     // ── Sun ──────────────────────────────────────────────────────────────────
     //
-    // Three layers at every stage: a ball the size of the white disc (6
-    // degrees, the largest moon; gone at the end of civil twilight) and two
-    // thin rings around it, 3 degrees each, so the MIP sun is 24 degrees
-    // across and gone at -12, the end of nautical twilight. (AMOLED's
-    // 36-degree corona, gone at full night, is too heavy in flat MIP colours.)
+    // Three layers at every stage: a ball the size of the white disc (10
+    // degrees, the largest moon) and two thin rings around it, 2 degrees each,
+    // so the MIP sun is 28 degrees across and gone at -14. (AMOLED's 36-degree
+    // corona, gone at full night, is too heavy in flat MIP colours.)
     //
     // One colour ramp, from white-hot through yellow, orange and red to the
     // purples and blues of twilight. At step s the ball is RAMP[s], the inner
@@ -33,8 +32,9 @@ module MiPArt {
     //    1     0 to   9       FFFF55   FFFF00   FFAA00
     //    2    -3 to   0       FFFF00   FFAA00   FF5500
     //    3    -6 to  -3       FFAA00   FF5500   FF0000
-    //    4    -9 to  -6       FF5500   FF0000   FF00AA   (ball set at -6)
-    //    5   -12 to  -9       FF0000   FF00AA   AA00AA   (inner ring set at -9)
+    //    4    -9 to  -6       FF5500   FF0000   FF00AA
+    //    5   -12 to  -9       FF0000   FF00AA   AA00AA   (ball set at -10)
+    //    6   -18 to -12       FF00AA   AA00AA   5500AA   (rings set at -12 and -14)
     //
     // Neighbouring ramp colours must look different on a MIP screen, since
     // any two of them can sit side by side, also once spread out. Red is
@@ -61,7 +61,7 @@ module MiPArt {
     //     7   below -18        55AAFF
     const SUN_RAMP = [
         0xFFFFFF, 0xFFFF55, 0xFFFF00, 0xFFAA00, 0xFF5500, 0xFF0000,
-        0xFF00AA, 0xAA00AA
+        0xFF00AA, 0xAA00AA, 0x5500AA
     ];
 
     // Minute-text colour for each stage. All bright enough to read on black.
@@ -69,8 +69,8 @@ module MiPArt {
         0xFFFF00, 0xFFAA00, 0xFF5500, 0xFF0000, 0xFF0055, 0xFF55AA, 0xAA55FF, 0x55AAFF
     ];
 
-    const INNER_RING_DEG     = 9.0;    // outer edge of the inner ring: half way from the ball to the outer ring
-    const OUTER_RING_DEG     = 12.0;   // outer edge of the whole MIP sun: end of nautical twilight
+    const INNER_RING_DEG     = 12.0;   // outer edge of the inner ring: the AMOLED core's edge
+    const OUTER_RING_DEG     = 14.0;   // outer edge of the whole MIP sun
 
     // ── Moon ─────────────────────────────────────────────────────────────────
     const MIP_MOON_BRIGHT   = 0xAAAAAA;   // lit face, every phase but full

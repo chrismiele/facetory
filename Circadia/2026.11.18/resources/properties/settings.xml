@@ -81,10 +81,6 @@
             <settingConfig type="boolean" />
         </setting>
 
-        <setting propertyKey="@Properties.horizonFlare" title="@Strings.horizonFlareTitle">
-            <settingConfig type="boolean" />
-        </setting>
-
         <!-- ─── Time / Date Format ─────────────────────────────────────── -->
         <setting propertyKey="@Properties.timeFormat" title="@Strings.timeFormatTitle">
             <settingConfig type="list">
