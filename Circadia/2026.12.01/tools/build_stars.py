@@ -77,7 +77,8 @@ CORE_MAX_MAG    = 5.0
 ZODIAC = "Ari Tau Gem Cnc Leo Vir Lib Sco Sgr Cap Aqr Psc".split()
 ZODIAC_ANCHOR_MAG = 2.0      # stars this bright come first in the zodiac table too
 
-D3_FIGURES      = ["Leo"]                  # d3-celestial's Leo: the Sickle and a clean body
+D3_FIGURES      = ["Leo", "Sgr"]           # d3-celestial's Leo (the Sickle and a clean body)
+                                           # and Sagittarius (the whole archer, not just the Teapot)
 
 # Lines left out of a figure, as (figure, HR, HR): Orion's shoulders are
 # joined through the head only.
