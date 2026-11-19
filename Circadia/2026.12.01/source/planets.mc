@@ -17,7 +17,7 @@ using Toybox.Math;
 // brightest planets show before any star: Venus just after sunset, Jupiter
 // a few minutes later.
 //
-// How. A small round disc (5 px, a pixel wider than the largest stars), as
+// How. A small round disc (6 px, two pixels wider than the largest stars), as
 // bright as the stars, in the planet's own colour (AmoledArt and
 // MiPArt PLANET_COLORS). Saturn wears a small ring at a fixed tilt, for
 // recognition rather than its true angle. Planets are drawn over the sun's
@@ -53,18 +53,20 @@ module Planets {
     //   bits 0-3 dx + 8, bits 4-7 dy + 8, bits 8-9 strength (1-3: a third,
     //   two thirds, all of the ring colour), bit 10 on the near side (drawn
     //   over the disc), bit 11 over the disc.
-    // A 1 px ellipse, 5.5 by 2.2 px, its long axis rising 20 deg to the right,
-    // its near side below. Made by tools/ring_table.py: AMOLED anti-aliased,
+    // A 1 px ellipse, 6.6 by 2.6 px, its long axis rising 20 deg to the right,
+    // its near side below, centred on the disc (half a pixel up and left of
+    // the planet's point). Made by tools/ring_table.py: AMOLED anti-aliased,
     // MIP plain pixels.
-    const RING_AMOLED = [643, 915, 675, 372, 900, 885, 344, 601, 602, 859, 363, 604, 364, 349, 877,
-                         1955, 1459, 1444, 1716, 1445, 1973, 3494, 1718, 3495, 1719, 3752, 1464,
-                         4009, 3738, 3754, 1947, 1932, 1436, 1645, 1917, 1677];
-    const RING_MIP    = [899, 915, 931, 884, 900, 885, 870, 857, 858, 859, 860, 861, 877, 1955,
-                         1971, 1972, 1973, 1974, 4007, 1975, 4008, 4009, 3994, 1962, 1947, 1932,
-                         1948, 1901, 1917, 1933];
+    const RING_AMOLED = [385, 657, 673, 370, 898, 402, 418, 355, 883, 387, 868, 372, 328, 585, 842, 843, 844, 348,
+                         589, 605, 606, 1697, 1698, 1714, 1443, 1971, 1972, 3493, 1973, 3494, 1718, 3751, 1463,
+                         4008, 3481, 4009, 3994, 3498, 1419, 1947, 1404, 1932, 1436, 1389, 1917, 1421, 1630, 1646,
+                         1406];
+    const RING_MIP    = [897, 913, 929, 882, 898, 883, 868, 884, 853, 840, 841, 842, 843, 844, 845, 861, 862, 1953,
+                         1954, 1970, 1971, 1972, 1973, 1974, 4007, 1975, 4008, 4009, 3994, 1962, 1931, 1947, 1932,
+                         1917, 1933, 1886, 1902, 1918];
 
     // Dark margin radius when figure lines are on screen, by planet.
-    const MARGIN_PX = [4, 4, 4, 7];
+    const MARGIN_PX = [5, 5, 5, 8];
 
     // Shown planets, one integer each: bits 0-10 x, bits 11-21 y (pixels),
     // bits 22-23 planet.
@@ -266,7 +268,7 @@ module Planets {
     function draw(dc) {
         var n = _planets.size();
         if (n == 0) { return; }
-        var b      = Drawing.regionBounds(8);
+        var b      = Drawing.regionBounds(9);
         var margin = Stellar.hasLines();
         for (var i = 0; i < n; i += 1) {
             var v = _planets[i];
@@ -281,14 +283,15 @@ module Planets {
             }
             if (p == SATURN) { drawRing(dc, x, y, false); }
 
-            // 5x5 with the corners cut; on AMOLED the corners are dim instead.
+            // 6x6 (x-3..x+2, like the 4x4 XL star) with the corners cut; on
+            // AMOLED the corners are dim instead.
             if (_corners != null) {
                 dc.setColor(_corners[p], Drawing.BLACK);
-                dc.fillRectangle(x - 2, y - 2, 5, 5);
+                dc.fillRectangle(x - 3, y - 3, 6, 6);
             }
             dc.setColor(_colors[p], Drawing.BLACK);
-            dc.fillRectangle(x - 2, y - 1, 5, 3);
-            dc.fillRectangle(x - 1, y - 2, 3, 5);
+            dc.fillRectangle(x - 3, y - 2, 6, 4);
+            dc.fillRectangle(x - 2, y - 3, 4, 6);
 
             if (p == SATURN) { drawRing(dc, x, y, true); }
         }
