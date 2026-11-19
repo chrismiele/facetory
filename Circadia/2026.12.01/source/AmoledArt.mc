@@ -35,7 +35,7 @@ module AmoledArt {
     const STAR_BLUE         = 0x80A8FF;   // clearly blue, not tinted white
     const STAR_WHITE        = 0xF4F4FF;
     const STAR_BRIGHTNESS   = 0.8;
-    const CONSTELLATION_LINE = 0x1F3366;  // deep blue, faint against black
+    const CONSTELLATION_LINE = 0x274080;  // deep blue, faint against black
 
     // ── Accents ───────────────────────────────────────────────────────────────
     const SUNSET_ACCENT = 0xFF8000;   // tinges the hour text near sunrise/sunset
