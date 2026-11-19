@@ -17,8 +17,8 @@ using Toybox.Math;
 // brightest planets show before any star: Venus just after sunset, Jupiter
 // a few minutes later.
 //
-// How. A small round disc (5 px, a pixel wider than the largest stars), a
-// touch brighter than the stars, in the planet's own colour (AmoledArt and
+// How. A small round disc (5 px, a pixel wider than the largest stars), as
+// bright as the stars, in the planet's own colour (AmoledArt and
 // MiPArt PLANET_COLORS). Saturn wears a small ring at a fixed tilt, for
 // recognition rather than its true angle. Planets are drawn over the sun's
 // glow (Drawing.drawSky). When figure lines are on screen, each planet
@@ -248,10 +248,9 @@ module Planets {
             _ring    = RING_MIP;
             ring     = MiPArt.SATURN_RING;
         } else {
-            _colors  = new [4];
+            _colors  = AmoledArt.PLANET_COLORS;
             _corners = new [4];
             for (var p = 0; p < 4; p += 1) {
-                _colors[p]  = MathUtil.scaleColor(AmoledArt.PLANET_COLORS[p], AmoledArt.PLANET_BRIGHTNESS);
                 _corners[p] = MathUtil.scaleColor(_colors[p], AmoledArt.STAR_CORNER);
             }
             _ring = RING_AMOLED;

@@ -34,7 +34,6 @@ module AmoledArt {
     const STAR_RED          = 0xFF6B4A;   // red-orange
     const STAR_BLUE         = 0x80A8FF;   // clearly blue, not tinted white
     const STAR_WHITE        = 0xF4F4FF;
-    const STAR_BRIGHTNESS   = 0.9;
     const STAR_CORNER       = 0.4;        // the dim corners of round stars, as a share of the star
     const CONSTELLATION_LINE = 0x3558A8;  // steel blue, quiet against black
 
@@ -83,9 +82,8 @@ module AmoledArt {
     const INNER_MOON_GLOW_BRIGHTNESS_SCALE = 0.5;
 
     // ── Planets (Planets.VENUS..SATURN) ──────────────────────────────────────
-    // A touch brighter than the stars, in each planet's own colour.
+    // Each planet's own colour, as bright as the stars.
     const PLANET_COLORS     = [0xFFF6E0, 0xFF6A3C, 0xFFDDAA, 0xEEC870];   // cream white, red-orange, peach, gold
-    const PLANET_BRIGHTNESS = 1.0;
     const SATURN_RING       = 0xA88C50;   // dull gold
 
     var _starColors = null;
@@ -115,13 +113,7 @@ module AmoledArt {
     // Star colours, indexed by Drawing.STAR_BIN_*. Built once.
     function starColors() {
         if (_starColors == null) {
-            _starColors = [
-                MathUtil.scaleColor(STAR_YELLOW,      STAR_BRIGHTNESS),
-                MathUtil.scaleColor(STAR_SOFT_YELLOW, STAR_BRIGHTNESS),
-                MathUtil.scaleColor(STAR_RED,         STAR_BRIGHTNESS),
-                MathUtil.scaleColor(STAR_BLUE,        STAR_BRIGHTNESS),
-                MathUtil.scaleColor(STAR_WHITE,       STAR_BRIGHTNESS)
-            ];
+            _starColors = [STAR_YELLOW, STAR_SOFT_YELLOW, STAR_RED, STAR_BLUE, STAR_WHITE];
         }
         return _starColors;
     }
