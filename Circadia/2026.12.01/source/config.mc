@@ -63,7 +63,6 @@ module config {
     var _tempUnits        = TEMP_C;
     var _distanceUnits    = DIST_KM;
     var _mipMode          = DISPLAY_AUTO;
-    var _mipScreen        = false;   // the screen is not AMOLED (needs no burn-in protection)
     var _showSeconds      = false;
     // Stars shown at full night: always 200 ("Lots"), or 100 on watches with
     // under 100 KB for a watch face (such as the Forerunner 245, 96 KB).
@@ -127,8 +126,6 @@ module config {
         _tempUnits        = readNumber("tempUnits",        _tempUnits);
         _distanceUnits    = readNumber("distanceUnits",    _distanceUnits);
         _mipMode          = readNumber("mipMode",          _mipMode);
-        var ds            = System.getDeviceSettings();
-        _mipScreen        = (ds has :requiresBurnInProtection) && !ds.requiresBurnInProtection;
         _showSeconds      = readBool(  "showSeconds",      _showSeconds);
         _starCount        = (System.getSystemStats().totalMemory < 102400) ? 100 : 200;
         _starMode         = readNumber("starMode",         _starMode);
@@ -155,8 +152,8 @@ module config {
     function tempUnits()        { return _tempUnits;        }
     function distanceUnits()    { return _distanceUnits;    }
     // The simplified (MIP) art: chosen, or by default whenever the screen
-    // is not AMOLED.
-    function mipMode()          { return (_mipMode == DISPLAY_AUTO) ? _mipScreen : (_mipMode == DISPLAY_MIP); }
+    // needs no burn-in protection (not AMOLED).
+    function mipMode()          { return (_mipMode == DISPLAY_AUTO) ? !_burnIn : (_mipMode == DISPLAY_MIP); }
     function showSeconds()      { return _showSeconds;      }
     function showMoon()         { return true;              }
     function showSun()          { return true;              }
