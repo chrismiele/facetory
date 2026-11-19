@@ -41,8 +41,9 @@ module MiPArt {
     // edge is OUTER_RING_DEG by day and widens to 18 deg through twilight
     // (SunArt.glowOuterDeg()). Bands too thin to read (MIN_RING_DEG), or a
     // centre disc under a third of the ball, are left out, so a colour leaves
-    // cleanly. All of it spreads along the horizon from +3 like the AMOLED
-    // sun (see sun.mc).
+    // cleanly; the colour next to it covers the gap, and the outermost colour
+    // drawn always reaches the outer edge, so the glow never pulses. All of
+    // it spreads along the horizon from +3 like the AMOLED sun (see sun.mc).
     //
     // Neighbouring colours must look different on a MIP screen. Red is
     // followed by pink (FF00AA), not crimson (FF0055), which is hard to tell
@@ -194,6 +195,14 @@ module MiPArt {
             _bandRadii[k] = ((e - prev) * outer >= MIN_RING_DEG && !(prev <= 0.0 && e * outer < ball / 3.0))
                             ? e * outer : null;
             prev = e;
+        }
+
+        // The outer edge never moves with the bands: the outermost colour
+        // drawn always reaches it. A new colour grows in at the edge from no
+        // width, and while it is too thin to show, the colour inside it
+        // stands in, so the glow's extent only ever changes smoothly.
+        for (var k = BAND_COUNT - 1; k >= 0; k -= 1) {
+            if (_bandRadii[k] != null) { _bandRadii[k] = outer; break; }
         }
 
         // Outermost first; each brighter colour goes on top.
