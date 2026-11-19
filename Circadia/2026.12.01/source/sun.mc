@@ -96,7 +96,13 @@ module SunArt {
     // (-OUTER_DEG).
     const REACH_NAUTICAL_DEG   = 60.0;
     const REACH_NIGHT_DEG      = 90.0;
-    const STRAIGHT_RADIUS_PX   = 20000.0; // flatter than this, a layer is drawn with a straight edge
+    // A layer edge flatter than this many sky radii is drawn as a polygon,
+    // not a circle or arc: near the end of civil twilight a nearly straight
+    // edge would otherwise be a circle thousands of pixels across, which
+    // some watches (the Forerunner 165) draw as a bar across the screen.
+    // Kept to this, no circle or arc reaches past about 5 sky radii.
+    const POLYGON_RADIUS_R     = 2.0;
+    const POLYGON_ERROR_PX     = 0.4;     // the most a polygon edge strays from the true curve
     const RIM_OVERDRAW_PX      = 3.0;     // the sky disc stops 2px short of the screen edge
     const MAX_ARC_HALF_DEG     = 179.0;   // a band hugging the rim never closes into a full ring
 
@@ -227,8 +233,9 @@ module SunArt {
     }
 
     // One layer of the sun, of true radius rDeg, in the current spread (see
-    // the header): a circle around the sun, a dome, a straight-edged band or a
-    // band hugging the rim. Call prepareSpread() first.
+    // the header): a circle around the sun, a dome, a band with a nearly
+    // straight edge (a polygon) or a band hugging the rim. Call
+    // prepareSpread() first.
     function drawLayer(dc, rDeg, color) {
         var top = _alt + rDeg;                 // height of the top edge above the horizon
         if (top <= 0.0) { return; }
@@ -242,13 +249,16 @@ module SunArt {
             return;
         }
 
-        var k = (1.0 - _spread) / rDeg - _spread / (90.0 - top);    // curvature, per degree
-        var rhoPx = (k == 0.0) ? STRAIGHT_RADIUS_PX * 2.0 : MathUtil.abs(1.0 / k) * deg;
+        var k     = (1.0 - _spread) / rDeg - _spread / (90.0 - top);    // curvature, per degree
+        var kPx   = k / deg;                   // per pixel
         var topPx = (90.0 - top) * deg;        // the top edge's distance from the screen centre
 
-        if (rhoPx >= STRAIGHT_RADIUS_PX) {
-            fillBeyondLine(dc, topPx);
-        } else if (k > 0.0) {
+        if (MathUtil.abs(kPx) * POLYGON_RADIUS_R * _R <= 1.0) {
+            fillBeyondCurve(dc, topPx, kPx);
+            return;
+        }
+        var rhoPx = MathUtil.abs(1.0 / kPx);
+        if (k > 0.0) {
             // A dome: a circle whose centre lies rhoPx beyond the top edge.
             var dist = topPx + rhoPx;
             dc.fillCircle(MathUtil.roundNearest(_cx + dist * _ux), MathUtil.roundNearest(_cy + dist * _uy),
@@ -260,18 +270,35 @@ module SunArt {
         }
     }
 
-    // Everything beyond a straight line square to the sun's bearing, topPx
-    // from the screen centre.
-    function fillBeyondLine(dc, topPx) {
-        var far  = _R + 20.0;
-        var vx   = -_uy;
-        var vy   = _ux;
-        dc.fillPolygon([
-            [MathUtil.roundNearest(_cx + topPx * _ux + far * vx), MathUtil.roundNearest(_cy + topPx * _uy + far * vy)],
-            [MathUtil.roundNearest(_cx + topPx * _ux - far * vx), MathUtil.roundNearest(_cy + topPx * _uy - far * vy)],
-            [MathUtil.roundNearest(_cx + far * _ux - far * vx),   MathUtil.roundNearest(_cy + far * _uy - far * vy)],
-            [MathUtil.roundNearest(_cx + far * _ux + far * vx),   MathUtil.roundNearest(_cy + far * _uy + far * vy)]
-        ]);
+    // Everything beyond a gently curved edge square to the sun's bearing,
+    // through the point topPx from the screen centre, with curvature kPx (per
+    // pixel; above 0 it bows toward the sun, below 0 toward the centre, 0 is
+    // straight). The edge is cut into as few straight pieces as keep it within
+    // POLYGON_ERROR_PX of the curve, and each piece is filled out past the rim
+    // as its own four-sided strip, so every polygon is convex. |kPx| is at
+    // most 1 / (POLYGON_RADIUS_R * _R), so the edge never folds back within
+    // the sky.
+    function fillBeyondCurve(dc, topPx, kPx) {
+        var far = _R + 20.0;                   // half-width covered across the bearing
+        var out = 2.0 * _R + 20.0;             // the strips' far end, from the screen centre
+        var vx  = -_uy;
+        var vy  = _ux;
+        var n   = Math.ceil(2.0 * far * Math.sqrt(MathUtil.abs(kPx) / (8.0 * POLYGON_ERROR_PX))).toNumber();
+        if (n < 1) { n = 1; }
+        var p0 = null;
+        var q0 = null;
+        for (var j = 0; j <= n; j += 1) {
+            var v   = far * (2.0 * j / n - 1.0);
+            var kv  = kPx * v;
+            var sag = kv * v / (1.0 + Math.sqrt(1.0 - kv * kv));    // the curve's depth at v, either sign
+            var p = [MathUtil.roundNearest(_cx + (topPx + sag) * _ux + v * vx),
+                     MathUtil.roundNearest(_cy + (topPx + sag) * _uy + v * vy)];
+            var q = [MathUtil.roundNearest(_cx + out * _ux + v * vx),
+                     MathUtil.roundNearest(_cy + out * _uy + v * vy)];
+            if (p0 != null) { dc.fillPolygon([p0, p, q, q0]); }
+            p0 = p;
+            q0 = q;
+        }
     }
 
     // Everything inside the rim but outside the circle of radius rPx whose

@@ -10,3 +10,4 @@ The sun now keeps its round shape for longer: it starts to spread along the hori
 MIP: a new sun. Its colours now flow as it goes down: each new colour grows in at the edge and pushes the one inside it down, while the brightest colours sink below the horizon. It follows the AMOLED sun stage by stage, from yellow by day to amber at sunset, red at the end of civil twilight, purple at the end of nautical twilight and blue at full night, with no sudden colour switches.
 AMOLED: the moon's dark side is a little brighter.
 Settings are reordered: Display type first, then the sky (Which stars, the moon's dark side), the clock and data fields, and the rarely changed ones (Sun and moon size, units, location) at the bottom. Your saved choices are kept.
+Fixed: on some watches (such as the Forerunner 165) a coloured bar could cross the screen near the end of civil twilight.
