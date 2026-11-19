@@ -101,7 +101,7 @@ module MiPArt {
     // Single-pixel stars are drawn in light grey so the larger ones stand out.
     const STAR_COLORS = [0xFFFF55, 0xFFFFAA, 0xFFAA55, 0x55AAFF, 0xFFFFFF];
     const STAR_SMALL_COLOR = 0xAAAAAA;
-    const CONSTELLATION_LINE = 0x0000AA;  // the palette's deep blue
+    const CONSTELLATION_LINE = 0x0055AA;  // the palette's steel blue
 
     // ── Planets (Planets.VENUS..SATURN) ──────────────────────────────────────
     const PLANET_COLORS = [0xFFFFFF, 0xFF5500, 0xFFFFAA, 0xFFFF55];       // white, orange, pale yellow, yellow

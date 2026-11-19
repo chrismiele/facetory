@@ -34,9 +34,9 @@ module AmoledArt {
     const STAR_RED          = 0xFF6B4A;   // red-orange
     const STAR_BLUE         = 0x80A8FF;   // clearly blue, not tinted white
     const STAR_WHITE        = 0xF4F4FF;
-    const STAR_BRIGHTNESS   = 0.8;
+    const STAR_BRIGHTNESS   = 0.9;
     const STAR_CORNER       = 0.4;        // the dim corners of round stars, as a share of the star
-    const CONSTELLATION_LINE = 0x274080;  // deep blue, faint against black
+    const CONSTELLATION_LINE = 0x3558A8;  // steel blue, quiet against black
 
     // ── Accents ───────────────────────────────────────────────────────────────
     const SUNSET_ACCENT = 0xFF8000;   // tinges the hour text near sunrise/sunset
@@ -85,7 +85,7 @@ module AmoledArt {
     // ── Planets (Planets.VENUS..SATURN) ──────────────────────────────────────
     // A touch brighter than the stars, in each planet's own colour.
     const PLANET_COLORS     = [0xFFF6E0, 0xFF6A3C, 0xFFDDAA, 0xEEC870];   // cream white, red-orange, peach, gold
-    const PLANET_BRIGHTNESS = 0.92;
+    const PLANET_BRIGHTNESS = 1.0;
     const SATURN_RING       = 0xA88C50;   // dull gold
 
     var _starColors = null;
