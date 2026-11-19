@@ -14,16 +14,23 @@ Sources
     distributed by NASA HEASARC (a U.S. government work), read from the JSON
     conversion at https://github.com/brettonw/YaleBrightStarCatalog
     (bsc5-all.json).
-  Constellation figures and asterisms: d3-celestial by Olaf Frohn
-    (https://github.com/ofrohn/d3-celestial, data/constellations.lines.json
-    and data/asterisms.json, BSD 3-clause licence). Only which stars belong
-    to which figure is used.
+  Constellation figures: the IAU's official charts, drawn with Sky &
+    Telescope (Roger Sinnott, Rick Fienberg; figures by Alan MacRobert), as
+    the "Modern (IAU)" sky culture of Stellarium
+    (https://github.com/Stellarium/stellarium, skycultures/modern_iau/
+    index.json, CC BY-SA 4.0). Only which stars each figure joins is used.
+    The figures in D3_FIGURES are d3-celestial's instead (data/
+    constellations.lines.json), which reads better at watch size.
+  Asterisms, those figures, and the Hipparcos positions that place the IAU figures' stars:
+    d3-celestial by Olaf Frohn (https://github.com/ofrohn/d3-celestial,
+    data/asterisms.json and data/stars.8.json, BSD 3-clause licence).
 
 Steps
   1. Drop entries without a position or V magnitude. Combine entries closer
      than 0.2 deg (the eye sees them as one star) by adding their light.
-  2. Find each figure's and asterism's stars: every vertex is matched to the
-     nearest catalogue star within 0.3 deg.
+  2. Find each figure's and asterism's stars: every vertex (for the IAU
+     figures, a Hipparcos star) is matched to the nearest catalogue star
+     within 0.3 deg.
   3. Apply proper motion and precess to the mean equinox of EPOCH (astropy).
   4. Order the stars for each mode and keep as many as the busiest sky needs
      for 200 stars above the horizon (checked over all latitudes and
@@ -47,7 +54,7 @@ the cut. When each star appears, and how big it is, depends on its true
 magnitude either way.
 
     pip install astropy numpy
-    python3 build_stars.py BSC5_JSON D3_CELESTIAL_DATA_DIR OUT_DIR
+    python3 build_stars.py BSC5_JSON D3_CELESTIAL_DATA_DIR MODERN_IAU_INDEX_JSON OUT_DIR
 """
 import sys, json, math
 import numpy as np
@@ -70,8 +77,10 @@ CORE_MAX_MAG    = 5.0
 ZODIAC = "Ari Tau Gem Cnc Leo Vir Lib Sco Sgr Cap Aqr Psc".split()
 ZODIAC_ANCHOR_MAG = 2.0      # stars this bright come first in the zodiac table too
 
+D3_FIGURES      = ["Leo"]                  # d3-celestial's Leo: the Sickle and a clean body
+
 # Lines left out of a figure, as (figure, HR, HR): Orion's shoulders are
-# joined through the head only, as on the usual star charts.
+# joined through the head only.
 REMOVE_LINES    = [("Ori", 2061, 1790)]     # Betelgeuse - Bellatrix
 CORE_BONUS      = 3.0
 FAMOUS_BONUS    = 1.5
@@ -114,42 +123,54 @@ def merge(stars, sep_deg=0.2):
     return sorted(kept, key=lambda s: s['v'])
 
 
-def figures(stars, lines_path, strict=True):
-    """{figure id: set of star indices drawn in it}. strict: every vertex must be a star
-    (some asterisms point at empty sky, such as the south celestial pole)."""
+def asterism_stars(stars, path):
+    """{asterism name: set of star indices}. A vertex with no star near it is
+    skipped (some asterisms point at empty sky, such as the south celestial pole)."""
     out = {}
-    for f in json.load(open(lines_path))['features']:
+    for f in json.load(open(path))['features']:
         idx = out.setdefault(f['id'], set())
         for line in f['geometry']['coordinates']:
             for lon, lat in line:
-                ra = lon % 360; best = None; bestd = 0.3
-                for i, s in enumerate(stars):
-                    if abs(s['de'] - lat) > 0.3:
-                        continue
-                    d = sep(ra, lat, s['ra'], s['de'])
-                    if d < bestd:
-                        best, bestd = i, d
-                if best is None and not strict:
-                    continue
-                if best is None:
-                    raise ValueError(f"no star for {f['id']} vertex {ra:.3f} {lat:.3f}")
-                idx.add(best)
+                i = nearest(stars, lon % 360, lat)
+                if i is not None:
+                    idx.add(i)
     return out
 
 
-def segments(stars, lines_path):
-    """{figure id: list of (i, j) star index pairs}, one per line of its figure"""
+def nearest(stars, ra, de, tol=0.3):
+    """Index of the catalogue star nearest (ra, de) within tol deg, or None."""
+    best, bestd = None, tol
+    for i, st in enumerate(stars):
+        if abs(st['de'] - de) > tol:
+            continue
+        d = sep(ra, de, st['ra'], st['de'])
+        if d < bestd:
+            best, bestd = i, d
+    return best
+
+
+def chain(stars, points, what):
+    """Star indices along one line of a figure, from its (ra, dec) vertices"""
+    idx = []
+    for ra, de in points:
+        i = nearest(stars, ra % 360, de)
+        if i is None:
+            raise ValueError(f"no star for {what} at {ra:.3f} {de:.3f}")
+        idx.append(i)
+    return [(a, b) for a, b in zip(idx, idx[1:]) if a != b]
+
+
+def segments(stars, iau_path, hip_path, d3_path):
+    """{figure id: list of (i, j) star index pairs}, one per line of its figure:
+    the IAU figure, or d3-celestial's for the D3_FIGURES"""
+    hip = {f['id']: f['geometry']['coordinates'] for f in json.load(open(hip_path))['features']}
     out = {}
-    for f in json.load(open(lines_path))['features']:
-        segs = out.setdefault(f['id'], [])
-        for line in f['geometry']['coordinates']:
-            idx = []
-            for lon, lat in line:
-                ra = lon % 360
-                best = min((i for i, s in enumerate(stars) if abs(s['de'] - lat) < 0.3),
-                           key=lambda i: sep(ra, lat, stars[i]['ra'], stars[i]['de']))
-                idx.append(best)
-            segs += [(a, b) for a, b in zip(idx, idx[1:]) if a != b]
+    for c in json.load(open(iau_path))['constellations']:
+        cid = c['id'].split()[-1]
+        out[cid] = [ab for line in c['lines'] for ab in chain(stars, [hip[h] for h in line], cid)]
+    for f in json.load(open(d3_path))['features']:
+        if f['id'] in D3_FIGURES:
+            out[f['id']] = [ab for line in f['geometry']['coordinates'] for ab in chain(stars, line, f['id'])]
     for c, h1, h2 in REMOVE_LINES:
         drop = {i for i, s in enumerate(stars) if s['hr'] in (h1, h2)}
         out[c] = [ab for ab in out[c] if set(ab) != drop]
@@ -270,15 +291,15 @@ def write(stars, order, path):
 
 
 if __name__ == '__main__':
-    bsc, d3data, out = sys.argv[1], sys.argv[2], sys.argv[3]
+    bsc, d3data, iau, out = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
     stars = merge(parse(bsc))
-    figs = figures(stars, d3data + '/constellations.lines.json')
-    asterisms = figures(stars, d3data + '/asterisms.json', strict=False)
+    segs = segments(stars, iau, d3data + '/stars.8.json', d3data + '/constellations.lines.json')
+    figs = {c: {i for ab in v for i in ab} for c, v in segs.items()}
+    asterisms = asterism_stars(stars, d3data + '/asterisms.json')
     to_epoch(stars)
     write(stars, list(range(len(stars))), out + '/stars_brightest.json')
     order = constellation_order(stars, figs, asterisms)
     write(stars, order, out + '/stars_constellations.json')
-    segs = segments(stars, d3data + '/constellations.lines.json')
     lines = line_table(stars, segs, order)
     json.dump(lines, open(out + '/stars_lines.json', 'w'), separators=(',', ':'))
     print(f"{out}/stars_lines.json: {len(lines)} lines")
