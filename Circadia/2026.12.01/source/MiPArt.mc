@@ -32,7 +32,7 @@ module MiPArt {
     //   -9             red into magenta
     //   -12            purple (end of nautical twilight)
     //   -15            indigo
-    //   -18            blue, setting exactly as full night begins
+    //   -18            deep blue, setting exactly as full night begins
     //
     // BAND_EDGES gives, at each BAND_ALT, the outer edge of each colour of
     // SUN_COLORS as a share of the sun's outer edge; a colour not yet in sits
@@ -64,10 +64,10 @@ module MiPArt {
     //     6   -18 to -12       AA55FF
     //     7   below -18        55AAFF
     //
-    //   white, pale yellow, yellow, amber, orange, red, pink, purple, indigo, blue
+    //   white, pale yellow, yellow, amber, orange, red, pink, purple, indigo, deep blue
     const SUN_COLORS = [
         0xFFFFFF, 0xFFFF55, 0xFFFF00, 0xFFAA00, 0xFF5500,
-        0xFF0000, 0xFF00AA, 0xAA00AA, 0x5500AA, 0x5555FF
+        0xFF0000, 0xFF00AA, 0xAA00AA, 0x5500AA, 0x0000AA
     ];
     const BAND_ALT   = [6.0, 3.0, 0.0, -3.0, -6.0, -9.0, -12.0, -15.0, -18.0];
     const BAND_EDGES = [
