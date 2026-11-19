@@ -35,8 +35,10 @@ using Toybox.WatchUi;
 //
 // How they look. Each star keeps one size and one colour all night: size
 // from its catalogue magnitude (*_MAG thresholds), colour from its B-V colour
-// index, binned when the table was built (Drawing.STAR_BIN_*). The dimming
-// near the horizon only decides when a star appears.
+// index, binned when the table was built (Drawing.STAR_BIN_*). The two
+// largest sizes are drawn round (Drawing.drawProjectedStar). The dimming
+// near the horizon only decides when a star appears. Planets are drawn
+// separately (Planets).
 //
 // Figure lines (Constellations: the well-known figures; Zodiac: the twelve
 // zodiac figures). At full night (sun at -18 deg or lower) faint lines join
@@ -114,6 +116,7 @@ module Stellar {
     var _projectedStars = [];
     var _projectedLines = [];
     var _starColorBins  = null;    // AMOLED star colours, or null for MIP
+    var _starCornerBins = null;    // AMOLED round-star corner colours, or null for MIP
     var _lineColor      = 0;
     var _lineAntiAlias  = false;
     var _projectionKey  = null;
@@ -172,6 +175,9 @@ module Stellar {
     }
 
     // Drop what only the line modes need.
+    // Whether figure lines are on screen (planets then keep a dark margin).
+    function hasLines() { return _projectedLines.size() > 0; }
+
     function releaseLines() {
         _lineTable  = null;
         _figureStar = null;
@@ -199,7 +205,7 @@ module Stellar {
 
     // The most stars ever drawn, so drawing a frame stays bounded too: the
     // star count plus the figure stars shown for the lines stays under this
-    // (about 230 at the most crowded); past it no more figure stars are added.
+    // (about 260 at the most crowded); past it no more figure stars are added.
     const MAX_STARS = 280;
 
     const JOB_IDLE  = 0;
@@ -417,6 +423,7 @@ module Stellar {
         _projectedStars = stars;
         _projectedLines = lines;
         _starColorBins  = mipMode ? null : AmoledArt.starColors();
+        _starCornerBins = mipMode ? null : AmoledArt.starCorners();
         _lineColor      = mipMode ? MiPArt.CONSTELLATION_LINE : AmoledArt.CONSTELLATION_LINE;
         _lineAntiAlias  = !mipMode;
         _projectionKey  = key;
@@ -636,8 +643,11 @@ module Stellar {
             }
             var size = (s >> 22) & 0x3;
             var bin  = (s >> 24) & 0x7;
-            var color = (_starColorBins == null) ? MiPArt.starColor(size, bin) : _starColorBins[bin];
-            Drawing.drawProjectedStar(dc, x, y, size, color);
+            if (_starColorBins == null) {
+                Drawing.drawProjectedStar(dc, x, y, size, MiPArt.starColor(size, bin), null);
+            } else {
+                Drawing.drawProjectedStar(dc, x, y, size, _starColorBins[bin], _starCornerBins[bin]);
+            }
         }
     }
 

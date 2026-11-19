@@ -103,6 +103,10 @@ module MiPArt {
     const STAR_SMALL_COLOR = 0xAAAAAA;
     const CONSTELLATION_LINE = 0x0000AA;  // the palette's deep blue
 
+    // ── Planets (Planets.VENUS..SATURN) ──────────────────────────────────────
+    const PLANET_COLORS = [0xFFFFFF, 0xFF5500, 0xFFFFAA, 0xFFFF55];       // white, orange, pale yellow, yellow
+    const SATURN_RING   = 0xAAAA55;
+
     // ── Accents ──────────────────────────────────────────────────────────────
     const MIP_SUNSET_ACCENT = 0xFFAA00;   // tinges the hour text near sunrise/sunset
 

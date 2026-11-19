@@ -143,10 +143,11 @@ module Drawing {
         dc.clear();
     }
 
-    // Back to front: stars, sun, moon. Everything is painted opaque, so the
-    // sun (spread along the horizon or not) and the moon hide the stars
-    // behind them simply by being drawn later; nothing has to test stars
-    // against them.
+    // Back to front: stars, sun, planets, moon. Everything is painted opaque,
+    // so the sun (spread along the horizon or not) and the moon hide the
+    // stars behind them simply by being drawn later; nothing has to test
+    // stars against them. Planets go over the sun's glow, so a bright planet
+    // shows in twilight, as Venus does.
     function drawSky(dc, cache, showSun, showMoon, showStars, mipMode) {
         clearBackground(dc);
 
@@ -157,6 +158,10 @@ module Drawing {
         if (showSun) {
             // cache = [cx, cy, R, sunAlt, sunX, sunY, ...]
             SunArt.draw(dc, cache[0], cache[1], cache[2], cache[4], cache[5], cache[3], mipMode);
+        }
+
+        if (showStars) {
+            Planets.draw(dc);
         }
 
         if (showMoon) {
@@ -346,16 +351,31 @@ module Drawing {
         dc.drawText(x, y, font, text, Graphics.TEXT_JUSTIFY_CENTER);
     }
 
-    function drawProjectedStar(dc, xi, yi, starSize, starColor) {
-        dc.setColor(starColor, BLACK);
-
+    // XL (4x4) and large (3x3) stars have their corners cut so they read as
+    // round; with a corner colour (AMOLED) the corners are drawn dim instead
+    // of left out. Medium (2x2) and small (1 px) stars are too small to round.
+    function drawProjectedStar(dc, xi, yi, starSize, starColor, cornerColor) {
         if (starSize == STAR_XL) {
-            dc.fillRectangle(xi - 2, yi - 2, 4, 4);
+            if (cornerColor != null) {
+                dc.setColor(cornerColor, BLACK);
+                dc.fillRectangle(xi - 2, yi - 2, 4, 4);
+            }
+            dc.setColor(starColor, BLACK);
+            dc.fillRectangle(xi - 2, yi - 1, 4, 2);
+            dc.fillRectangle(xi - 1, yi - 2, 2, 4);
         } else if (starSize == STAR_LARGE) {
-            dc.fillRectangle(xi - 1, yi - 1, 3, 3);
+            if (cornerColor != null) {
+                dc.setColor(cornerColor, BLACK);
+                dc.fillRectangle(xi - 1, yi - 1, 3, 3);
+            }
+            dc.setColor(starColor, BLACK);
+            dc.fillRectangle(xi - 1, yi, 3, 1);
+            dc.fillRectangle(xi, yi - 1, 1, 3);
         } else if (starSize == STAR_MEDIUM) {
+            dc.setColor(starColor, BLACK);
             dc.fillRectangle(xi - 1, yi - 1, 2, 2);
         } else {
+            dc.setColor(starColor, BLACK);
             dc.drawPoint(xi, yi);
         }
     }

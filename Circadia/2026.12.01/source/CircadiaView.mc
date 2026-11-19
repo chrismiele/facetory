@@ -14,8 +14,8 @@ using Toybox.WatchUi;
 // Two caches keep the per-frame work small:
 //   astronomy  sun and moon positions and colours, recomputed when the minute
 //              (or the display type) changes
-//   sky        screen positions of sun and moon, rebuilt from the astronomy
-//              when it changes or the screen size changes
+//   sky        screen positions of sun, moon and planets, rebuilt from the
+//              astronomy when it changes or the screen size changes
 // The stars are built separately, a bounded step per update, with next
 // minute's sky started ahead so it is ready on the minute (see Stellar).
 class CircadiaView extends WatchUi.WatchFace {
@@ -312,7 +312,8 @@ class CircadiaView extends WatchUi.WatchFace {
         );
     }
 
-    // Screen positions of sun, moon and stars, from the astronomy cache.
+    // Screen positions of sun, moon, planets and stars, from the astronomy
+    // cache. The planets are cheap enough to work out here, once a minute.
     function updateSkyCache(g, t) {
         var cx = _layoutCache[0];
         var cy = _layoutCache[1];
@@ -338,6 +339,15 @@ class CircadiaView extends WatchUi.WatchFace {
         ];
 
         if (config.showStars()) {
+            Planets.update(
+                [cx, cy, R],
+                [g.year, g.month, g.day, t.hour, t.min],
+                _latDeg,
+                _lonDeg,
+                t.timeZoneOffset,
+                _cachedSunAltAz[0],
+                config.mipMode()
+            );
             Stellar.updateProjectedStars(
                 [cx, cy, R],
                 [g.year, g.month, g.day, t.hour, t.min],
