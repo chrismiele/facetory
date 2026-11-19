@@ -54,7 +54,8 @@
         <string id="distanceMi">Millas</string>
 
         <!-- Display choices -->
-        <string id="displayAmoled">Predeterminado (color completo)</string>
+        <string id="displayAuto">Automático (según la pantalla)</string>
+        <string id="displayAmoled">Color completo</string>
         <string id="displayMip">Simplificado (compatible con MIP)</string>
 
         <!-- Star choices -->

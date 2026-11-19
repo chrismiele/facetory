@@ -12,8 +12,8 @@
         <!-- Distance units: 0 = kilometres, 1 = miles -->
         <property id="distanceUnits" type="number">0</property>
 
-        <!-- Display type: 0 = default (AMOLED), 1 = simplified (MIP) -->
-        <property id="mipMode"     type="number">0</property>
+        <!-- Display type: 0 = full colour (AMOLED), 1 = simplified (MIP), 2 = automatic, by the screen -->
+        <property id="mipMode"     type="number">2</property>
 
         <!-- Visual toggles -->
         <property id="showSeconds" type="boolean">false</property>

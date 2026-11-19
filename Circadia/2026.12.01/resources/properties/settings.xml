@@ -5,6 +5,7 @@
         <!-- ─── Display ───────────────────────────────────────────────────── -->
         <setting propertyKey="@Properties.mipMode" title="@Strings.mipModeTitle">
             <settingConfig type="list">
+                <listEntry value="2">@Strings.displayAuto</listEntry>
                 <listEntry value="0">@Strings.displayAmoled</listEntry>
                 <listEntry value="1">@Strings.displayMip</listEntry>
             </settingConfig>

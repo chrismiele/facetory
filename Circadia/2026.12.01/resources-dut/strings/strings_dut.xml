@@ -54,7 +54,8 @@
         <string id="distanceMi">Mijlen</string>
 
         <!-- Display choices -->
-        <string id="displayAmoled">Standaard (volledige kleur)</string>
+        <string id="displayAuto">Automatisch (past bij je scherm)</string>
+        <string id="displayAmoled">Volledige kleur</string>
         <string id="displayMip">Vereenvoudigd (MIP-vriendelijk)</string>
 
         <!-- Star choices -->

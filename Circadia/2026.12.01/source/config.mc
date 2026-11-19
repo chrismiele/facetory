@@ -49,6 +49,12 @@ module config {
     const DATE_FORMAT_MONTH_DAY  = 1;   // e.g. "Apr 5"
     const DATE_FORMAT_DAY_MONTH  = 2;   // e.g. "5 Apr"
 
+    // Display type ("mipMode"): full colour (AMOLED art), simplified (MIP
+    // art), or automatic, by the screen.
+    const DISPLAY_AMOLED = 0;
+    const DISPLAY_MIP    = 1;
+    const DISPLAY_AUTO   = 2;
+
     // ── Cached property values ───────────────────────────────────────────────
 
     var _topField         = FIELD_BATTERY;
@@ -56,7 +62,8 @@ module config {
     var _rightField       = FIELD_NEXT_SUN_EVENT;
     var _tempUnits        = TEMP_C;
     var _distanceUnits    = DIST_KM;
-    var _mipMode          = 0;       // 0 = AMOLED, 1 = MIP
+    var _mipMode          = DISPLAY_AUTO;
+    var _mipScreen        = false;   // the screen is not AMOLED (needs no burn-in protection)
     var _showSeconds      = false;
     // Stars shown at full night: always 200 ("Lots"), or 100 on watches with
     // under 100 KB for a watch face (such as the Forerunner 245, 96 KB).
@@ -120,6 +127,8 @@ module config {
         _tempUnits        = readNumber("tempUnits",        _tempUnits);
         _distanceUnits    = readNumber("distanceUnits",    _distanceUnits);
         _mipMode          = readNumber("mipMode",          _mipMode);
+        var ds            = System.getDeviceSettings();
+        _mipScreen        = (ds has :requiresBurnInProtection) && !ds.requiresBurnInProtection;
         _showSeconds      = readBool(  "showSeconds",      _showSeconds);
         _starCount        = (System.getSystemStats().totalMemory < 102400) ? 100 : 200;
         _starMode         = readNumber("starMode",         _starMode);
@@ -145,7 +154,9 @@ module config {
     function rightField()       { return _rightField;       }
     function tempUnits()        { return _tempUnits;        }
     function distanceUnits()    { return _distanceUnits;    }
-    function mipMode()          { return _mipMode > 0;      }
+    // The simplified (MIP) art: chosen, or by default whenever the screen
+    // is not AMOLED.
+    function mipMode()          { return (_mipMode == DISPLAY_AUTO) ? _mipScreen : (_mipMode == DISPLAY_MIP); }
     function showSeconds()      { return _showSeconds;      }
     function showMoon()         { return true;              }
     function showSun()          { return true;              }

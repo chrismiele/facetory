@@ -174,10 +174,10 @@ module Stellar {
         return _lineTable;
     }
 
-    // Drop what only the line modes need.
     // Whether figure lines are on screen (planets then keep a dark margin).
     function hasLines() { return _projectedLines.size() > 0; }
 
+    // Drop what only the line modes need.
     function releaseLines() {
         _lineTable  = null;
         _figureStar = null;

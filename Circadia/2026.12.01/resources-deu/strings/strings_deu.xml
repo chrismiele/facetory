@@ -54,7 +54,8 @@
         <string id="distanceMi">Meilen</string>
 
         <!-- Display choices -->
-        <string id="displayAmoled">Standard (volle Farbe)</string>
+        <string id="displayAuto">Automatisch (passend zum Display)</string>
+        <string id="displayAmoled">Volle Farbe</string>
         <string id="displayMip">Vereinfacht (MIP-tauglich)</string>
 
         <!-- Star choices -->

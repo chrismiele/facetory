@@ -52,7 +52,8 @@
         <string id="distanceMi">Miles</string>
 
         <!-- Display choices -->
-        <string id="displayAmoled">Par défaut (couleur intégrale)</string>
+        <string id="displayAuto">Automatique (selon l'écran)</string>
+        <string id="displayAmoled">Couleur intégrale</string>
         <string id="displayMip">Simplifié (compatible MIP)</string>
 
         <!-- Star choices -->
