@@ -13,7 +13,7 @@ using Toybox.WatchUi;
 //
 // Two caches keep the per-frame work small:
 //   astronomy  sun and moon positions and colours, recomputed when the minute
-//              (or the display type) changes
+//              changes
 //   sky        screen positions of sun, moon and planets, rebuilt from the
 //              astronomy when it changes or the screen size changes
 // The stars are built separately, a bounded step per update, with next
@@ -35,7 +35,6 @@ class CircadiaView extends WatchUi.WatchFace {
     var _cacheDay   = -1;
     var _cacheHour  = -1;
     var _cacheMin   = -1;
-    var _cacheMipMode = false;
 
     var _sunColor              = AmoledArt.WHITE;
     var _cachedSunAltAz        = [0.0, 0.0];
@@ -113,7 +112,7 @@ class CircadiaView extends WatchUi.WatchFace {
         var mipMode    = config.mipMode();
 
         if (g.year != _cacheYear || g.month != _cacheMonth || g.day != _cacheDay ||
-            t.hour != _cacheHour || t.min != _cacheMin || mipMode != _cacheMipMode) {
+            t.hour != _cacheHour || t.min != _cacheMin) {
 
             updateAstronomy(g, t, mipMode);
             _skyStale    = true;
@@ -124,7 +123,6 @@ class CircadiaView extends WatchUi.WatchFace {
             _cacheDay     = g.day;
             _cacheHour    = t.hour;
             _cacheMin     = t.min;
-            _cacheMipMode = mipMode;
         }
 
         if (showFields) {

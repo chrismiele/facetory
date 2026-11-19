@@ -10,7 +10,6 @@
         <string id="rightFieldTitle">Bottom-right data field</string>
         <string id="tempUnitsTitle">Temperature units</string>
         <string id="distanceUnitsTitle">Distance units</string>
-        <string id="mipModeTitle">Display type</string>
         <string id="showSecondsTitle">Show seconds</string>
         <string id="moonDarkSideTitle">Show the moon's dark side</string>
         <string id="moonSizeTitle">Sun and moon size</string>
@@ -53,9 +52,6 @@
         <string id="distanceMi">Miles</string>
 
         <!-- Display choices -->
-        <string id="displayAuto">Automatic (matches your screen)</string>
-        <string id="displayAmoled">Full colour</string>
-        <string id="displayMip">Simplified (MIP-friendly)</string>
 
         <!-- Star choices -->
         <string id="starModeTitle">Which stars</string>

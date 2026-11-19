@@ -49,12 +49,6 @@ module config {
     const DATE_FORMAT_MONTH_DAY  = 1;   // e.g. "Apr 5"
     const DATE_FORMAT_DAY_MONTH  = 2;   // e.g. "5 Apr"
 
-    // Display type ("mipMode"): full colour (AMOLED art), simplified (MIP
-    // art), or automatic, by the screen.
-    const DISPLAY_AMOLED = 0;
-    const DISPLAY_MIP    = 1;
-    const DISPLAY_AUTO   = 2;
-
     // ── Cached property values ───────────────────────────────────────────────
 
     var _topField         = FIELD_BATTERY;
@@ -62,7 +56,6 @@ module config {
     var _rightField       = FIELD_NEXT_SUN_EVENT;
     var _tempUnits        = TEMP_C;
     var _distanceUnits    = DIST_KM;
-    var _mipMode          = DISPLAY_AUTO;
     var _showSeconds      = false;
     // Stars shown at full night: always 200 ("Lots"), or 100 on watches with
     // under 100 KB for a watch face (such as the Forerunner 245, 96 KB).
@@ -82,7 +75,8 @@ module config {
 
     // True on displays that enforce burn-in protection (AMOLED). Read from the
     // device, not from a setting: it decides whether low power means "always-on
-    // mode with restrictions" (AMOLED) or "normal face, updated less often" (MIP).
+    // mode with restrictions" (AMOLED) or "normal face, updated less often" (MIP),
+    // and which art the face uses (mipMode()).
     var _burnIn           = false;
 
     // Helpers — getValue throws if a key is missing from properties.xml,
@@ -125,7 +119,6 @@ module config {
         _rightField       = readNumber("rightField",       _rightField);
         _tempUnits        = readNumber("tempUnits",        _tempUnits);
         _distanceUnits    = readNumber("distanceUnits",    _distanceUnits);
-        _mipMode          = readNumber("mipMode",          _mipMode);
         _showSeconds      = readBool(  "showSeconds",      _showSeconds);
         _starCount        = (System.getSystemStats().totalMemory < 102400) ? 100 : 200;
         _starMode         = readNumber("starMode",         _starMode);
@@ -151,9 +144,9 @@ module config {
     function rightField()       { return _rightField;       }
     function tempUnits()        { return _tempUnits;        }
     function distanceUnits()    { return _distanceUnits;    }
-    // The simplified (MIP) art: chosen, or by default whenever the screen
-    // needs no burn-in protection (not AMOLED).
-    function mipMode()          { return (_mipMode == DISPLAY_AUTO) ? !_burnIn : (_mipMode == DISPLAY_MIP); }
+    // The simplified (MIP) art on any screen that needs no burn-in
+    // protection (not AMOLED); the full-colour art on AMOLED.
+    function mipMode()          { return !_burnIn;          }
     function showSeconds()      { return _showSeconds;      }
     function showMoon()         { return true;              }
     function showSun()          { return true;              }

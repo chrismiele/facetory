@@ -11,7 +11,6 @@
         <string id="rightFieldTitle">Gegevensveld rechtsonder</string>
         <string id="tempUnitsTitle">Temperatuureenheid</string>
         <string id="distanceUnitsTitle">Afstandseenheid</string>
-        <string id="mipModeTitle">Schermtype</string>
         <string id="showSecondsTitle">Seconden tonen</string>
         <string id="moonDarkSideTitle">Donkere kant van de maan tonen</string>
         <string id="moonSizeTitle">Grootte van zon en maan</string>
@@ -54,9 +53,6 @@
         <string id="distanceMi">Mijlen</string>
 
         <!-- Display choices -->
-        <string id="displayAuto">Automatisch (past bij je scherm)</string>
-        <string id="displayAmoled">Volledige kleur</string>
-        <string id="displayMip">Vereenvoudigd (MIP-vriendelijk)</string>
 
         <!-- Star choices -->
         <string id="starModeTitle">Welke sterren</string>

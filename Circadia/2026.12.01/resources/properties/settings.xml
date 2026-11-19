@@ -2,15 +2,6 @@
 <resources>
     <settings>
 
-        <!-- ─── Display ───────────────────────────────────────────────────── -->
-        <setting propertyKey="@Properties.mipMode" title="@Strings.mipModeTitle">
-            <settingConfig type="list">
-                <listEntry value="2">@Strings.displayAuto</listEntry>
-                <listEntry value="0">@Strings.displayAmoled</listEntry>
-                <listEntry value="1">@Strings.displayMip</listEntry>
-            </settingConfig>
-        </setting>
-
         <!-- ─── Sky ───────────────────────────────────────────────────────── -->
         <setting propertyKey="@Properties.starMode" title="@Strings.starModeTitle">
             <settingConfig type="list">
@@ -29,16 +20,6 @@
             <settingConfig type="boolean" />
         </setting>
 
-        <setting propertyKey="@Properties.minuteSaturation" title="@Strings.minuteSaturationTitle">
-            <settingConfig type="list">
-                <listEntry value="0">@Strings.saturation0</listEntry>
-                <listEntry value="1">@Strings.saturation1</listEntry>
-                <listEntry value="2">@Strings.saturation2</listEntry>
-                <listEntry value="3">@Strings.saturation3</listEntry>
-                <listEntry value="4">@Strings.saturation4</listEntry>
-                <listEntry value="5">@Strings.saturation5</listEntry>
-            </settingConfig>
-        </setting>
 
         <!-- ─── Data Fields ───────────────────────────────────────────────── -->
         <setting propertyKey="@Properties.topField" title="@Strings.topFieldTitle">
@@ -140,6 +121,18 @@
                 <listEntry value="0">@Strings.moonSizeSmall</listEntry>
                 <listEntry value="1">@Strings.moonSizeMedium</listEntry>
                 <listEntry value="2">@Strings.moonSizeLarge</listEntry>
+            </settingConfig>
+        </setting>
+
+        <!-- ─── Minute Colour ─────────────────────────────────────────────── -->
+        <setting propertyKey="@Properties.minuteSaturation" title="@Strings.minuteSaturationTitle">
+            <settingConfig type="list">
+                <listEntry value="0">@Strings.saturation0</listEntry>
+                <listEntry value="1">@Strings.saturation1</listEntry>
+                <listEntry value="2">@Strings.saturation2</listEntry>
+                <listEntry value="3">@Strings.saturation3</listEntry>
+                <listEntry value="4">@Strings.saturation4</listEntry>
+                <listEntry value="5">@Strings.saturation5</listEntry>
             </settingConfig>
         </setting>
 

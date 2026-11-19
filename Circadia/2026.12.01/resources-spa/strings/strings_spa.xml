@@ -11,7 +11,6 @@
         <string id="rightFieldTitle">Campo de datos inferior derecho</string>
         <string id="tempUnitsTitle">Unidades de temperatura</string>
         <string id="distanceUnitsTitle">Unidades de distancia</string>
-        <string id="mipModeTitle">Tipo de pantalla</string>
         <string id="showSecondsTitle">Mostrar segundos</string>
         <string id="moonDarkSideTitle">Mostrar el lado oscuro de la luna</string>
         <string id="moonSizeTitle">Tamaño del sol y la luna</string>
@@ -54,9 +53,6 @@
         <string id="distanceMi">Millas</string>
 
         <!-- Display choices -->
-        <string id="displayAuto">Automático (según la pantalla)</string>
-        <string id="displayAmoled">Color completo</string>
-        <string id="displayMip">Simplificado (compatible con MIP)</string>
 
         <!-- Star choices -->
         <string id="starModeTitle">Qué estrellas</string>

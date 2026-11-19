@@ -11,7 +11,6 @@
         <string id="rightFieldTitle">Datenfeld unten rechts</string>
         <string id="tempUnitsTitle">Temperatureinheit</string>
         <string id="distanceUnitsTitle">Entfernungseinheit</string>
-        <string id="mipModeTitle">Anzeigetyp</string>
         <string id="showSecondsTitle">Sekunden anzeigen</string>
         <string id="moonDarkSideTitle">Dunkle Mondseite anzeigen</string>
         <string id="moonSizeTitle">Größe von Sonne und Mond</string>
@@ -54,9 +53,6 @@
         <string id="distanceMi">Meilen</string>
 
         <!-- Display choices -->
-        <string id="displayAuto">Automatisch (passend zum Display)</string>
-        <string id="displayAmoled">Volle Farbe</string>
-        <string id="displayMip">Vereinfacht (MIP-tauglich)</string>
 
         <!-- Star choices -->
         <string id="starModeTitle">Welche Sterne</string>

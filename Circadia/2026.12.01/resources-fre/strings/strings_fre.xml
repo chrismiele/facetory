@@ -10,7 +10,6 @@
         <string id="rightFieldTitle">Champ de données en bas à droite</string>
         <string id="tempUnitsTitle">Unités de température</string>
         <string id="distanceUnitsTitle">Unités de distance</string>
-        <string id="mipModeTitle">Type d'affichage</string>
         <string id="showSecondsTitle">Afficher les secondes</string>
         <string id="moonDarkSideTitle">Afficher la face sombre de la lune</string>
         <string id="moonSizeTitle">Taille du soleil et de la lune</string>
@@ -52,9 +51,6 @@
         <string id="distanceMi">Miles</string>
 
         <!-- Display choices -->
-        <string id="displayAuto">Automatique (selon l'écran)</string>
-        <string id="displayAmoled">Couleur intégrale</string>
-        <string id="displayMip">Simplifié (compatible MIP)</string>
 
         <!-- Star choices -->
         <string id="starModeTitle">Quelles étoiles</string>

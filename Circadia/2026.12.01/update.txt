@@ -9,7 +9,7 @@ The sun now keeps its round shape for longer: it starts to spread along the hori
 "Moon size" is now "Sun and moon size": the sun's white disc always matches the moon, and the whole sun scales with it (Large is the full-size sun). Smaller suns keep glowing at the horizon until full night, so twilight is always told by the sun's colour.
 MIP: a new sun. Its colours now flow as it goes down: each new colour grows in at the edge and pushes the one inside it down, while the brightest colours sink below the horizon. It follows the AMOLED sun stage by stage, from yellow by day to amber at sunset, red at the end of civil twilight, purple at the end of nautical twilight and blue at full night, with no sudden colour switches.
 AMOLED: the moon's dark side is a little brighter.
-Settings are reordered: Display type first, then the sky (Which stars, the moon's dark side), the clock and data fields, and the rarely changed ones (Sun and moon size, units, location) at the bottom. Your saved choices are kept.
+Settings are reordered: the sky first (Which stars, the moon's dark side), then the clock and data fields, and the rarely changed ones (Sun and moon size, minute colour saturation, units, location) at the bottom. Your saved choices are kept.
 Fixed: on some watches (such as the Forerunner 165) a coloured bar could cross the screen near the end of civil twilight.
-"Display type" has a new choice, Automatic, now the default for new installs: the full-colour art on AMOLED screens and the simplified art on MIP screens. Watches that already have Circadia keep their current setting; switch to Automatic or Simplified on a MIP watch.
-Now available on the fēnix 9 and 9 Pro (AMOLED and Solar) and the Enduro 4, and on more MIP watches: fēnix 7, 7S, 7X and 7 Pro series (with quatix 7, tactix 7 and Enduro 2), Forerunner 255 series, 955 and 245 Music.
+The "Display type" setting is gone: Circadia now picks its art from the watch itself, full colour on AMOLED screens and the simplified art on MIP screens.
+Now available on more MIP watches: fēnix 7, 7S, 7X and 7 Pro series (with quatix 7, tactix 7 and Enduro 2), Forerunner 255 series, 955 and 245 Music.
