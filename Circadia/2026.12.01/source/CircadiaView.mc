@@ -147,10 +147,10 @@ class CircadiaView extends WatchUi.WatchFace {
         // update a minute), the one a few minutes on.
         if (showSky && config.showStars()) {
             if (_isSleeping) {
-                if (Stellar.canPrepare()) { prepareNextSky(now, t, Stellar.leadMinutes()); }
+                if (Stellar.canPrepare()) { prepareNextSky(g, t, Stellar.leadMinutes()); }
             } else if (t.sec >= PREBUILD_SEC && t.min != _aheadMin) {
                 _aheadMin = t.min;
-                if (Stellar.canPrepare()) { prepareNextSky(now, t, 1); }
+                if (Stellar.canPrepare()) { prepareNextSky(g, t, 1); }
             }
             Stellar.continueWork();
         }
@@ -291,8 +291,14 @@ class CircadiaView extends WatchUi.WatchFace {
     // where it will be then (the same calculation updateAstronomy will make
     // at that minute, so the two match exactly and the sky built ahead is
     // used).
-    function prepareNextSky(now, t, minutes) {
-        var n      = Gregorian.info(now.add(new Time.Duration(60 * minutes)), Time.FORMAT_SHORT);
+    function prepareNextSky(g, t, minutes) {
+        // The later minute, counted on from the same clock reading the
+        // current sky uses (g's date, t's hour and minute), so its key
+        // matches when that minute comes. The moment is only a calculator
+        // here: built and read back in UTC, it carries no time zone.
+        var base = Gregorian.moment({:year => g.year, :month => g.month, :day => g.day,
+                                     :hour => t.hour, :minute => t.min, :second => 0});
+        var n      = Gregorian.utcInfo(base.add(new Time.Duration(60 * minutes)), Time.FORMAT_SHORT);
         var sunAlt = Solar.solarAltAzApprox(
             n.year, n.month, n.day, n.hour + n.min / 60.0, t.timeZoneOffset,
             _latDeg, _lonDeg

@@ -200,7 +200,10 @@ module Stellar {
     // moment its minute starts: while awake, next minute's sky from second
     // PREBUILD_SEC (see CircadiaView), so stars move every minute as before;
     // in low power, the sky leadMinutes() ahead, so the sky moves every few
-    // minutes but each new sky is right for the minute it appears.
+    // minutes but each new sky is right for the minute it appears. If a sky
+    // built ahead misses its minute (updates were missed, the simulator runs
+    // time fast, the clock changed), low power shows it late or builds the
+    // current minute's, so the sky is never left stale or empty.
     const STEP_ENTRIES = 96;
 
     // The most stars ever drawn, so drawing a frame stays bounded too: the
@@ -237,6 +240,10 @@ module Stellar {
     var _jobSteps   = 0;      // steps the current job has taken
     var _lastSteps  = 0;      // steps the last finished job took
     var _lowPower   = false;
+    var _lastMin    = 0;      // the minute of the last request, to notice the clock going back
+    var _jobFromMin = 0;      // the minute the current job started
+    var _lastSpan   = 0;      // minutes the last finished job took (0 if unknown)
+    var _aheadMissed = false; // a sky built ahead went unused: build the current one instead
 
     // The view says whether the watch is in low power (an update a minute).
     function setLowPower(lowPower) { _lowPower = lowPower; }
@@ -248,10 +255,12 @@ module Stellar {
     }
 
     // How many minutes ahead to start a sky in low power, so it is done by
-    // then (one step per update, an update a minute): the steps the last
-    // sky took, plus one to spare; before any, enough for the largest table.
+    // then: the steps the last sky took (an update a minute), or the minutes
+    // it took if more (updates were missed, or the simulator runs time fast),
+    // plus one to spare; before any, enough for the largest table.
+    const MAX_LEAD_MIN = 15;
     function leadMinutes() {
-        if (_lastSteps > 0) { return _lastSteps + 1; }
+        if (_lastSteps > 0) { return ((_lastSpan > _lastSteps) ? _lastSpan : _lastSteps) + 1; }
         var n = (_catalog == null) ? 530 : _catalog.size();
         return (n + STEP_ENTRIES - 1) / STEP_ENTRIES + 3;
     }
@@ -263,22 +272,44 @@ module Stellar {
     // time by continueWork(), which the view calls once per full update.
     function updateProjectedStars(layout, datetime, latDeg, lonDeg, offsetSec, sunAltDeg, starCount, starMode, mipMode) {
         var nowMin = minuteOrdinal(datetime);
-        if (_readyKey != null && _readyMin < nowMin) { dropReady(); }
+        if (nowMin < _lastMin) {
+            // The clock went back (a time zone change): a sky built or being
+            // built ahead is for a minute that is now far off.
+            if (_jobPhase != JOB_IDLE && _jobAhead) { _jobPhase = JOB_IDLE; _jobStars = null; }
+            if (_readyKey != null) { dropReady(); _aheadMissed = true; }
+        }
+        _lastMin = nowMin;
 
         if (limitingMagnitude(sunAltDeg) <= LIMIT_MAG[0] || starCount <= 0) {
             // Daytime, or stars off: nothing to show. A sky being built, or
             // built, for a later (starry) minute is kept.
+            if (_readyKey != null && _readyMin < nowMin) { dropReady(); }
             _projectedStars = [];
             _projectedLines = [];
             _projectionKey  = null;
             if (_jobPhase != JOB_IDLE && !_jobAhead) { _jobPhase = JOB_IDLE; _jobStars = null; }
             _nextArgs = null;
+            _aheadMissed = false;
             if (starCount <= 0 || (starMode == MODE_BRIGHTEST && _jobPhase == JOB_IDLE && _readyKey == null)) { releaseLines(); }
             return;
         }
 
         var args = [layout, datetime, latDeg, lonDeg, offsetSec, sunAltDeg, starCount, starMode, mipMode];
         var key  = skyKey(args);
+
+        // Built ahead for a minute that has passed (updates were missed, or
+        // the simulator runs time fast). In low power it is still the
+        // freshest sky there is, so show it, a little late; awake, building
+        // this minute's takes only seconds.
+        if (_readyKey != null && _readyMin < nowMin) {
+            if (_lowPower && sameSky(key, _readyKey)) {
+                show(_readyStars, _readyLines, _readyMip, _readyKey);
+            } else {
+                _aheadMissed = true;
+            }
+            dropReady();
+        }
+
         if (_projectionKey != null && keysEqual(key, _projectionKey)) { return; }
 
         // Built ahead for this minute: show it now, as the minute changes.
@@ -289,6 +320,7 @@ module Stellar {
                 return;
             }
             dropReady();                         // something changed: build afresh
+            _aheadMissed = true;
         }
 
         if (_jobPhase != JOB_IDLE) {
@@ -301,8 +333,11 @@ module Stellar {
         }
 
         // In low power, keep the sky shown and let the view start one ahead,
-        // unless there is none yet.
-        if (_lowPower && _projectionKey != null) { return; }
+        // unless there is none yet or the last one ahead went unused (it came
+        // too late, or something changed): then build this minute's, so the
+        // sky never stays stale.
+        if (_lowPower && _projectionKey != null && !_aheadMissed) { return; }
+        _aheadMissed = false;
         startJob(args, key, false);
     }
 
@@ -339,6 +374,16 @@ module Stellar {
         ];
     }
 
+    // Whether two keys are for the same sky apart from the time: the same
+    // screen, place, time zone and settings (skyKey's 3-7 are the clock, 11
+    // the sun).
+    function sameSky(a, b) {
+        for (var i = 0; i < a.size(); i += 1) {
+            if ((i < 3 || i > 7) && i != 11 && a[i] != b[i]) { return false; }
+        }
+        return true;
+    }
+
     function dropReady() {
         _readyKey   = null;
         _readyStars = null;
@@ -352,6 +397,7 @@ module Stellar {
         _jobAhead = ahead;
         _jobPhase = JOB_LOAD;
         _jobSteps = 0;
+        _jobFromMin = _lastMin;
         _nextArgs = null;
     }
 
@@ -407,6 +453,8 @@ module Stellar {
     function publish(lines) {
         var mipMode = _jobArgs[8];
         _lastSteps  = _jobSteps;
+        var span    = _lastMin - _jobFromMin;
+        _lastSpan   = (span < 0) ? 0 : ((span > MAX_LEAD_MIN) ? MAX_LEAD_MIN : span);
         if (_jobAhead) {
             _readyKey   = _jobKey;
             _readyMin   = _jobMin;
