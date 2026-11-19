@@ -74,6 +74,18 @@ module MoonArt {
         }
     }
 
+    // The moon's whole disc in black, drawn over the stars before the sun
+    // (Drawing.drawSky), so stars never show through the moon, lit or not.
+    function drawShadow(dc, cache) {
+        var mx = cache[6];
+        var my = cache[7];
+        var moonRadius = cache[9];
+        if (Drawing.intersectsSkyDisc(mx, my, moonRadius, cache[0], cache[1], cache[2])) {
+            dc.setColor(BLACK, BLACK);
+            dc.fillCircle(MathUtil.roundNearest(mx), MathUtil.roundNearest(my), MathUtil.roundNearest(moonRadius));
+        }
+    }
+
     // ── Full moon ────────────────────────────────────────────────────────────
 
     function drawFull(dc, mx, my, moonRadius, phaseAngle, sunAlt, sky, mipMode) {

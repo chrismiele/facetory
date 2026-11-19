@@ -143,16 +143,22 @@ module Drawing {
         dc.clear();
     }
 
-    // Back to front: stars, sun, planets, moon. Everything is painted opaque,
-    // so the sun (spread along the horizon or not) and the moon hide the
-    // stars behind them simply by being drawn later; nothing has to test
-    // stars against them. Planets go over the sun's glow, so a bright planet
-    // shows in twilight, as Venus does.
+    // Back to front: stars, the moon's shadow, sun, planets, moon. Everything
+    // is painted opaque, so the sun (spread along the horizon or not) and the
+    // moon hide the stars behind them simply by being drawn later. The
+    // shadow, a black disc where the moon is, hides stars behind its unlit
+    // part too, whatever is drawn there (with the dark side off, a new moon
+    // draws nothing); it goes before the sun so the glow is never cut.
+    // Planets go over the sun's glow, so a bright planet shows in twilight,
+    // as Venus does, and skip themselves when behind the moon.
     function drawSky(dc, cache, showSun, showMoon, showStars, mipMode) {
         clearBackground(dc);
 
         if (showStars) {
             Stellar.drawProjectedStars(dc);
+            if (showMoon) {
+                MoonArt.drawShadow(dc, cache);
+            }
         }
 
         if (showSun) {
@@ -161,7 +167,7 @@ module Drawing {
         }
 
         if (showStars) {
-            Planets.draw(dc);
+            Planets.draw(dc, showMoon ? cache : null);
         }
 
         if (showMoon) {

@@ -21,8 +21,9 @@ using Toybox.Math;
 // bright as the stars, in the planet's own colour (AmoledArt and
 // MiPArt PLANET_COLORS). Saturn wears a small ring at a fixed tilt, for
 // recognition rather than its true angle. Planets are drawn over the sun's
-// glow (Drawing.drawSky). When figure lines are on screen, each planet
-// clears a dark margin first, so lines stop short of it as they do at stars.
+// glow (Drawing.drawSky), and not at all when behind the moon. When figure
+// lines are on screen, each planet clears a dark margin first, so lines stop
+// short of it as they do at stars.
 module Planets {
 
     const VENUS   = 0;
@@ -265,17 +266,28 @@ module Planets {
         }
     }
 
-    function draw(dc) {
+    // cache = the sky cache (CircadiaView.updateSkyCache), for the moon: a
+    // planet behind the moon is not drawn. null when the moon is not shown.
+    function draw(dc, cache) {
         var n = _planets.size();
         if (n == 0) { return; }
         var b      = Drawing.regionBounds(9);
         var margin = Stellar.hasLines();
+        var mx = 0.0;
+        var my = 0.0;
+        var mr2 = -1.0;                        // the moon's radius squared; below 0, no moon
+        if (cache != null) {
+            mx  = cache[6];
+            my  = cache[7];
+            mr2 = cache[9] * cache[9];
+        }
         for (var i = 0; i < n; i += 1) {
             var v = _planets[i];
             var x = v & 0x7FF;
             var y = (v >> 11) & 0x7FF;
             var p = (v >> 22) & 0x3;
             if (b != null && (x < b[0] || x > b[2] || y < b[1] || y > b[3])) { continue; }
+            if ((x - mx) * (x - mx) + (y - my) * (y - my) < mr2) { continue; }     // behind the moon
 
             if (margin) {
                 dc.setColor(Drawing.BLACK, Drawing.BLACK);
