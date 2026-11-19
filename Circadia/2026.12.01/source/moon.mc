@@ -15,8 +15,11 @@ using Toybox.Math;
 //
 // Dark side (the "Show the moon's dark side" setting, off by default). Where
 // the device supports it, the unlit part of the moon shows as a dim disc.
-// With the setting off, the same drawing is used with black as the unlit
-// colour, so the dark side is black, as it always was.
+// With the setting off, the layered drawing leaves the unlit part clear, so
+// whatever is behind it shows through: black sky, or the sun's glow when a
+// young or old crescent sits in twilight. Stars behind it are hidden all
+// the same, by the moon's shadow (drawShadow()). The classic drawing paints
+// the unlit part black, as it always has.
 //
 // Layered drawing (devices with bitmap-texture fills: Connect IQ 4 with a
 // GPU). Every phase but new and full is built off screen, in two steps, and
@@ -46,7 +49,7 @@ module MoonArt {
     const BLACK = 0x000000;
 
     var _layer       = null;    // BufferedBitmap holding the finished moon disc
-    var _layerKey    = null;    // [radiusPx, terminatorKey, tiltBin, litColor, shade] it was drawn for
+    var _layerKey    = null;    // [radiusPx, terminatorKey, tiltBin, litColor, shade] it was drawn for (shade null: clear)
     var _layerHalf   = 0;       // distance from the bitmap's corner to the moon's centre
     var _layerFailed = false;   // set once if the layer cannot be built on this device
 
@@ -150,7 +153,8 @@ module MoonArt {
         var layered   = layerSupported(dc);
         var darkSide  = layered && config.moonDarkSide();
 
-        // The unlit colour: dim grey with the dark side on, black with it off.
+        // The unlit colour: dim grey with the dark side on, black with it off
+        // (the layered drawing leaves it clear instead; see the header).
         var shade = darkSide ? darkColor : BLACK;
 
         // New moon: the whole disc is unlit, so without the dark side there
@@ -173,7 +177,7 @@ module MoonArt {
         if (layered) {
             var fineBin = Lunar.fineOrientationBin(angle);
             var term    = terminatorKey(ri, phaseAngle);
-            if (ensureLayer(r, term, fineBin, litColor, shade, !mipMode)) {
+            if (ensureLayer(r, term, fineBin, litColor, darkSide ? shade : null, !mipMode)) {
                 dc.drawBitmap(xi - _layerHalf, yi - _layerHalf, _layer);
                 return;
             }
@@ -282,20 +286,32 @@ module MoonArt {
 
     // Paint the whole size x size picture for a moon of radius ri centred on
     // pixel (ri, ri), with the sun in direction (ux, uy). Pixel (x, y) is
-    // treated as the point at its centre.
+    // treated as the point at its centre. shade null leaves the unlit part
+    // transparent: the picture starts clear and only lit pixels are painted
+    // (a transparent colour cannot be painted over another), with the
+    // blended edge pixels mixed towards black, as over the night sky.
     function paintPhasePicture(dc, size, ri, key, ux, uy, litColor, shade, smooth) {
         var r   = ri.toFloat();
         var t   = (key + 0.5) / 2.0;
         var cc  = (t * t - r * r) / (2.0 * t);     // circle centre, along (ux, uy)
         var rho = MathUtil.abs(t - cc);            // circle radius
-        var bg  = (t > 0.0) ? litColor : shade;
+        var bg  = (t > 0.0) ? litColor : shade;    // either may be null (clear)
         var fg  = (t > 0.0) ? shade : litColor;
         var cx  = ri + cc * ux;
         var cy  = ri + cc * uy;
         var last = size - 1;
 
-        dc.setColor(bg, bg);
+        // A clear circle on a lit background is painted as the background
+        // around it, row by row, below.
+        var clearCircle = (fg == null);
+        if (bg == null || clearCircle) {
+            dc.setColor(Graphics.COLOR_TRANSPARENT, Graphics.COLOR_TRANSPARENT);
+        } else {
+            dc.setColor(bg, bg);
+        }
         dc.clear();
+        var bgMix = (bg == null) ? BLACK : bg;
+        var fgMix = (fg == null) ? BLACK : fg;
 
         // Pixels closer to the centre than rIn are all foreground; pixels
         // further than rOut are all background; in between they are blended.
@@ -307,14 +323,34 @@ module MoonArt {
         for (var y = 0; y < size; y++) {
             var dy  = y - cy;
             var dy2 = dy * dy;
-            if (dy2 >= rOut2) { continue; }
+            if (dy2 >= rOut2) {
+                if (clearCircle) {
+                    dc.setColor(bg, bg);
+                    dc.fillRectangle(0, y, size, 1);
+                }
+                continue;
+            }
 
             var ho = Math.sqrt(rOut2 - dy2);
             var x0 = Math.ceil(cx - ho).toNumber();
             var x1 = Math.floor(cx + ho).toNumber();
-            if (x1 < 0 || x0 > last) { continue; }
+            if (x1 < 0 || x0 > last) {
+                if (clearCircle) {
+                    dc.setColor(bg, bg);
+                    dc.fillRectangle(0, y, size, 1);
+                }
+                continue;
+            }
             if (x0 < 0)    { x0 = 0; }
             if (x1 > last) { x1 = last; }
+
+            // The background either side of the circle, when it was not
+            // cleared to it.
+            if (clearCircle) {
+                dc.setColor(bg, bg);
+                if (x0 > 0)    { dc.fillRectangle(0, y, x0, 1); }
+                if (x1 < last) { dc.fillRectangle(x1 + 1, y, last - x1, 1); }
+            }
 
             // The solid span.
             var s0 = x1 + 1;
@@ -326,8 +362,10 @@ module MoonArt {
                 if (s0 < x0) { s0 = x0; }
                 if (s1 > x1) { s1 = x1; }
                 if (s0 <= s1) {
-                    dc.setColor(fg, fg);
-                    dc.fillRectangle(s0, y, s1 - s0 + 1, 1);
+                    if (!clearCircle) {
+                        dc.setColor(fg, fg);
+                        dc.fillRectangle(s0, y, s1 - s0 + 1, 1);
+                    }
                 } else {
                     s0 = x1 + 1;
                     s1 = x1;
@@ -338,11 +376,11 @@ module MoonArt {
             if (smooth) {
                 var leftEnd = (s0 <= s1) ? s0 - 1 : x1;
                 for (var xl = x0; xl <= leftEnd; xl++) {
-                    paintEdgePixel(dc, xl, y, cx, dy2, rho, bg, fg);
+                    paintEdgePixel(dc, xl, y, cx, dy2, rho, bgMix, fgMix, clearCircle);
                 }
                 if (s0 <= s1) {
                     for (var xr = s1 + 1; xr <= x1; xr++) {
-                        paintEdgePixel(dc, xr, y, cx, dy2, rho, bg, fg);
+                        paintEdgePixel(dc, xr, y, cx, dy2, rho, bgMix, fgMix, clearCircle);
                     }
                 }
             }
@@ -351,10 +389,19 @@ module MoonArt {
 
     // How much of pixel (x, y) lies inside the circle, approximated from the
     // distance of its centre to the edge, and painted as a blend.
-    function paintEdgePixel(dc, x, y, cx, dy2, rho, bg, fg) {
+    // cov is the share of the pixel inside the circle. A pixel wholly
+    // outside it is background: already there, or (paintBg, the background
+    // was not cleared to) painted now.
+    function paintEdgePixel(dc, x, y, cx, dy2, rho, bg, fg, paintBg) {
         var dx  = x - cx;
         var cov = 0.5 + rho - Math.sqrt(dx * dx + dy2);
-        if (cov <= 0.0) { return; }
+        if (cov <= 0.0) {
+            if (paintBg) {
+                dc.setColor(bg, bg);
+                dc.drawPoint(x, y);
+            }
+            return;
+        }
         var col = (cov >= 1.0) ? fg : mixColor(bg, fg, cov);
         dc.setColor(col, col);
         dc.drawPoint(x, y);
@@ -501,8 +548,8 @@ module MoonArt {
         var ri   = MathUtil.roundNearest(r);
         var size = 2 * ri + 1;
 
-        // 1. The picture, opaque: background plus one circle, painted row by
-        //    row. See paintPhasePicture().
+        // 1. The picture: background plus one circle, painted row by row,
+        //    opaque, or with the unlit part clear. See paintPhasePicture().
         var pic = makeBitmap(size);
         if (pic == null) { return null; }
         var dir = Lunar.binDirection(tiltBin, Lunar.FINE_BIN_COUNT);
