@@ -2,7 +2,44 @@
 <resources>
     <settings>
 
-        <!-- ─── Data Fields ─────────────────────────────────────────────── -->
+        <!-- ─── Display ───────────────────────────────────────────────────── -->
+        <setting propertyKey="@Properties.mipMode" title="@Strings.mipModeTitle">
+            <settingConfig type="list">
+                <listEntry value="0">@Strings.displayAmoled</listEntry>
+                <listEntry value="1">@Strings.displayMip</listEntry>
+            </settingConfig>
+        </setting>
+
+        <!-- ─── Sky ───────────────────────────────────────────────────────── -->
+        <setting propertyKey="@Properties.starMode" title="@Strings.starModeTitle">
+            <settingConfig type="list">
+                <listEntry value="0">@Strings.starModeBrightest</listEntry>
+                <listEntry value="1">@Strings.starModeConstellations</listEntry>
+                <listEntry value="2">@Strings.starModeZodiac</listEntry>
+            </settingConfig>
+        </setting>
+
+        <setting propertyKey="@Properties.moonDarkSide" title="@Strings.moonDarkSideTitle">
+            <settingConfig type="boolean" />
+        </setting>
+
+        <!-- ─── Clock ─────────────────────────────────────────────────────── -->
+        <setting propertyKey="@Properties.showSeconds" title="@Strings.showSecondsTitle">
+            <settingConfig type="boolean" />
+        </setting>
+
+        <setting propertyKey="@Properties.minuteSaturation" title="@Strings.minuteSaturationTitle">
+            <settingConfig type="list">
+                <listEntry value="0">@Strings.saturation0</listEntry>
+                <listEntry value="1">@Strings.saturation1</listEntry>
+                <listEntry value="2">@Strings.saturation2</listEntry>
+                <listEntry value="3">@Strings.saturation3</listEntry>
+                <listEntry value="4">@Strings.saturation4</listEntry>
+                <listEntry value="5">@Strings.saturation5</listEntry>
+            </settingConfig>
+        </setting>
+
+        <!-- ─── Data Fields ───────────────────────────────────────────────── -->
         <setting propertyKey="@Properties.topField" title="@Strings.topFieldTitle">
             <settingConfig type="list">
                 <listEntry value="1">@Strings.fieldBodyBattery</listEntry>
@@ -72,16 +109,7 @@
             </settingConfig>
         </setting>
 
-        <!-- ─── Visual Toggles ─────────────────────────────────────────── -->
-        <setting propertyKey="@Properties.showSeconds" title="@Strings.showSecondsTitle">
-            <settingConfig type="boolean" />
-        </setting>
-
-        <setting propertyKey="@Properties.moonDarkSide" title="@Strings.moonDarkSideTitle">
-            <settingConfig type="boolean" />
-        </setting>
-
-        <!-- ─── Time / Date Format ─────────────────────────────────────── -->
+        <!-- ─── Time / Date Format ────────────────────────────────────────── -->
         <setting propertyKey="@Properties.timeFormat" title="@Strings.timeFormatTitle">
             <settingConfig type="list">
                 <listEntry value="0">@Strings.timeFormat24h</listEntry>
@@ -97,28 +125,15 @@
             </settingConfig>
         </setting>
 
-        <!-- ─── Saturation ─────────────────────────────────────────────── -->
-        <setting propertyKey="@Properties.minuteSaturation" title="@Strings.minuteSaturationTitle">
+        <!-- ─── Always-On Display ─────────────────────────────────────────── -->
+        <setting propertyKey="@Properties.aodBehaviour" title="@Strings.aodBehaviourTitle">
             <settingConfig type="list">
-                <listEntry value="0">@Strings.saturation0</listEntry>
-                <listEntry value="1">@Strings.saturation1</listEntry>
-                <listEntry value="2">@Strings.saturation2</listEntry>
-                <listEntry value="3">@Strings.saturation3</listEntry>
-                <listEntry value="4">@Strings.saturation4</listEntry>
-                <listEntry value="5">@Strings.saturation5</listEntry>
+                <listEntry value="1">@Strings.aodSkyOnly</listEntry>
+                <listEntry value="0">@Strings.aodClockOnly</listEntry>
             </settingConfig>
         </setting>
 
-        <!-- ─── Stars ──────────────────────────────────────────────────── -->
-        <setting propertyKey="@Properties.starMode" title="@Strings.starModeTitle">
-            <settingConfig type="list">
-                <listEntry value="0">@Strings.starModeBrightest</listEntry>
-                <listEntry value="1">@Strings.starModeConstellations</listEntry>
-                <listEntry value="2">@Strings.starModeZodiac</listEntry>
-            </settingConfig>
-        </setting>
-
-        <!-- ─── Sun and Moon Size ─────────────────────────────────────── -->
+        <!-- ─── Sun and Moon Size ─────────────────────────────────────────── -->
         <setting propertyKey="@Properties.moonSize" title="@Strings.moonSizeTitle">
             <settingConfig type="list">
                 <listEntry value="0">@Strings.moonSizeSmall</listEntry>
@@ -127,23 +142,7 @@
             </settingConfig>
         </setting>
 
-        <!-- ─── AOD ────────────────────────────────────────────────────── -->
-        <setting propertyKey="@Properties.aodBehaviour" title="@Strings.aodBehaviourTitle">
-            <settingConfig type="list">
-                <listEntry value="1">@Strings.aodSkyOnly</listEntry>
-                <listEntry value="0">@Strings.aodClockOnly</listEntry>
-            </settingConfig>
-        </setting>
-
-        <!-- ─── Display Type ───────────────────────────────────────────── -->
-        <setting propertyKey="@Properties.mipMode" title="@Strings.mipModeTitle">
-            <settingConfig type="list">
-                <listEntry value="0">@Strings.displayAmoled</listEntry>
-                <listEntry value="1">@Strings.displayMip</listEntry>
-            </settingConfig>
-        </setting>
-
-        <!-- ─── Temperature Units ──────────────────────────────────────── -->
+        <!-- ─── Units and Week ────────────────────────────────────────────── -->
         <setting propertyKey="@Properties.tempUnits" title="@Strings.tempUnitsTitle">
             <settingConfig type="list">
                 <listEntry value="0">@Strings.tempCelsius</listEntry>
@@ -153,7 +152,6 @@
             </settingConfig>
         </setting>
 
-        <!-- ─── Distance Units ─────────────────────────────────────────── -->
         <setting propertyKey="@Properties.distanceUnits" title="@Strings.distanceUnitsTitle">
             <settingConfig type="list">
                 <listEntry value="0">@Strings.distanceKm</listEntry>
@@ -161,7 +159,6 @@
             </settingConfig>
         </setting>
 
-        <!-- ─── Week Start Day ─────────────────────────────────────────── -->
         <setting propertyKey="@Properties.weekStartDay" title="@Strings.weekStartDayTitle">
             <settingConfig type="list">
                 <listEntry value="1">@Strings.daySunday</listEntry>
@@ -174,7 +171,7 @@
             </settingConfig>
         </setting>
 
-        <!-- ─── Location ───────────────────────────────────────────────── -->
+        <!-- ─── Location ──────────────────────────────────────────────────── -->
         <setting propertyKey="@Properties.useGps" title="@Strings.useGpsTitle">
             <settingConfig type="list">
                 <listEntry value="1">@Strings.gpsUseLocation</listEntry>
