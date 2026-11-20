@@ -93,17 +93,21 @@ module MoonArt {
         var cy = sky[1];
         var R  = sky[2];
         var closeness  = closenessToFull(phaseAngle);
+        // MIP cannot fade the halo in as the sun sets (AMOLED dims it by
+        // glowNightScale()), so it grows out from the moon instead: its size
+        // follows nearness to full and darkness together.
+        var glowScale  = mipMode ? closeness * glowNightScale(sunAlt) : closeness;
         var fullGlowR  = R * (AmoledArt.MOON_GLOW_DEG / 90.0);
-        var glowOuterR = moonRadius + closeness * (fullGlowR - moonRadius);
+        var glowOuterR = moonRadius + glowScale * (fullGlowR - moonRadius);
         var litColor   = mipMode ? MiPArt.moonLitColor(true) : AmoledArt.MOON_AMOLED;
         var xi = MathUtil.roundNearest(mx);
         var yi = MathUtil.roundNearest(my);
 
         Lunar.resetOrientationBins();
 
-        if (closeness > 0.0 && Drawing.intersectsSkyDisc(mx, my, glowOuterR, cx, cy, R)) {
+        if (glowScale > 0.0 && Drawing.intersectsSkyDisc(mx, my, glowOuterR, cx, cy, R)) {
             if (mipMode) {
-                MiPArt.drawHaloGlow(dc, xi, yi, R, moonRadius, AmoledArt.MOON_GLOW_DEG, closeness, MiPArt.MIP_MOON_DARK, MiPArt.MIP_MOON_MEDIUM);
+                MiPArt.drawHaloGlow(dc, xi, yi, R, moonRadius, AmoledArt.MOON_GLOW_DEG, glowScale, MiPArt.MIP_MOON_DARK, MiPArt.MIP_MOON_MEDIUM);
             } else {
                 AmoledArt.drawMoonGlow(dc, xi, yi, moonRadius, closeness, sunAlt, litColor, R);
             }
@@ -119,7 +123,8 @@ module MoonArt {
         return MathUtil.clamp(1.0 - MathUtil.abs(MathUtil.wrap180(phaseAngle - 180.0)) / Lunar.FULL_MOON_WINDOW_DEG, 0.0, 1.0);
     }
 
-    // 0 while the sun is up, rising to 1 once it is 6 degrees below the horizon.
+    // 0 while the sun is up, rising to 1 once it is 6 degrees below the horizon:
+    // the AMOLED halo's brightness, the MIP halo's size.
     function glowNightScale(sunAltDeg) {
         return MathUtil.clamp((-sunAltDeg) / 6.0, 0.0, 1.0);
     }

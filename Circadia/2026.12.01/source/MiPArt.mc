@@ -60,9 +60,12 @@ module MiPArt {
     //     2    -3 to   0       FF5500
     //     3    -6 to  -3       FF0000
     //     4    -9 to  -6       FF0055
-    //     5   -12 to  -9       FF55AA
-    //     6   -18 to -12       AA55FF
-    //     7   below -18        55AAFF
+    //     5   -12 to  -9       FF00AA
+    //     6   -18 to -12       AA00FF
+    //     7   below -18        5555FF
+    //
+    // From red on the minutes only ever get darker, never lighter: pink,
+    // purple and periwinkle echo the glow's own colours.
     //
     //   white, pale yellow, yellow, amber, orange, red, pink, purple, indigo, deep blue
     const SUN_COLORS = [
@@ -86,7 +89,7 @@ module MiPArt {
 
     // Minute-text colour for each stage. All bright enough to read on black.
     const MINUTE_COLORS = [
-        0xFFFF00, 0xFFAA00, 0xFF5500, 0xFF0000, 0xFF0055, 0xFF55AA, 0xAA55FF, 0x55AAFF
+        0xFFFF00, 0xFFAA00, 0xFF5500, 0xFF0000, 0xFF0055, 0xFF00AA, 0xAA00FF, 0x5555FF
     ];
 
     const OUTER_RING_DEG     = 14.0;   // the Large sun's outer edge by day (ball 10, rings to 12 and 14)
@@ -217,7 +220,9 @@ module MiPArt {
     }
 
     // Glow rings only for the full moon (no body disc): outerColor ring → innerColor ring.
-    // closeness=0 → outerR equals bodyR (zero thickness, nothing drawn); closeness=1 → full extent.
+    // closeness=0 → outerR equals bodyR (zero thickness, nothing drawn); closeness=1 → full
+    // extent. MoonArt.drawFull passes nearness to full times darkness, so the halo grows
+    // out from the moon both as the full moon nears and as the sun sets.
     function drawHaloGlow(dc, x, y, R, bodyR, glowDeg, closeness, innerColor, outerColor) {
         if (closeness <= 0.0) { return; }
         var xi    = x.toNumber();
