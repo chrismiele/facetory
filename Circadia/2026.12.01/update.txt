@@ -12,4 +12,4 @@ AMOLED: the moon's dark side is a little brighter.
 Settings are reordered: the sky first (Which stars, the moon's dark side), then the clock and data fields, and the rarely changed ones (Sun and moon size, minute colour saturation, units, location) at the bottom. Your saved choices are kept.
 Fixed: on some watches (such as the Forerunner 165) a coloured bar could cross the screen near the end of civil twilight.
 The "Display type" setting is gone: Circadia now picks its art from the watch itself, full colour on AMOLED screens and the simplified art on MIP screens.
-Now available on the fēnix 9, 9 Pro and 9 Pro Solar and the Enduro 4, and on more MIP watches: fēnix 7, 7S, 7X and 7 Pro series (with quatix 7, tactix 7 and Enduro 2), Forerunner 255 series and 955.
+Now available on the fēnix 9, 9 Pro and 9 Pro Solar and the Enduro 4, and on more MIP watches: fēnix 7, 7S, 7X and 7 Pro series (with quatix 7, tactix 7 and Enduro 2), Forerunner 255 series and 955, and the Forerunner 245 Music alongside the 245.

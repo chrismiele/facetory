@@ -609,8 +609,7 @@ module Stellar {
             if (pb == POS_BELOW) { pb = placeBelow(ib); }
             var gapA = aUp ? LINE_GAP_PX[starSizeForMag(MAG_ZERO + ((cat[ia] >> 3) & 0x7F) * MAG_STEP)] : 0;
             var gapB = bUp ? LINE_GAP_PX[starSizeForMag(MAG_ZERO + ((cat[ib] >> 3) & 0x7F) * MAG_STEP)] : 0;
-            addLine(out, (pa & 0x7FF) - POS_OFFSET, ((pa >> 11) & 0x7FF) - POS_OFFSET, gapA,
-                         (pb & 0x7FF) - POS_OFFSET, ((pb >> 11) & 0x7FF) - POS_OFFSET, gapB, cx, cy, skyR);
+            addLine(out, pa, gapA, pb, gapB, cx, cy, skyR);
         }
         return out;
     }
@@ -628,7 +627,14 @@ module Stellar {
 
     // A line from (ax, ay) to (bx, by), cut to the sky disc (centre cx, cy,
     // radius skyR) and kept gapA and gapB pixels clear of its ends.
-    function addLine(out, ax, ay, gapA, bx, by, gapB, cx, cy, skyR) {
+    // pa and pb are packed screen positions (packPos), which keeps this to
+    // eight parameters: CIQ 3 watches (the Forerunner 245) stop any method
+    // with more than nine with a Too Many Arguments Error.
+    function addLine(out, pa, gapA, pb, gapB, cx, cy, skyR) {
+        var ax   = (pa & 0x7FF) - POS_OFFSET;
+        var ay   = ((pa >> 11) & 0x7FF) - POS_OFFSET;
+        var bx   = (pb & 0x7FF) - POS_OFFSET;
+        var by   = ((pb >> 11) & 0x7FF) - POS_OFFSET;
         var dx   = (bx - ax).toFloat();
         var dy   = (by - ay).toFloat();
         var len2 = dx * dx + dy * dy;
