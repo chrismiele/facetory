@@ -1,0 +1,840 @@
+using Toybox.Application;
+using Toybox.Lang;
+using Toybox.Math;
+using Toybox.WatchUi;
+
+// The real night sky: the brightest stars of the Yale Bright Star Catalogue,
+// placed where they are right now for the watch's location.
+//
+// Which stars. 200 stars are shown at full night (100 on watches with under
+// 100 KB for a watch face; see config): the first that many stars, in the order of the star
+// table, that are above the horizon at this moment. "Which stars" picks the
+// table (resources/jsonData, built by tools/build_stars.py):
+//   Brightest       the brightest stars of the whole sky, brightest first.
+//   Constellations  the stars of about 30 well-known constellation figures
+//                   (and the Pleiades) first, a figure's fainter stars ranked
+//                   together so the figure comes in whole, then other figure
+//                   stars, then the rest. The preference is soft: a very
+//                   bright star outside the figures still makes the cut.
+//   Zodiac          the stars of the twelve zodiac figures and the very
+//                   brightest stars first, then the brightest, to fill the
+//                   sky to the same count.
+// Each table is long enough for the busiest sky at any latitude for 200
+// stars. Positions are for the 2027.0 equinox, with proper motion applied;
+// they drift about 0.014 deg a year, well under a pixel for decades.
+//
+// When they appear. Each star appears once it is bright enough to see
+// against the twilight sky: when its apparent magnitude is no fainter than
+// the naked-eye limit for the sun's altitude (LIMIT_*). That limit is tied
+// to the twilight boundaries: nothing until 3 deg after sunset, the
+// brightest stars (to magnitude 1) by the end of civil twilight, magnitude
+// 4.5 at the end of nautical twilight, magnitude 6 at full night. A star's
+// apparent magnitude includes the dimming of the air near the horizon, so
+// low stars appear later than overhead ones, and the faintest low ones only
+// near full night. Stars pop in one by one, brightest first, as the sun sinks,
+// and leave in reverse order at dawn, each on its own minute even when a new
+// sky is only built every few minutes (see WINDOW_MIN).
+//
+// How they look. Each star keeps one size and one colour all night: size
+// from its catalogue magnitude (*_MAG thresholds), colour from its B-V colour
+// index, binned when the table was built (Drawing.STAR_BIN_*). The two
+// largest sizes are drawn round (Drawing.drawProjectedStar). The dimming
+// near the horizon only decides when a star appears. Planets are drawn
+// separately (Planets).
+//
+// Figure lines (Constellations: the well-known figures; Zodiac: the twelve
+// zodiac figures). At full night (sun at -18 deg or lower) faint lines join
+// the figures' stars, drawn under the stars and stopping just short of them.
+// They all come out together when full night begins and all go when it ends.
+// Every figure is drawn complete: a line from a star above the horizon to
+// one below it runs on to the edge of the sky, so a figure low in the sky is
+// cut off by the horizon, as in a planetarium. Figure stars above the horizon
+// are always shown, even beyond the 200 or when the haze near
+// the horizon would hide them, so a figure never has a gap.
+module Stellar {
+
+    const FULL_NIGHT_ALT_DEG = -18.0;    // end of astronomical twilight; keep equal to -SunArt.OUTER_DEG
+
+    // Naked-eye limiting magnitude against the sky, by the sun's altitude.
+    // Between these points it changes evenly.
+    const LIMIT_ALT_DEG = [-3.0, -6.0, -12.0, -18.0];
+    const LIMIT_MAG     = [-1.5,  1.0,   4.5,   6.0];
+
+    // Dimming by the atmosphere: magnitudes per extra airmass beyond the
+    // zenith (a typical clear sky in visible light).
+    const EXTINCTION_PER_AIRMASS = 0.25;
+
+    // Catalogue magnitude at or brighter than which a star is drawn XL,
+    // large or medium; fainter stars are a single pixel.
+    const XL_MAG     = 0.5;
+    const LARGE_MAG  = 1.5;
+    const MEDIUM_MAG = 2.5;
+
+    // Each catalogue entry is one integer:
+    //   bits 20-30  right ascension, in steps of 360/2048 deg
+    //   bits 10-19  declination + 90, in steps of 180/1023 deg
+    //   bits  3-9   V magnitude, as (V - MAG_ZERO) / MAG_STEP
+    //   bits  0-2   colour bin (Drawing.STAR_BIN_*)
+    const RA_STEP_DEG  = 0.17578125;       // 360 / 2048
+    const DEC_STEP_DEG = 0.17595307918;    // 180 / 1023
+    const MAG_ZERO     = -1.5;
+    const MAG_STEP     = 0.1;
+
+    const MODE_BRIGHTEST      = 0;
+    const MODE_CONSTELLATIONS = 1;
+    const MODE_ZODIAC         = 2;
+
+    // Lines stop this many pixels short of a star's centre, by star size
+    // (Drawing.STAR_*), and are left out if nothing would remain.
+    const LINE_GAP_PX = [3, 4, 4, 5];
+
+    // Each line is one integer: bits 0-8 and 9-17 are the star table indices
+    // of its ends (bits 18-24 number the figure in the table; the watch does
+    // not need them).
+
+    // Shown stars, one integer each:
+    //   bits 0-9 x, bits 10-19 y (pixels), bits 20-21 size (Drawing.STAR_*),
+    //   bits 22-24 colour bin (Drawing.STAR_BIN_*), bits 25-30 when it shows:
+    //   its apparent magnitude as a SHOW_STEP code (showCode), or
+    //   SHOW_WITH_LINES for a figure star shown only with the lines.
+    // Figure star positions (line modes, at full night), one integer per
+    // star table entry, 0 when not placed this minute:
+    //   bits 0-10 x + 1024, bits 11-21 y + 1024 (below-horizon stars can lie
+    //   past the screen), bit 22 above the horizon, bit 23 in the shown stars,
+    //   bit 24 placed; or POS_BELOW alone for a star below the horizon that
+    //   no line has needed yet.
+    // Lines, two integers each: x0 | y0 << 11, then x1 | y1 << 11.
+    const POS_OFFSET = 1024;
+    const POS_UP     = 0x400000;
+    const POS_SHOWN  = 0x800000;
+    const POS_PLACED = 0x1000000;
+    const POS_BELOW  = 0x2000000;  // below the horizon, not yet placed (alone)
+    const SHOW_STEP       = 0.125;
+    const SHOW_WITH_LINES = 63;
+
+    var _catalog        = null;
+    var _catalogMode    = -1;
+    var _lineTable      = null;
+    var _lineMode       = -1;
+    var _figureStar     = null;    // per star table entry: 1 if in a figure's lines
+    var _lastFigureStar = -1;      // highest such entry
+    var _figurePos      = null;    // reused each minute; see POS_*
+    var _projectedStars = [];
+    var _projectedLines = [];
+    var _starColorBins  = null;    // AMOLED star colours, or null for MIP
+    var _starCornerBins = null;    // AMOLED round-star corner colours, or null for MIP
+    var _lineColor      = 0;
+    var _lineAntiAlias  = false;
+    var _projectionKey  = null;
+    var _showCode       = -1;      // stars with a code up to this show (setSunAltitude)
+    var _showLines      = false;   // full night: the lines and their figure stars show
+
+    function keysEqual(a, b) {
+        if (a.size() != b.size()) { return false; }
+        for (var i = 0; i < a.size(); i += 1) {
+            if (a[i] != b[i]) { return false; }
+        }
+        return true;
+    }
+
+    // The packed star table for this mode, loaded on first use. Only one
+    // table is in memory at a time.
+    function catalog(mode) {
+        if (_catalog == null || mode != _catalogMode) {
+            _catalog = null;
+            if (mode == MODE_CONSTELLATIONS) {
+                _catalog = WatchUi.loadResource(Rez.JsonData.StarsConstellations) as Lang.Array;
+            } else if (mode == MODE_ZODIAC) {
+                _catalog = WatchUi.loadResource(Rez.JsonData.StarsZodiac) as Lang.Array;
+            } else {
+                _catalog = WatchUi.loadResource(Rez.JsonData.StarsBrightest) as Lang.Array;
+            }
+            _catalogMode = mode;
+        }
+        return _catalog;
+    }
+
+    // The figure lines for this mode (Constellations or Zodiac), and which
+    // star table entries they use. Loaded on first use, one mode at a time.
+    function lineTable(mode) {
+        if (_lineTable == null || mode != _lineMode) {
+            _lineTable  = null;
+            _figureStar = null;
+            _figurePos  = null;
+            _lineTable  = WatchUi.loadResource(mode == MODE_ZODIAC
+                              ? Rez.JsonData.ZodiacLines
+                              : Rez.JsonData.StarLines) as Lang.Array;
+            _lastFigureStar = -1;
+            for (var k = 0; k < _lineTable.size(); k += 1) {
+                var a = _lineTable[k] & 0x1FF;
+                var b = (_lineTable[k] >> 9) & 0x1FF;
+                if (a > _lastFigureStar) { _lastFigureStar = a; }
+                if (b > _lastFigureStar) { _lastFigureStar = b; }
+            }
+            _figureStar = new [_lastFigureStar + 1]b;
+            for (var k = 0; k < _lineTable.size(); k += 1) {
+                _figureStar[_lineTable[k] & 0x1FF] = 1;
+                _figureStar[(_lineTable[k] >> 9) & 0x1FF] = 1;
+            }
+            _figurePos = new [_lastFigureStar + 1];
+            _lineMode  = mode;
+        }
+        return _lineTable;
+    }
+
+    // Whether figure lines are on screen (planets then keep a dark margin).
+    function hasLines() { return _showLines && _projectedLines.size() > 0; }
+
+    // The sun's altitude now, which decides which of the built sky's stars
+    // show: those bright enough for the sky at this moment, and the lines and
+    // their figure stars at full night. Call once a minute.
+    function setSunAltitude(sunAltDeg) {
+        var limit  = limitingMagnitude(sunAltDeg);
+        _showCode  = (limit <= LIMIT_MAG[0]) ? -1 : showCode(limit);
+        _showLines = sunAltDeg <= FULL_NIGHT_ALT_DEG;
+    }
+
+    // A magnitude as a SHOW_STEP code, 0 for MAG_ZERO.
+    function showCode(mag) {
+        var c = MathUtil.roundNearest((mag - MAG_ZERO) / SHOW_STEP);
+        return (c < 0) ? 0 : ((c >= SHOW_WITH_LINES) ? SHOW_WITH_LINES - 1 : c);
+    }
+
+    // Drop what only the line modes need.
+    function releaseLines() {
+        _lineTable  = null;
+        _figureStar = null;
+        _figurePos  = null;
+        _lineMode   = -1;
+    }
+
+    // ── Building the sky, a slice per update ─────────────────────────────────
+    //
+    // The watch stops an app that runs too many instructions before returning
+    // from one update (the watchdog), and the limit is lower on some watches.
+    // So the sky is never built in one go: each update does one bounded step
+    // (load the tables; place STEP_ENTRIES catalogue entries; draw up the
+    // lines), and the finished sky replaces the old one only when it is
+    // complete. Awake (an update a second) a new sky takes a few seconds;
+    // in low power (an update a minute) a few minutes, which at about half a
+    // pixel of star movement a minute does not show. A job in progress is
+    // not restarted for a new minute: the newer request waits and starts
+    // when it is done. But when the sky stops fitting for any other reason
+    // (a setting, the place or the screen changed), work for the old sky is
+    // dropped and the new one started at once; while awake the view then
+    // asks for updates back to back (catchingUp), so it is done in about a
+    // second.
+    // So that a sky is never shown late, it is built ahead and shown the
+    // moment its minute starts: while awake, next minute's sky from second
+    // PREBUILD_SEC (see CircadiaView), so stars move every minute as before;
+    // in low power, the sky leadMinutes() ahead, so the sky moves every few
+    // minutes but each new sky is right for the minute it appears. If a sky
+    // built ahead misses its minute (updates were missed, the simulator runs
+    // time fast, the clock changed), low power shows it late or builds the
+    // current minute's, so the sky is never left stale or empty.
+    const STEP_ENTRIES = 96;
+
+    // A sky may stay on screen for several minutes in low power, while the
+    // twilight deepens or fades. So each sky is built for the sun at its
+    // darkest over its minute and the WINDOW_MIN after (the view passes that
+    // altitude): it holds every star and line that can come out while it is
+    // shown, each tagged with when it shows (its apparent magnitude), and
+    // the drawing shows only those the sky is dark enough for now
+    // (setSunAltitude). Stars then come out, and the lines at full night, on
+    // their own minute. Keep at least MAX_LEAD_MIN + 1, the longest a sky
+    // waits for the next.
+    const WINDOW_MIN = 16;
+
+    // The sky on screen is saved when the face stops (the system restarts it
+    // after its menus and apps) and shown again when it starts, while the
+    // sky for the minute is built, if no more than MAX_LEAD_MIN old (stars
+    // move about half a pixel a minute) and for the same screen, place and
+    // settings.
+    const SAVE_KEY     = "sky";
+    const SAVE_VERSION = 1;
+    var _restoreTried  = false;
+
+    // The most stars ever drawn, so drawing a frame stays bounded too: the
+    // star count plus the figure stars shown for the lines stays under this
+    // (about 260 at the most crowded); past it no more figure stars are added.
+    const MAX_STARS = 280;
+
+    const JOB_IDLE  = 0;
+    const JOB_LOAD  = 1;
+    const JOB_STARS = 2;
+    const JOB_LINES = 3;
+
+    var _jobPhase   = JOB_IDLE;
+    var _jobKey     = null;
+    var _jobArgs    = null;   // the request being built
+    var _jobAhead   = false;  // building next minute's sky, to hold until then
+    var _nextArgs   = null;   // a newer request [args, key], waiting for the job
+    var _jobIndex   = 0;
+    var _jobAbove   = 0;
+    var _jobStars   = null;
+    var _jobLimit   = 0.0;
+    var _jobLst     = 0.0;
+    var _jobSinLat  = 0.0;
+    var _jobCosLat  = 1.0;
+    var _jobLines   = false;
+
+    // A sky built ahead for a later minute, waiting to be shown.
+    var _readyKey   = null;
+    var _readyMin   = 0;      // its minute (minuteOrdinal)
+    var _readyStars = null;
+    var _readyLines = null;
+    var _readyMip   = false;
+    var _jobMin     = 0;
+    var _jobSteps   = 0;      // steps the current job has taken
+    var _lastSteps  = 0;      // steps the last finished job took
+    var _lowPower   = false;
+    var _lastMin    = 0;      // the minute of the last request, to notice the clock going back
+    var _jobFromMin = 0;      // the minute the current job started
+    var _lastSpan   = 0;      // minutes the last finished job took (0 if unknown)
+    var _buildNow   = false;  // low power: build this minute's sky now, not one ahead (the
+                              // one ahead went unused, or the sky on screen no longer fits)
+
+    // The view says whether the watch is in low power (an update a minute).
+    function setLowPower(lowPower) { _lowPower = lowPower; }
+
+    // Whether the sky being built, or waiting to be, is for the minute on
+    // screen rather than one ahead: the sky shown is missing or out of date,
+    // so while awake the view asks for the next update straight away.
+    function catchingUp() {
+        return (_jobPhase != JOB_IDLE && !_jobAhead) || _nextArgs != null;
+    }
+
+    // Whether a sky could be started ahead now (nothing being built, queued
+    // or waiting), so the view can skip working one out otherwise.
+    function canPrepare() {
+        return _jobPhase == JOB_IDLE && _nextArgs == null && _readyKey == null;
+    }
+
+    // How many minutes ahead to start a sky in low power, so it is done by
+    // then: the steps the last sky took (an update a minute), or the minutes
+    // it took if more (updates were missed, or the simulator runs time fast),
+    // plus one to spare; before any, enough for the largest table.
+    const MAX_LEAD_MIN = 15;
+    function leadMinutes() {
+        if (_lastSteps > 0) { return ((_lastSpan > _lastSteps) ? _lastSpan : _lastSteps) + 1; }
+        var n = (_catalog == null) ? 530 : _catalog.size();
+        return (n + STEP_ENTRIES - 1) / STEP_ENTRIES + 3;
+    }
+
+    // layout = [cx, cy, skyRadiusPx]; datetime = [year, month, day, hour, min]
+    // (local clock); offsetSec = the local time zone's offset from UTC;
+    // sunAltDeg = the sun at its darkest over this minute and the WINDOW_MIN
+    // after.
+    // Called once a minute. Shows the sky built ahead for this minute if
+    // there is one, else asks for a new sky; the work is done a step at a
+    // time by continueWork(), which the view calls once per full update.
+    function updateProjectedStars(layout, datetime, latDeg, lonDeg, offsetSec, sunAltDeg, starCount, starMode, mipMode) {
+        var nowMin = minuteOrdinal(datetime);
+        if (nowMin < _lastMin) {
+            // The clock went back (a time zone change): a sky built or being
+            // built ahead is for a minute that is now far off.
+            if (_jobPhase != JOB_IDLE && _jobAhead) { _jobPhase = JOB_IDLE; _jobStars = null; }
+            if (_readyKey != null) { dropReady(); _buildNow = true; }
+        }
+        _lastMin = nowMin;
+
+        if (limitingMagnitude(sunAltDeg) <= LIMIT_MAG[0] || starCount <= 0) {
+            // Daytime, or stars off: nothing to show. A sky being built, or
+            // built, for a later (starry) minute is kept.
+            if (_readyKey != null && _readyMin < nowMin) { dropReady(); }
+            _projectedStars = [];
+            _projectedLines = [];
+            _projectionKey  = null;
+            if (_jobPhase != JOB_IDLE && !_jobAhead) { _jobPhase = JOB_IDLE; _jobStars = null; }
+            _nextArgs = null;
+            _buildNow = false;
+            if (starCount <= 0 || (starMode == MODE_BRIGHTEST && _jobPhase == JOB_IDLE && _readyKey == null)) { releaseLines(); }
+            return;
+        }
+
+        var args = [layout, datetime, latDeg, lonDeg, offsetSec, sunAltDeg, starCount, starMode, mipMode];
+        var key  = skyKey(args);
+
+        if (!_restoreTried) {
+            _restoreTried = true;
+            restore(key, nowMin);
+        }
+
+        // Something other than the time changed: drop the work for the old
+        // sky and build this one now.
+        if (_readyKey != null && !sameSky(key, _readyKey)) { dropReady(); }
+        if (_jobPhase != JOB_IDLE && !sameSky(key, _jobKey)) { _jobPhase = JOB_IDLE; _jobStars = null; }
+        if (_nextArgs != null && !sameSky(key, _nextArgs[1])) { _nextArgs = null; }
+        if (_projectionKey != null && !sameSky(key, _projectionKey)) { _buildNow = true; }
+
+        // Built ahead for a minute that has passed (updates were missed, or
+        // the simulator runs time fast). In low power it is still the
+        // freshest sky there is, so show it, a little late; awake, building
+        // this minute's takes only seconds.
+        if (_readyKey != null && _readyMin < nowMin) {
+            if (_lowPower && sameSky(key, _readyKey)) {
+                show(_readyStars, _readyLines, _readyMip, _readyKey);
+            } else {
+                _buildNow = true;
+            }
+            dropReady();
+        }
+
+        if (_projectionKey != null && keysEqual(key, _projectionKey)) { return; }
+
+        // Built ahead for this minute: show it now, as the minute changes.
+        if (_readyKey != null && _readyMin == nowMin) {
+            if (keysEqual(key, _readyKey)) {
+                show(_readyStars, _readyLines, _readyMip, _readyKey);
+                dropReady();
+                return;
+            }
+            dropReady();                         // something changed: build afresh
+            _buildNow = true;
+        }
+
+        if (_jobPhase != JOB_IDLE) {
+            if (keysEqual(key, _jobKey)) {
+                _jobAhead = false;               // its minute has come: show it when done
+            } else if (!_lowPower) {
+                _nextArgs = [args, key];
+            }
+            return;
+        }
+
+        // In low power, keep the sky shown and let the view start one ahead,
+        // unless there is none yet or the last one ahead went unused (it came
+        // too late, or something changed): then build this minute's, so the
+        // sky never stays stale.
+        if (_lowPower && _projectionKey != null && !_buildNow) { return; }
+        _buildNow = false;
+        startJob(args, key, false);
+    }
+
+    // Build a later minute's sky in the background (the same arguments, for
+    // that minute and its sun altitude), to show when that minute starts.
+    // The view calls this late in each minute while awake, and every update
+    // in low power. Ignored if anything else is being built or waiting.
+    function prepareNextMinute(layout, datetime, latDeg, lonDeg, offsetSec, sunAltDeg, starCount, starMode, mipMode) {
+        if (_jobPhase != JOB_IDLE || _nextArgs != null || _readyKey != null) { return; }
+        if (limitingMagnitude(sunAltDeg) <= LIMIT_MAG[0] || starCount <= 0) { return; }
+        var args = [layout, datetime, latDeg, lonDeg, offsetSec, sunAltDeg, starCount, starMode, mipMode];
+        var key  = skyKey(args);
+        if (_projectionKey != null && keysEqual(key, _projectionKey)) { return; }
+        startJob(args, key, true);
+    }
+
+    // Minutes since 1 Jan of year 0 in a calendar of 13 months of 32 days:
+    // not a real count, but it orders minutes correctly and fits a Number.
+    function minuteOrdinal(datetime) {
+        return (((datetime[0] * 13 + datetime[1]) * 32 + datetime[2]) * 24 + datetime[3]) * 60 + datetime[4];
+    }
+
+    function skyKey(a) {
+        var layout   = a[0];
+        var datetime = a[1];
+        return [
+            layout[0].toNumber(), layout[1].toNumber(), layout[2].toNumber(),
+            datetime[0], datetime[1], datetime[2], datetime[3], datetime[4],
+            (a[2] * 100.0).toNumber(),
+            (a[3] * 100.0).toNumber(),
+            a[4],
+            (a[5] * 100.0).toNumber(),
+            a[6], a[7], a[8]
+        ];
+    }
+
+    // Whether two keys are for the same sky apart from the time: the same
+    // screen, place, time zone and settings (skyKey's 3-7 are the clock, 11
+    // the sun).
+    function sameSky(a, b) {
+        for (var i = 0; i < a.size(); i += 1) {
+            if ((i < 3 || i > 7) && i != 11 && a[i] != b[i]) { return false; }
+        }
+        return true;
+    }
+
+    // The sky on screen, kept for when the face starts again (see SAVE_KEY).
+    // Call when the face stops.
+    function save() {
+        if (_projectionKey == null) { return; }
+        try {
+            Application.Storage.setValue(SAVE_KEY, [SAVE_VERSION, _projectionKey, _projectedStars, _projectedLines]);
+        } catch (e) {
+            // Storage full: the face starts without it, as before.
+        }
+    }
+
+    // Show the saved sky if it suits this minute's (key). It is a stand-in:
+    // this minute's sky is still built, in low power too.
+    function restore(key, nowMin) {
+        var s = Application.Storage.getValue(SAVE_KEY);
+        if (!(s instanceof Lang.Array) || s.size() != 4 || s[0] != SAVE_VERSION) { return; }
+        var k   = s[1] as Lang.Array;
+        var age = nowMin - minuteOrdinal([k[3], k[4], k[5], k[6], k[7]]);
+        if (k.size() != key.size() || age < 0 || age > MAX_LEAD_MIN || !sameSky(key, k)) { return; }
+        show(s[2], s[3], k[14], k);
+        _buildNow = true;
+    }
+
+    function dropReady() {
+        _readyKey   = null;
+        _readyStars = null;
+        _readyLines = null;
+    }
+
+    function startJob(args, key, ahead) {
+        _jobArgs  = args;
+        _jobKey   = key;
+        _jobMin   = minuteOrdinal(args[1]);
+        _jobAhead = ahead;
+        _jobPhase = JOB_LOAD;
+        _jobSteps = 0;
+        _jobFromMin = _lastMin;
+        _nextArgs = null;
+    }
+
+    // One bounded step of the sky being built, if there is one. Call once per
+    // full update.
+    function continueWork() {
+        if (_jobPhase == JOB_IDLE) {
+            if (_nextArgs == null) { return; }
+            startJob(_nextArgs[0], _nextArgs[1], false);
+        }
+
+        var a        = _jobArgs;
+        var layout   = a[0];
+        var starMode = a[7];
+        _jobSteps += 1;
+
+        if (_jobPhase == JOB_LOAD) {
+            // Tables, and the fixed numbers for this sky.
+            var datetime = a[1];
+            var latDeg   = a[2];
+            var utc = MathUtil.utcFromLocal(datetime[0], datetime[1], datetime[2],
+                                            datetime[3] + datetime[4] / 60.0, a[4]) as Lang.Array;
+            _jobLst    = localSiderealDeg(utc, a[3]);
+            _jobSinLat = Math.sin(MathUtil.deg2rad(latDeg));
+            _jobCosLat = Math.cos(MathUtil.deg2rad(latDeg));
+            _jobLimit  = limitingMagnitude(a[5]);
+            _jobLines  = (starMode != MODE_BRIGHTEST) && (a[5] <= FULL_NIGHT_ALT_DEG);
+            catalog(starMode);
+            if (_jobLines) { lineTable(starMode); } else if (starMode == MODE_BRIGHTEST) { releaseLines(); }
+            _jobIndex = 0;
+            _jobAbove = 0;
+            _jobStars = [];
+            _jobPhase = JOB_STARS;
+            return;
+        }
+
+        if (_jobPhase == JOB_STARS) {
+            if (placeStars(_jobIndex, _jobIndex + STEP_ENTRIES)) {
+                _jobPhase = _jobLines ? JOB_LINES : JOB_IDLE;
+                if (!_jobLines) { publish([]); }
+            }
+            return;
+        }
+
+        if (_jobPhase == JOB_LINES) {
+            publish(projectLines(_lineTable, _catalog, _jobStars, _figurePos,
+                                 layout[0], layout[1], layout[2]));
+            _jobPhase = JOB_IDLE;
+        }
+    }
+
+    // A finished sky: shown now, or held for its minute if built ahead.
+    function publish(lines) {
+        var mipMode = _jobArgs[8];
+        _lastSteps  = _jobSteps;
+        var span    = _lastMin - _jobFromMin;
+        _lastSpan   = (span < 0) ? 0 : ((span > MAX_LEAD_MIN) ? MAX_LEAD_MIN : span);
+        if (_jobAhead) {
+            _readyKey   = _jobKey;
+            _readyMin   = _jobMin;
+            _readyStars = _jobStars;
+            _readyLines = lines;
+            _readyMip   = mipMode;
+        } else {
+            show(_jobStars, lines, mipMode, _jobKey);
+        }
+        _jobStars = null;
+    }
+
+    function show(stars, lines, mipMode, key) {
+        _projectedStars = stars;
+        _projectedLines = lines;
+        _starColorBins  = mipMode ? null : AmoledArt.starColors();
+        _starCornerBins = mipMode ? null : AmoledArt.starCorners();
+        _lineColor      = mipMode ? MiPArt.CONSTELLATION_LINE : AmoledArt.CONSTELLATION_LINE;
+        _lineAntiAlias  = !mipMode;
+        _projectionKey  = key;
+    }
+
+    // Catalogue entries from..to-1 of the sky being built. Returns true when
+    // the catalogue is done. Figure stars that are not shown are still
+    // recorded (in _figurePos) so the lines can use them: up but beyond the
+    // starCount or too faint near the horizon (placed), or below the horizon
+    // (only marked; placed later if a line needs them).
+    function placeStars(from, to) {
+        var cat       = _catalog;
+        var n         = cat.size();
+        var latDeg    = _jobArgs[2];
+        var starCount = _jobArgs[6];
+        var withLines = _jobLines;
+        var figPos    = withLines ? _figurePos : null;
+        if (to > n) { to = n; }
+
+        for (var i = from; i < to; i += 1) {
+            var isFigure = withLines && i <= _lastFigureStar && _figureStar[i] != 0;
+            if (withLines && i <= _lastFigureStar) { figPos[i] = 0; }
+
+            var v      = cat[i] as Lang.Number;
+            var decDeg = ((v >> 10) & 0x3FF) * DEC_STEP_DEG - 90.0;
+
+            // Never rises at this latitude.
+            if (!isFigure && (latDeg >= 0.0 ? (decDeg < latDeg - 90.0) : (decDeg > latDeg + 90.0))) { continue; }
+
+            var h      = MathUtil.deg2rad(_jobLst - ((v >> 20) & 0x7FF) * RA_STEP_DEG);   // hour angle
+            var dec    = MathUtil.deg2rad(decDeg);
+            var sinDec = Math.sin(dec);
+            var cosDec = Math.cos(dec);
+            var cosH   = Math.cos(h);
+            var sinAlt = _jobSinLat * sinDec + _jobCosLat * cosDec * cosH;
+            if (sinAlt <= 0.0) {
+                if (isFigure) { figPos[i] = POS_BELOW; }
+                continue;
+            }
+
+            // The first starCount stars above the horizon make up the sky.
+            // With lines, figure stars beyond them are still placed.
+            _jobAbove += 1;
+            var extra = (_jobAbove > starCount);
+            if (extra) {
+                if (!withLines || i > _lastFigureStar) { _jobIndex = n; return true; }
+                if (!isFigure) { continue; }
+            }
+
+            // Not visible yet: too faint for the twilight sky at its height.
+            var mag      = MAG_ZERO + ((v >> 3) & 0x7F) * MAG_STEP;
+            var airmass  = 1.0 / (sinAlt + 0.025);
+            var apparent = mag + EXTINCTION_PER_AIRMASS * (airmass - 1.0);
+            var visible  = !extra && (apparent <= _jobLimit);
+            if (!visible && !isFigure) { continue; }
+
+            var xy = screenPoint(sinDec, cosDec, h, cosH, sinAlt, true);
+            if (visible) {
+                _jobStars.add(packStar(xy[0], xy[1], starSizeForMag(mag), v & 0x7, showCode(apparent)));
+            }
+            if (isFigure) {
+                var p = packPos(xy[0], xy[1]) | POS_UP;
+                if (visible) { p |= POS_SHOWN; }
+                figPos[i] = p;
+            }
+        }
+        _jobIndex = to;
+        return (to >= n);
+    }
+
+    // Where a star is on the face, in whole pixels. Above the horizon the
+    // altitude includes refraction; below it (figure stars only) the same
+    // projection runs on past the rim.
+    function screenPoint(sinDec, cosDec, h, cosH, sinAlt, up) {
+        var layout = _jobArgs[0];
+        var skyR   = layout[2];
+        var altDeg = MathUtil.rad2deg(Math.asin(MathUtil.clamp(sinAlt, -1.0, 1.0)));
+        if (up) { altDeg += MathUtil.refractionDeg(altDeg); }
+
+        // Direction: east and north components of the star's bearing, from
+        // the zenith. 12 o'clock is north.
+        var east  = -cosDec * Math.sin(h);
+        var north = sinDec * _jobCosLat - cosDec * cosH * _jobSinLat;
+        var len   = Math.sqrt(east * east + north * north);
+        var rho   = skyR * (1.0 - altDeg / 90.0);
+        if (up) { rho = MathUtil.clamp(rho, 0.0, skyR); }
+        var x = layout[0];
+        var y = layout[1];
+        if (len > 1e-6) {
+            x += rho * east  / len;
+            y -= rho * north / len;
+        }
+        return [MathUtil.roundNearest(x), MathUtil.roundNearest(y)];
+    }
+
+    // Place a below-horizon figure star that a line needs.
+    function placeBelow(t) {
+        var v      = _catalog[t] as Lang.Number;
+        var dec    = MathUtil.deg2rad(((v >> 10) & 0x3FF) * DEC_STEP_DEG - 90.0);
+        var h      = MathUtil.deg2rad(_jobLst - ((v >> 20) & 0x7FF) * RA_STEP_DEG);
+        var sinDec = Math.sin(dec);
+        var cosDec = Math.cos(dec);
+        var cosH   = Math.cos(h);
+        var xy     = screenPoint(sinDec, cosDec, h, cosH, _jobSinLat * sinDec + _jobCosLat * cosDec * cosH, false);
+        var p      = packPos(xy[0], xy[1]);
+        _figurePos[t] = p;
+        return p;
+    }
+
+    function packPos(x, y) {
+        return POS_PLACED | ((x + POS_OFFSET) & 0x7FF) | (((y + POS_OFFSET) & 0x7FF) << 11);
+    }
+
+    function packStar(x, y, size, colorBin, showAt) {
+        return (x & 0x3FF) | ((y & 0x3FF) << 10) | (size << 20) | (colorBin << 22) | (showAt << 25);
+    }
+
+    // Every figure line with at least one star above the horizon, cut at the
+    // edge of the sky. Figure stars it reaches that are up but not yet shown
+    // join the shown stars; stars below the horizon it reaches are placed now.
+    function projectLines(lines, cat, stars, figPos, cx, cy, skyR) {
+        var out = [];
+        for (var k = 0; k < lines.size(); k += 1) {
+            var ia = lines[k] & 0x1FF;
+            var ib = (lines[k] >> 9) & 0x1FF;
+            var pa = figPos[ia];
+            var pb = figPos[ib];
+            if (pa == null || pb == null || pa == 0 || pb == 0) { continue; }
+            var aUp = (pa & POS_UP) != 0;
+            var bUp = (pb & POS_UP) != 0;
+            if (!aUp && !bUp) { continue; }
+            if (aUp && (pa & POS_SHOWN) == 0) { pa = reveal(ia, pa, cat, stars, figPos); }
+            if (bUp && (pb & POS_SHOWN) == 0) { pb = reveal(ib, pb, cat, stars, figPos); }
+            if (pa == POS_BELOW) { pa = placeBelow(ia); }
+            if (pb == POS_BELOW) { pb = placeBelow(ib); }
+            var gapA = aUp ? LINE_GAP_PX[starSizeForMag(MAG_ZERO + ((cat[ia] >> 3) & 0x7F) * MAG_STEP)] : 0;
+            var gapB = bUp ? LINE_GAP_PX[starSizeForMag(MAG_ZERO + ((cat[ib] >> 3) & 0x7F) * MAG_STEP)] : 0;
+            addLine(out, pa, gapA, pb, gapB, cx, cy, skyR);
+        }
+        return out;
+    }
+
+    // Show a figure star that is up with the lines: add it to the shown stars.
+    function reveal(t, p, cat, stars, figPos) {
+        var v = cat[t] as Lang.Number;
+        if (stars.size() >= MAX_STARS) { return p; }
+        stars.add(packStar((p & 0x7FF) - POS_OFFSET, ((p >> 11) & 0x7FF) - POS_OFFSET,
+                           starSizeForMag(MAG_ZERO + ((v >> 3) & 0x7F) * MAG_STEP), v & 0x7, SHOW_WITH_LINES));
+        p |= POS_SHOWN;
+        figPos[t] = p;
+        return p;
+    }
+
+    // A line from (ax, ay) to (bx, by), cut to the sky disc (centre cx, cy,
+    // radius skyR) and kept gapA and gapB pixels clear of its ends.
+    // pa and pb are packed screen positions (packPos), which keeps this to
+    // eight parameters: CIQ 3 watches (the Forerunner 245) stop any method
+    // with more than nine with a Too Many Arguments Error.
+    function addLine(out, pa, gapA, pb, gapB, cx, cy, skyR) {
+        var ax   = (pa & 0x7FF) - POS_OFFSET;
+        var ay   = ((pa >> 11) & 0x7FF) - POS_OFFSET;
+        var bx   = (pb & 0x7FF) - POS_OFFSET;
+        var by   = ((pb >> 11) & 0x7FF) - POS_OFFSET;
+        var dx   = (bx - ax).toFloat();
+        var dy   = (by - ay).toFloat();
+        var len2 = dx * dx + dy * dy;
+        if (len2 < 1.0) { return; }
+        var len = Math.sqrt(len2);
+
+        // Where the line is inside the sky: t from lo to hi along a -> b.
+        var fx   = ax - cx;
+        var fy   = ay - cy;
+        var bq   = fx * dx + fy * dy;
+        var cq   = fx * fx + fy * fy - skyR * skyR;
+        var disc = bq * bq - len2 * cq;
+        if (disc <= 0.0) { return; }
+        var root = Math.sqrt(disc);
+        var lo   = (-bq - root) / len2;
+        var hi   = (-bq + root) / len2;
+        if (lo < gapA / len)       { lo = gapA / len; }
+        if (hi > 1.0 - gapB / len) { hi = 1.0 - gapB / len; }
+        if ((hi - lo) * len < 1.0) { return; }
+
+        var x0 = MathUtil.roundNearest(ax + dx * lo);
+        var y0 = MathUtil.roundNearest(ay + dy * lo);
+        var x1 = MathUtil.roundNearest(ax + dx * hi);
+        var y1 = MathUtil.roundNearest(ay + dy * hi);
+        out.add((x0 & 0x7FF) | ((y0 & 0x7FF) << 11));
+        out.add((x1 & 0x7FF) | ((y1 & 0x7FF) << 11));
+    }
+
+    function drawProjectedStars(dc) {
+        // During a region repaint only the lines and stars inside the region
+        // are drawn. Of the stars built, only those the sky is dark enough
+        // for now are drawn (setSunAltitude).
+        var b = Drawing.regionBounds(3);
+
+        if (_showLines && _projectedLines.size() > 0) {
+            var aa = _lineAntiAlias && (dc has :setAntiAlias);
+            if (aa) { dc.setAntiAlias(true); }
+            dc.setColor(_lineColor, Drawing.BLACK);
+            for (var i = 0; i < _projectedLines.size(); i += 2) {
+                var p0 = _projectedLines[i];
+                var p1 = _projectedLines[i + 1];
+                var x0 = p0 & 0x7FF;
+                var y0 = (p0 >> 11) & 0x7FF;
+                var x1 = p1 & 0x7FF;
+                var y1 = (p1 >> 11) & 0x7FF;
+                if (b != null && ((x0 < b[0] && x1 < b[0]) || (x0 > b[2] && x1 > b[2])
+                               || (y0 < b[1] && y1 < b[1]) || (y0 > b[3] && y1 > b[3]))) {
+                    continue;
+                }
+                dc.drawLine(x0, y0, x1, y1);
+            }
+            if (aa) { dc.setAntiAlias(false); }
+        }
+
+        for (var i = 0; i < _projectedStars.size(); i += 1) {
+            var s      = _projectedStars[i];
+            var showAt = (s >> 25) & 0x3F;
+            if (showAt > _showCode && (showAt != SHOW_WITH_LINES || !_showLines)) { continue; }
+            var x = s & 0x3FF;
+            var y = (s >> 10) & 0x3FF;
+            if (b != null && (x < b[0] || x > b[2] || y < b[1] || y > b[3])) {
+                continue;
+            }
+            var size = (s >> 20) & 0x3;
+            var bin  = (s >> 22) & 0x7;
+            if (_starColorBins == null) {
+                Drawing.drawProjectedStar(dc, x, y, size, MiPArt.starColor(size, bin), null);
+            } else {
+                Drawing.drawProjectedStar(dc, x, y, size, _starColorBins[bin], _starCornerBins[bin]);
+            }
+        }
+    }
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    // The faintest magnitude visible against the sky at this sun altitude.
+    function limitingMagnitude(sunAltDeg) {
+        if (sunAltDeg >= LIMIT_ALT_DEG[0]) { return LIMIT_MAG[0]; }
+        for (var i = 1; i < LIMIT_ALT_DEG.size(); i += 1) {
+            if (sunAltDeg >= LIMIT_ALT_DEG[i]) {
+                var t = (LIMIT_ALT_DEG[i - 1] - sunAltDeg) / (LIMIT_ALT_DEG[i - 1] - LIMIT_ALT_DEG[i]);
+                return LIMIT_MAG[i - 1] + t * (LIMIT_MAG[i] - LIMIT_MAG[i - 1]);
+            }
+        }
+        return LIMIT_MAG[LIMIT_MAG.size() - 1];
+    }
+
+    function starSizeForMag(mag) {
+        if (mag <= XL_MAG)     { return Drawing.STAR_XL; }
+        if (mag <= LARGE_MAG)  { return Drawing.STAR_LARGE; }
+        if (mag <= MEDIUM_MAG) { return Drawing.STAR_MEDIUM; }
+        return Drawing.STAR_SMALL;
+    }
+
+    // Local sidereal time in degrees. utc = [year, month, day, utcHour].
+    // Greenwich mean sidereal time is 280.46061837 + 360.98564736629 D for D
+    // days from J2000.0 (2000 Jan 1, 12h UT). Whole turns are dropped before
+    // multiplying, so 32-bit floats keep it to about a thousandth of a degree:
+    // with D = d0 - 1.5 + utcHour / 24, where d0 counts whole days from
+    // 2000 Jan 0.0, 360 D is 360 d0 - 540 + 15 utcHour, and 360 d0 is whole
+    // turns.
+    function localSiderealDeg(utc, lonDeg) {
+        var d0 = MathUtil.daysSince2000Jan0(utc[0], utc[1], utc[2], 0.0);
+        return MathUtil.wrap360(280.46061837 - 540.0
+                                + 0.98564736629 * (d0 - 1.5)
+                                + 15.0410686 * utc[3]
+                                + lonDeg);
+    }
+
+}

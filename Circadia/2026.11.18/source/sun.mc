@@ -1,0 +1,298 @@
+using Toybox.Graphics;
+using Toybox.Math;
+
+// SunArt — the sun's geometry and timing, shared by both display types. The
+// colours and the number of steps are display-specific and live in AmoledArt
+// and MiPArt.
+//
+// The sun is a white disc with a coloured rim (together, the core) inside a
+// corona.
+//
+// Sizes. On this face one degree of sun altitude is one degree of distance
+// from the rim, so a circle of radius N degrees around the sun has left the
+// screen when the sun is N degrees below the horizon. Each edge is sized to
+// one twilight boundary, so the sun leaves the sky in three steps (and comes
+// back in the same three at dawn):
+//
+//   core         12 deg radius   gone at -12, the end of nautical twilight.
+//                                A white disc (while the sun is high) with a
+//                                thin rim where white gives way to the sun's
+//                                colour.
+//   white disc   10 deg radius   inside the core. 20 deg across, exactly the
+//                                largest moon setting: a large new moon in
+//                                front of the sun covers the white disc and
+//                                nothing more. The white has faded into
+//                                the core's colour by sunset, long before
+//                                this edge would set at -10, so it never
+//                                shows as an edge at the horizon.
+//   corona       18 deg radius   gone at -18, the end of astronomical
+//                                twilight: full night, and the moment the
+//                                stars reach full count.
+//
+// MIP draws a more compact sun: a ball the size of the white disc and two
+// thin rings, to 12 and 14 deg (see MiPArt). The outer ring widens through
+// twilight to 18 deg, so the MIP sun also leaves the sky at full night.
+//
+// Timing. Each 6-degree stage has one change:
+//
+//   above  +6     day                    white-hot centre, yellow rim
+//    +6 to   0    golden hour            the sun turns yellow to orange while its
+//                                        white centre fades into it, ending orange
+//                                        without a flat-yellow stage; the sun
+//                                        starts to spread
+//     0 to  -6    civil twilight         orange to red
+//    -6 to -12    nautical twilight      red to purple; the core sets
+//   -12 to -18    astronomical twilight  purple to blue; the corona sets
+//   below -18     night                  no sun; the minute digits stay blue
+//
+// Horizon glow. Around sunset the sun itself spreads along the horizon, on
+// both display types. Every layer of
+// the sun (each step of the AMOLED core and each corona ring; the MIP ball and
+// both rings) keeps its top edge exactly where it is, at altitude h + r above
+// the horizon on the sun's bearing, while its curvature blends from its own
+// (a circle around the sun) toward that of a band of constant height through
+// the same top point:
+//
+//       curvature = (1 - s) / r  -  s / (90 - (h + r))        (per degree)
+//
+// s = 0 is the round sun, s = 1 a band of even depth right around the
+// horizon (the limit: past 1 the shape would wrap round to the far side). s
+// rises from 0 at +6 (end of golden hour) to the value at which the sun's
+// outer edge (the AMOLED corona, the MIP outer ring) is exactly straight at
+// -3. A larger circle needs less change to go straight, so the outer layers
+// flatten first while the white disc stays a dome until it sets.
+//
+// Past straight, a layer curves the other way and hugs the rim. From there s
+// is set by how far along the horizon the outer edge reaches: where it meets
+// the rim, measured either side of the sun's bearing (on this face, the angle
+// around the centre is the compass bearing, so this is degrees of azimuth).
+// The reach widens from where the straight edge meets the rim at -3 (about
+// +/-34 deg) to +/-60 deg at the end of nautical twilight and +/-90 deg, a
+// whole half of the horizon, as the glow sets at full night: lower and wider
+// as it fades. Inner layers take the same s and so curve less, which tapers
+// the glow toward its ends. Since every top edge stays put, every edge still
+// leaves the sky when it would have as a circle.
+module SunArt {
+
+    const BLACK = 0x000000;
+
+    // ── Calibrated sizes (degrees) ───────────────────────────────────────────
+    const WHITE_DISC_DEG = 10.0;    // keep equal to half of config's largest moon diameter
+    const CORE_DEG       = 12.0;    // end of nautical twilight; white disc plus its coloured rim
+    const OUTER_DEG      = 18.0;    // end of astronomical twilight; keep equal to -Stellar.FULL_NIGHT_ALT_DEG
+
+    // ── The sun spreads along the horizon ───────────────────────────────────
+    const SPREAD_START_ALT_DEG = 6.0;     // end of golden hour: the sun starts to flatten
+    const SPREAD_FLAT_ALT_DEG  = -3.0;    // the sun's outer edge is exactly straight
+    // Past straight, how far either side of the sun's bearing the outer edge
+    // meets the rim (degrees of azimuth): this much at the end of nautical
+    // twilight (-CORE_DEG), and REACH_NIGHT_DEG as it sets at full night
+    // (-OUTER_DEG).
+    const REACH_NAUTICAL_DEG   = 60.0;
+    const REACH_NIGHT_DEG      = 90.0;
+    const STRAIGHT_RADIUS_PX   = 20000.0; // flatter than this, a layer is drawn with a straight edge
+    const RIM_OVERDRAW_PX      = 3.0;     // the sky disc stops 2px short of the screen edge
+    const MAX_ARC_HALF_DEG     = 179.0;   // a band hugging the rim never closes into a full ring
+
+    // ── White-hot core ───────────────────────────────────────────────────────
+    // The white disc is pure white while the sun is high and fades into the
+    // sun's own colour during golden hour, from +6 to sunset, in step with
+    // that colour turning from yellow to orange.
+    const WHITE_HOT_FULL_ALT_DEG = 6.0;
+    const WHITE_HOT_GONE_ALT_DEG = 0.0;
+
+    // Spread geometry for the frame being drawn; set by prepareSpread().
+    var _spread = 0.0;    // s in the header formula; 0 = the round sun
+    var _alt    = 0.0;    // sun altitude
+    var _sx     = 0.0;    // sun position
+    var _sy     = 0.0;
+    var _cx     = 0.0;    // screen centre
+    var _cy     = 0.0;
+    var _R      = 0.0;    // sky radius
+    var _ux     = 1.0;    // unit vector from the screen centre toward the sun
+    var _uy     = 0.0;
+
+    // ── Entry point ──────────────────────────────────────────────────────────
+
+    // (sx, sy) is the sun's projected position; it lies outside the sky disc
+    // when the sun is below the horizon.
+    function draw(dc, cx, cy, R, sx, sy, altDeg, mipMode) {
+        if (mipMode) {
+            MiPArt.drawSun(dc, cx, cy, R, sx, sy, altDeg);
+        } else {
+            AmoledArt.drawSun(dc, cx, cy, R, sx, sy, altDeg);
+        }
+    }
+
+    // ── Calibration helpers ──────────────────────────────────────────────────
+
+    function coronaVisible(altDeg) { return altDeg > -OUTER_DEG; }
+    function coreVisible(altDeg)   { return altDeg > -CORE_DEG;  }
+
+    // 1 = pure white disc, 0 = no white at all.
+    function whiteHot(altDeg) {
+        return MathUtil.clamp(
+            (altDeg - WHITE_HOT_GONE_ALT_DEG) / (WHITE_HOT_FULL_ALT_DEG - WHITE_HOT_GONE_ALT_DEG),
+            0.0, 1.0);
+    }
+
+    // ── Spreading layers ─────────────────────────────────────────────────────
+
+    // How far the sun has spread toward a band along the horizon (s in the
+    // header formula). 0 above +6. outerDeg is the radius of this display's
+    // outermost layer.
+    function spreadAmount(altDeg, outerDeg) {
+        if (altDeg >= SPREAD_START_ALT_DEG) { return 0.0; }
+
+        // Down to -3: s rises evenly to the value at which the outermost
+        // layer's edge (top at height t) is straight.
+        if (altDeg >= SPREAD_FLAT_ALT_DEG) {
+            var t     = SPREAD_FLAT_ALT_DEG + outerDeg;
+            var sFlat = (90.0 - t) / (90.0 - t + outerDeg);
+            return sFlat * (SPREAD_START_ALT_DEG - altDeg) / (SPREAD_START_ALT_DEG - SPREAD_FLAT_ALT_DEG);
+        }
+
+        // Past straight: the s that makes the outermost edge meet the rim at
+        // horizonReach() either side of the sun's bearing. That edge's top is
+        // d from the centre (degrees; the rim is at 90). A circle through it,
+        // curving back around the centre, that meets the rim at reach phi has
+        // radius rho = (180 d cos phi - d^2 - 8100) / (180 cos phi - 2 d),
+        // and the header formula gives curvature -1/rho at
+        // s = (1/r + 1/rho) / (1/r + 1/d).
+        var top = altDeg + outerDeg;
+        if (top <= 0.0) { return 0.0; }        // the whole sun has set
+        var d   = 90.0 - top;
+        var c   = MathUtil.cosDeg(horizonReach(altDeg, outerDeg));
+        var den = 180.0 * c - 2.0 * d;
+        if (den >= 0.0) { return d / (d + outerDeg); }     // exactly straight
+        var rho = (180.0 * d * c - d * d - 8100.0) / den;
+        return (1.0 / outerDeg + 1.0 / rho) / (1.0 / outerDeg + 1.0 / d);
+    }
+
+    // Past -3, how far either side of the sun's bearing the outermost edge
+    // meets the rim (degrees of azimuth): from where the straight edge meets
+    // it at -3, evenly out to REACH_NAUTICAL_DEG at -12, then on to
+    // REACH_NIGHT_DEG at -18.
+    function horizonReach(altDeg, outerDeg) {
+        var nautical = -CORE_DEG;
+        if (altDeg >= nautical) {
+            var t        = SPREAD_FLAT_ALT_DEG + outerDeg;
+            var straight = MathUtil.rad2deg(Math.acos((90.0 - t) / 90.0));
+            return straight + (REACH_NAUTICAL_DEG - straight)
+                * (SPREAD_FLAT_ALT_DEG - altDeg) / (SPREAD_FLAT_ALT_DEG - nautical);
+        }
+        var u = MathUtil.clamp((nautical - altDeg) / (OUTER_DEG - CORE_DEG), 0.0, 1.0);
+        return REACH_NAUTICAL_DEG + (REACH_NIGHT_DEG - REACH_NAUTICAL_DEG) * u;
+    }
+
+    // Remember this frame's sun for drawLayer(). outerDeg: the radius of the
+    // display's outermost layer (OUTER_DEG on AMOLED, MiPArt.OUTER_RING_DEG).
+    function prepareSpread(cx, cy, R, sx, sy, altDeg, outerDeg) {
+        _cx  = cx;
+        _cy  = cy;
+        _R   = R;
+        _sx  = sx;
+        _sy  = sy;
+        _alt = altDeg;
+
+        var dx = sx - cx;
+        var dy = sy - cy;
+        var d  = Math.sqrt(dx * dx + dy * dy);
+        if (d < 1.0) {
+            _spread = 0.0;      // sun at the zenith: nothing to spread toward
+            return;
+        }
+        _ux     = dx / d;
+        _uy     = dy / d;
+        _spread = spreadAmount(altDeg, outerDeg);
+    }
+
+    // One layer of the sun, of true radius rDeg, in the current spread (see
+    // the header): a circle around the sun, a dome, a straight-edged band or a
+    // band hugging the rim. Call prepareSpread() first.
+    function drawLayer(dc, rDeg, color) {
+        var top = _alt + rDeg;                 // height of the top edge above the horizon
+        if (top <= 0.0) { return; }
+
+        var deg = _R / 90.0;
+        dc.setColor(color, BLACK);
+
+        if (_spread <= 0.0) {
+            dc.fillCircle(MathUtil.roundNearest(_sx), MathUtil.roundNearest(_sy),
+                          MathUtil.roundNearest(rDeg * deg));
+            return;
+        }
+
+        var k = (1.0 - _spread) / rDeg - _spread / (90.0 - top);    // curvature, per degree
+        var rhoPx = (k == 0.0) ? STRAIGHT_RADIUS_PX * 2.0 : MathUtil.abs(1.0 / k) * deg;
+        var topPx = (90.0 - top) * deg;        // the top edge's distance from the screen centre
+
+        if (rhoPx >= STRAIGHT_RADIUS_PX) {
+            fillBeyondLine(dc, topPx);
+        } else if (k > 0.0) {
+            // A dome: a circle whose centre lies rhoPx beyond the top edge.
+            var dist = topPx + rhoPx;
+            dc.fillCircle(MathUtil.roundNearest(_cx + dist * _ux), MathUtil.roundNearest(_cy + dist * _uy),
+                          MathUtil.roundNearest(rhoPx));
+        } else {
+            // Hugging the rim: everything outside a circle whose centre lies
+            // rhoPx back from the top edge, past the screen centre.
+            fillOutsideCircle(dc, rhoPx - topPx, rhoPx);
+        }
+    }
+
+    // Everything beyond a straight line square to the sun's bearing, topPx
+    // from the screen centre.
+    function fillBeyondLine(dc, topPx) {
+        var far  = _R + 20.0;
+        var vx   = -_uy;
+        var vy   = _ux;
+        dc.fillPolygon([
+            [MathUtil.roundNearest(_cx + topPx * _ux + far * vx), MathUtil.roundNearest(_cy + topPx * _uy + far * vy)],
+            [MathUtil.roundNearest(_cx + topPx * _ux - far * vx), MathUtil.roundNearest(_cy + topPx * _uy - far * vy)],
+            [MathUtil.roundNearest(_cx + far * _ux - far * vx),   MathUtil.roundNearest(_cy + far * _uy - far * vy)],
+            [MathUtil.roundNearest(_cx + far * _ux + far * vx),   MathUtil.roundNearest(_cy + far * _uy + far * vy)]
+        ]);
+    }
+
+    // Everything inside the rim but outside the circle of radius rPx whose
+    // centre is gPx from the screen centre, directly away from the sun. Drawn
+    // as one thick arc around that centre, from the circle out past the rim,
+    // between the two points where the circle meets the rim.
+    function fillOutsideCircle(dc, gPx, rPx) {
+        if (rPx >= gPx + _R) { return; }       // the circle covers the whole sky
+
+        // Half-angle of the arc, seen from the circle's centre (law of cosines,
+        // written so it stays accurate when that centre is a fraction of a
+        // pixel from the screen centre, as it is just before full night).
+        // Kept under 180 so the arc's ends never meet.
+        var beta = MAX_ARC_HALF_DEG;
+        if (gPx > 0.0) {
+            var c = (gPx * gPx + (rPx - _R) * (rPx + _R)) / (2.0 * gPx * rPx);
+            beta = MathUtil.rad2deg(Math.acos(MathUtil.clamp(c, -1.0, 1.0)));
+            if (beta > MAX_ARC_HALF_DEG) { beta = MAX_ARC_HALF_DEG; }
+        }
+
+        var theta = MathUtil.rad2deg(Math.atan2(-_uy, _ux));     // the sun's bearing, as drawArc measures angles
+        var start = Math.floor(theta - beta).toNumber();
+        var end   = Math.ceil(theta + beta).toNumber();
+        var pen   = (gPx + _R - rPx + RIM_OVERDRAW_PX + 1.0).toNumber();
+
+        dc.setPenWidth(pen);
+        dc.drawArc(
+            MathUtil.roundNearest(_cx - gPx * _ux), MathUtil.roundNearest(_cy - gPx * _uy),
+            MathUtil.roundNearest(rPx + 0.5 * pen),
+            Graphics.ARC_COUNTER_CLOCKWISE,
+            wrapDegrees(start), wrapDegrees(end)
+        );
+        dc.setPenWidth(1);
+    }
+
+    // Whole degrees into 0..359.
+    function wrapDegrees(a) {
+        a = a % 360;
+        if (a < 0) { a += 360; }
+        return a;
+    }
+
+}
