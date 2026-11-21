@@ -1,6 +1,7 @@
 using Toybox.Application;
 using Toybox.Lang;
 using Toybox.Math;
+using Toybox.System;
 using Toybox.WatchUi;
 
 // The real night sky: the brightest stars of the Yale Bright Star Catalogue,
@@ -250,8 +251,13 @@ module Stellar {
     // sky for the minute is built, if no more than MAX_LEAD_MIN old (stars
     // move about half a pixel a minute) and for the same screen, place and
     // settings.
+    // Storage needs two to three times the value's size in free memory to
+    // write it, and running out cannot be caught, so the sky is only saved
+    // with SAVE_BYTES_PER_ENTRY free for each of its numbers (about 30 KB
+    // for the fullest sky with lines), else the face just rebuilds it.
     const SAVE_KEY     = "sky";
     const SAVE_VERSION = 1;
+    const SAVE_BYTES_PER_ENTRY = 32;
     var _restoreTried  = false;
 
     // The most stars ever drawn, so drawing a frame stays bounded too: the
@@ -458,7 +464,11 @@ module Stellar {
     // Call when the face stops.
     function save() {
         if (_projectionKey == null) { return; }
+        var entries = _projectedStars.size() + _projectedLines.size() + _projectionKey.size();
+        if (System.getSystemStats().freeMemory < entries * SAVE_BYTES_PER_ENTRY) { return; }
         try {
+            // Deleting the old copy first lowers the memory the write needs.
+            Application.Storage.deleteValue(SAVE_KEY);
             Application.Storage.setValue(SAVE_KEY, [SAVE_VERSION, _projectionKey, _projectedStars, _projectedLines]);
         } catch (e) {
             // Storage full: the face starts without it, as before.
