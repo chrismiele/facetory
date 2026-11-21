@@ -218,7 +218,12 @@ module Stellar {
     // complete. Awake (an update a second) a new sky takes a few seconds;
     // in low power (an update a minute) a few minutes, which at about half a
     // pixel of star movement a minute does not show. A job in progress is
-    // never restarted: a newer request waits and starts when it is done.
+    // not restarted for a new minute: the newer request waits and starts
+    // when it is done. But when the sky stops fitting for any other reason
+    // (a setting, the place or the screen changed), work for the old sky is
+    // dropped and the new one started at once; while awake the view then
+    // asks for updates back to back (catchingUp), so it is done in about a
+    // second.
     // So that a sky is never shown late, it is built ahead and shown the
     // moment its minute starts: while awake, next minute's sky from second
     // PREBUILD_SEC (see CircadiaView), so stars move every minute as before;
@@ -286,10 +291,18 @@ module Stellar {
     var _lastMin    = 0;      // the minute of the last request, to notice the clock going back
     var _jobFromMin = 0;      // the minute the current job started
     var _lastSpan   = 0;      // minutes the last finished job took (0 if unknown)
-    var _aheadMissed = false; // a sky built ahead went unused: build the current one instead
+    var _buildNow   = false;  // low power: build this minute's sky now, not one ahead (the
+                              // one ahead went unused, or the sky on screen no longer fits)
 
     // The view says whether the watch is in low power (an update a minute).
     function setLowPower(lowPower) { _lowPower = lowPower; }
+
+    // Whether the sky being built, or waiting to be, is for the minute on
+    // screen rather than one ahead: the sky shown is missing or out of date,
+    // so while awake the view asks for the next update straight away.
+    function catchingUp() {
+        return (_jobPhase != JOB_IDLE && !_jobAhead) || _nextArgs != null;
+    }
 
     // Whether a sky could be started ahead now (nothing being built, queued
     // or waiting), so the view can skip working one out otherwise.
@@ -321,7 +334,7 @@ module Stellar {
             // The clock went back (a time zone change): a sky built or being
             // built ahead is for a minute that is now far off.
             if (_jobPhase != JOB_IDLE && _jobAhead) { _jobPhase = JOB_IDLE; _jobStars = null; }
-            if (_readyKey != null) { dropReady(); _aheadMissed = true; }
+            if (_readyKey != null) { dropReady(); _buildNow = true; }
         }
         _lastMin = nowMin;
 
@@ -334,7 +347,7 @@ module Stellar {
             _projectionKey  = null;
             if (_jobPhase != JOB_IDLE && !_jobAhead) { _jobPhase = JOB_IDLE; _jobStars = null; }
             _nextArgs = null;
-            _aheadMissed = false;
+            _buildNow = false;
             if (starCount <= 0 || (starMode == MODE_BRIGHTEST && _jobPhase == JOB_IDLE && _readyKey == null)) { releaseLines(); }
             return;
         }
@@ -347,6 +360,13 @@ module Stellar {
             restore(key, nowMin);
         }
 
+        // Something other than the time changed: drop the work for the old
+        // sky and build this one now.
+        if (_readyKey != null && !sameSky(key, _readyKey)) { dropReady(); }
+        if (_jobPhase != JOB_IDLE && !sameSky(key, _jobKey)) { _jobPhase = JOB_IDLE; _jobStars = null; }
+        if (_nextArgs != null && !sameSky(key, _nextArgs[1])) { _nextArgs = null; }
+        if (_projectionKey != null && !sameSky(key, _projectionKey)) { _buildNow = true; }
+
         // Built ahead for a minute that has passed (updates were missed, or
         // the simulator runs time fast). In low power it is still the
         // freshest sky there is, so show it, a little late; awake, building
@@ -355,7 +375,7 @@ module Stellar {
             if (_lowPower && sameSky(key, _readyKey)) {
                 show(_readyStars, _readyLines, _readyMip, _readyKey);
             } else {
-                _aheadMissed = true;
+                _buildNow = true;
             }
             dropReady();
         }
@@ -370,7 +390,7 @@ module Stellar {
                 return;
             }
             dropReady();                         // something changed: build afresh
-            _aheadMissed = true;
+            _buildNow = true;
         }
 
         if (_jobPhase != JOB_IDLE) {
@@ -386,8 +406,8 @@ module Stellar {
         // unless there is none yet or the last one ahead went unused (it came
         // too late, or something changed): then build this minute's, so the
         // sky never stays stale.
-        if (_lowPower && _projectionKey != null && !_aheadMissed) { return; }
-        _aheadMissed = false;
+        if (_lowPower && _projectionKey != null && !_buildNow) { return; }
+        _buildNow = false;
         startJob(args, key, false);
     }
 
@@ -454,7 +474,7 @@ module Stellar {
         var age = nowMin - minuteOrdinal([k[3], k[4], k[5], k[6], k[7]]);
         if (k.size() != key.size() || age < 0 || age > MAX_LEAD_MIN || !sameSky(key, k)) { return; }
         show(s[2], s[3], k[14], k);
-        _aheadMissed = true;
+        _buildNow = true;
     }
 
     function dropReady() {

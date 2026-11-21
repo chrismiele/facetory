@@ -153,6 +153,12 @@ class CircadiaView extends WatchUi.WatchFace {
                 if (Stellar.canPrepare()) { prepareNextSky(g, t, 1); }
             }
             Stellar.continueWork();
+            // A sky that replaces a missing or out-of-date one (after a
+            // setting changed, or the face restarted) is built in updates
+            // asked for back to back while awake, so it is done in about a
+            // second; each still does one step. Not in low power, where
+            // the watch updates once a minute.
+            if (!_isSleeping && Stellar.catchingUp()) { WatchUi.requestUpdate(); }
         }
 
         _sceneTime[0] = t.hour;
