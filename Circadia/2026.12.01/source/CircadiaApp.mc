@@ -14,7 +14,10 @@ class CircadiaApp extends Application.AppBase {
     function onStart(state as Dictionary?) as Void {
     }
 
+    // The system stops the face when the user opens its menus or an app and
+    // starts it again on return: keep the star sky for then.
     function onStop(state as Dictionary?) as Void {
+        Stellar.save();
     }
 
     function getInitialView() as [Views] or [Views, InputDelegates] {

@@ -1,3 +1,4 @@
+using Toybox.Application;
 using Toybox.Lang;
 using Toybox.Math;
 using Toybox.WatchUi;
@@ -31,7 +32,8 @@ using Toybox.WatchUi;
 // apparent magnitude includes the dimming of the air near the horizon, so
 // low stars appear later than overhead ones, and the faintest low ones only
 // near full night. Stars pop in one by one, brightest first, as the sun sinks,
-// and leave in reverse order at dawn.
+// and leave in reverse order at dawn, each on its own minute even when a new
+// sky is only built every few minutes (see WINDOW_MIN).
 //
 // How they look. Each star keeps one size and one colour all night: size
 // from its catalogue magnitude (*_MAG thresholds), colour from its B-V colour
@@ -91,8 +93,10 @@ module Stellar {
     // not need them).
 
     // Shown stars, one integer each:
-    //   bits 0-10 x, bits 11-21 y (pixels), bits 22-23 size (Drawing.STAR_*),
-    //   bits 24-26 colour bin (Drawing.STAR_BIN_*).
+    //   bits 0-9 x, bits 10-19 y (pixels), bits 20-21 size (Drawing.STAR_*),
+    //   bits 22-24 colour bin (Drawing.STAR_BIN_*), bits 25-30 when it shows:
+    //   its apparent magnitude as a SHOW_STEP code (showCode), or
+    //   SHOW_WITH_LINES for a figure star shown only with the lines.
     // Figure star positions (line modes, at full night), one integer per
     // star table entry, 0 when not placed this minute:
     //   bits 0-10 x + 1024, bits 11-21 y + 1024 (below-horizon stars can lie
@@ -105,6 +109,8 @@ module Stellar {
     const POS_SHOWN  = 0x800000;
     const POS_PLACED = 0x1000000;
     const POS_BELOW  = 0x2000000;  // below the horizon, not yet placed (alone)
+    const SHOW_STEP       = 0.125;
+    const SHOW_WITH_LINES = 63;
 
     var _catalog        = null;
     var _catalogMode    = -1;
@@ -120,6 +126,8 @@ module Stellar {
     var _lineColor      = 0;
     var _lineAntiAlias  = false;
     var _projectionKey  = null;
+    var _showCode       = -1;      // stars with a code up to this show (setSunAltitude)
+    var _showLines      = false;   // full night: the lines and their figure stars show
 
     function keysEqual(a, b) {
         if (a.size() != b.size()) { return false; }
@@ -175,7 +183,22 @@ module Stellar {
     }
 
     // Whether figure lines are on screen (planets then keep a dark margin).
-    function hasLines() { return _projectedLines.size() > 0; }
+    function hasLines() { return _showLines && _projectedLines.size() > 0; }
+
+    // The sun's altitude now, which decides which of the built sky's stars
+    // show: those bright enough for the sky at this moment, and the lines and
+    // their figure stars at full night. Call once a minute.
+    function setSunAltitude(sunAltDeg) {
+        var limit  = limitingMagnitude(sunAltDeg);
+        _showCode  = (limit <= LIMIT_MAG[0]) ? -1 : showCode(limit);
+        _showLines = sunAltDeg <= FULL_NIGHT_ALT_DEG;
+    }
+
+    // A magnitude as a SHOW_STEP code, 0 for MAG_ZERO.
+    function showCode(mag) {
+        var c = MathUtil.roundNearest((mag - MAG_ZERO) / SHOW_STEP);
+        return (c < 0) ? 0 : ((c >= SHOW_WITH_LINES) ? SHOW_WITH_LINES - 1 : c);
+    }
 
     // Drop what only the line modes need.
     function releaseLines() {
@@ -205,6 +228,26 @@ module Stellar {
     // time fast, the clock changed), low power shows it late or builds the
     // current minute's, so the sky is never left stale or empty.
     const STEP_ENTRIES = 96;
+
+    // A sky may stay on screen for several minutes in low power, while the
+    // twilight deepens or fades. So each sky is built for the sun at its
+    // darkest over its minute and the WINDOW_MIN after (the view passes that
+    // altitude): it holds every star and line that can come out while it is
+    // shown, each tagged with when it shows (its apparent magnitude), and
+    // the drawing shows only those the sky is dark enough for now
+    // (setSunAltitude). Stars then come out, and the lines at full night, on
+    // their own minute. Keep at least MAX_LEAD_MIN + 1, the longest a sky
+    // waits for the next.
+    const WINDOW_MIN = 16;
+
+    // The sky on screen is saved when the face stops (the system restarts it
+    // after its menus and apps) and shown again when it starts, while the
+    // sky for the minute is built, if no more than MAX_LEAD_MIN old (stars
+    // move about half a pixel a minute) and for the same screen, place and
+    // settings.
+    const SAVE_KEY     = "sky";
+    const SAVE_VERSION = 1;
+    var _restoreTried  = false;
 
     // The most stars ever drawn, so drawing a frame stays bounded too: the
     // star count plus the figure stars shown for the lines stays under this
@@ -266,7 +309,9 @@ module Stellar {
     }
 
     // layout = [cx, cy, skyRadiusPx]; datetime = [year, month, day, hour, min]
-    // (local clock); offsetSec = the local time zone's offset from UTC.
+    // (local clock); offsetSec = the local time zone's offset from UTC;
+    // sunAltDeg = the sun at its darkest over this minute and the WINDOW_MIN
+    // after.
     // Called once a minute. Shows the sky built ahead for this minute if
     // there is one, else asks for a new sky; the work is done a step at a
     // time by continueWork(), which the view calls once per full update.
@@ -296,6 +341,11 @@ module Stellar {
 
         var args = [layout, datetime, latDeg, lonDeg, offsetSec, sunAltDeg, starCount, starMode, mipMode];
         var key  = skyKey(args);
+
+        if (!_restoreTried) {
+            _restoreTried = true;
+            restore(key, nowMin);
+        }
 
         // Built ahead for a minute that has passed (updates were missed, or
         // the simulator runs time fast). In low power it is still the
@@ -382,6 +432,29 @@ module Stellar {
             if ((i < 3 || i > 7) && i != 11 && a[i] != b[i]) { return false; }
         }
         return true;
+    }
+
+    // The sky on screen, kept for when the face starts again (see SAVE_KEY).
+    // Call when the face stops.
+    function save() {
+        if (_projectionKey == null) { return; }
+        try {
+            Application.Storage.setValue(SAVE_KEY, [SAVE_VERSION, _projectionKey, _projectedStars, _projectedLines]);
+        } catch (e) {
+            // Storage full: the face starts without it, as before.
+        }
+    }
+
+    // Show the saved sky if it suits this minute's (key). It is a stand-in:
+    // this minute's sky is still built, in low power too.
+    function restore(key, nowMin) {
+        var s = Application.Storage.getValue(SAVE_KEY);
+        if (!(s instanceof Lang.Array) || s.size() != 4 || s[0] != SAVE_VERSION) { return; }
+        var k   = s[1] as Lang.Array;
+        var age = nowMin - minuteOrdinal([k[3], k[4], k[5], k[6], k[7]]);
+        if (k.size() != key.size() || age < 0 || age > MAX_LEAD_MIN || !sameSky(key, k)) { return; }
+        show(s[2], s[3], k[14], k);
+        _aheadMissed = true;
     }
 
     function dropReady() {
@@ -530,7 +603,7 @@ module Stellar {
 
             var xy = screenPoint(sinDec, cosDec, h, cosH, sinAlt, true);
             if (visible) {
-                _jobStars.add(packStar(xy[0], xy[1], starSizeForMag(mag), v & 0x7));
+                _jobStars.add(packStar(xy[0], xy[1], starSizeForMag(mag), v & 0x7, showCode(apparent)));
             }
             if (isFigure) {
                 var p = packPos(xy[0], xy[1]) | POS_UP;
@@ -585,8 +658,8 @@ module Stellar {
         return POS_PLACED | ((x + POS_OFFSET) & 0x7FF) | (((y + POS_OFFSET) & 0x7FF) << 11);
     }
 
-    function packStar(x, y, size, colorBin) {
-        return (x & 0x7FF) | ((y & 0x7FF) << 11) | (size << 22) | (colorBin << 24);
+    function packStar(x, y, size, colorBin, showAt) {
+        return (x & 0x3FF) | ((y & 0x3FF) << 10) | (size << 20) | (colorBin << 22) | (showAt << 25);
     }
 
     // Every figure line with at least one star above the horizon, cut at the
@@ -614,12 +687,12 @@ module Stellar {
         return out;
     }
 
-    // Show a figure star that is up: add it to the shown stars.
+    // Show a figure star that is up with the lines: add it to the shown stars.
     function reveal(t, p, cat, stars, figPos) {
         var v = cat[t] as Lang.Number;
         if (stars.size() >= MAX_STARS) { return p; }
         stars.add(packStar((p & 0x7FF) - POS_OFFSET, ((p >> 11) & 0x7FF) - POS_OFFSET,
-                           starSizeForMag(MAG_ZERO + ((v >> 3) & 0x7F) * MAG_STEP), v & 0x7));
+                           starSizeForMag(MAG_ZERO + ((v >> 3) & 0x7F) * MAG_STEP), v & 0x7, SHOW_WITH_LINES));
         p |= POS_SHOWN;
         figPos[t] = p;
         return p;
@@ -665,10 +738,11 @@ module Stellar {
 
     function drawProjectedStars(dc) {
         // During a region repaint only the lines and stars inside the region
-        // are drawn.
+        // are drawn. Of the stars built, only those the sky is dark enough
+        // for now are drawn (setSunAltitude).
         var b = Drawing.regionBounds(3);
 
-        if (_projectedLines.size() > 0) {
+        if (_showLines && _projectedLines.size() > 0) {
             var aa = _lineAntiAlias && (dc has :setAntiAlias);
             if (aa) { dc.setAntiAlias(true); }
             dc.setColor(_lineColor, Drawing.BLACK);
@@ -689,14 +763,16 @@ module Stellar {
         }
 
         for (var i = 0; i < _projectedStars.size(); i += 1) {
-            var s  = _projectedStars[i];
-            var x  = s & 0x7FF;
-            var y  = (s >> 11) & 0x7FF;
+            var s      = _projectedStars[i];
+            var showAt = (s >> 25) & 0x3F;
+            if (showAt > _showCode && (showAt != SHOW_WITH_LINES || !_showLines)) { continue; }
+            var x = s & 0x3FF;
+            var y = (s >> 10) & 0x3FF;
             if (b != null && (x < b[0] || x > b[2] || y < b[1] || y > b[3])) {
                 continue;
             }
-            var size = (s >> 22) & 0x3;
-            var bin  = (s >> 24) & 0x7;
+            var size = (s >> 20) & 0x3;
+            var bin  = (s >> 22) & 0x7;
             if (_starColorBins == null) {
                 Drawing.drawProjectedStar(dc, x, y, size, MiPArt.starColor(size, bin), null);
             } else {

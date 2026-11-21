@@ -287,29 +287,43 @@ class CircadiaView extends WatchUi.WatchFace {
         }
     }
 
-    // Ask Stellar to build the star sky for `minutes` from now, with the sun
-    // where it will be then (the same calculation updateAstronomy will make
-    // at that minute, so the two match exactly and the sky built ahead is
-    // used).
-    function prepareNextSky(g, t, minutes) {
-        // The later minute, counted on from the same clock reading the
-        // current sky uses (g's date, t's hour and minute), so its key
-        // matches when that minute comes. The moment is only a calculator
-        // here: built and read back in UTC, it carries no time zone.
+    // The clock reading `minutes` after this one (g's date, t's hour and
+    // minute), as [year, month, day, hour, min]. The moment is only a
+    // calculator here: built and read back in UTC, it carries no time zone.
+    function minutesLater(g, t, minutes) {
         var base = Gregorian.moment({:year => g.year, :month => g.month, :day => g.day,
                                      :hour => t.hour, :minute => t.min, :second => 0});
-        var n      = Gregorian.utcInfo(base.add(new Time.Duration(60 * minutes)), Time.FORMAT_SHORT);
-        var sunAlt = Solar.solarAltAzApprox(
-            n.year, n.month, n.day, n.hour + n.min / 60.0, t.timeZoneOffset,
-            _latDeg, _lonDeg
-        )[0];
+        var n = Gregorian.utcInfo(base.add(new Time.Duration(60 * minutes)), Time.FORMAT_SHORT);
+        return [n.year, n.month, n.day, n.hour, n.min];
+    }
+
+    // The sun's altitude `minutes` after this minute: the same calculation
+    // updateAstronomy makes when that minute comes, so the two match exactly.
+    function sunAltLater(g, t, minutes) {
+        var d = minutesLater(g, t, minutes);
+        return Solar.solarAltAzApprox(d[0], d[1], d[2], d[3] + d[4] / 60.0, t.timeZoneOffset,
+                                      _latDeg, _lonDeg)[0];
+    }
+
+    // The sun at its darkest over the star sky's window (Stellar.WINDOW_MIN)
+    // from `minutes` after this minute; sunAlt is its altitude at the start.
+    // Over so short a time it is darkest at one end.
+    function windowSunAlt(g, t, minutes, sunAlt) {
+        var later = sunAltLater(g, t, minutes + Stellar.WINDOW_MIN);
+        return (later < sunAlt) ? later : sunAlt;
+    }
+
+    // Ask Stellar to build the star sky for `minutes` from now, for the sun
+    // over its window from then, worked out as updateSkyCache will at that
+    // minute, so the keys match and the sky built ahead is used.
+    function prepareNextSky(g, t, minutes) {
         Stellar.prepareNextMinute(
             [_layoutCache[0], _layoutCache[1], _layoutCache[2]],
-            [n.year, n.month, n.day, n.hour, n.min],
+            minutesLater(g, t, minutes),
             _latDeg,
             _lonDeg,
             t.timeZoneOffset,
-            sunAlt,
+            windowSunAlt(g, t, minutes, sunAltLater(g, t, minutes)),
             config.starCount(),
             config.starMode(),
             config.mipMode()
@@ -343,6 +357,7 @@ class CircadiaView extends WatchUi.WatchFace {
         ];
 
         if (config.showStars()) {
+            Stellar.setSunAltitude(_cachedSunAltAz[0]);
             Planets.update(
                 [cx, cy, R],
                 [g.year, g.month, g.day, t.hour, t.min],
@@ -358,7 +373,7 @@ class CircadiaView extends WatchUi.WatchFace {
                 _latDeg,
                 _lonDeg,
                 t.timeZoneOffset,
-                _cachedSunAltAz[0],
+                windowSunAlt(g, t, 0, _cachedSunAltAz[0]),
                 config.starCount(),
                 config.starMode(),
                 config.mipMode()
