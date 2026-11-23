@@ -44,21 +44,21 @@ using Toybox.WatchUi;
 // separately (Planets).
 //
 // Figure lines (Constellations: the well-known figures; Zodiac: the twelve
-// zodiac figures; not on low-memory watches, see LOW_MEMORY_BYTES). Faint lines join the figures' stars, drawn under the
-// stars and stopping just short of them. Each figure comes out whole, on its
-// own minute: once every one of its stars above the horizon is bright enough
-// to see, and at full night (sun at -18 deg or lower) at the latest. It goes
-// the same way at dawn. Every figure is drawn complete: a line from a star
-// above the horizon to one below it runs on to the edge of the sky, so a
-// figure low in the sky is cut off by the horizon, as in a planetarium. A
-// shown figure's stars above the horizon are always shown, even beyond the
-// 200 or when the haze near the horizon would hide them, so it never has a
-// gap.
+// zodiac figures; not on low-memory watches, see LOW_MEMORY_BYTES). At full
+// night (sun at -18 deg or lower) faint lines join the figures' stars, drawn
+// under the stars and stopping just short of them. They all come out
+// together when full night begins and all go when it ends.
+// Every figure is drawn complete: a line from a star above the horizon to
+// one below it runs on to the edge of the sky, so a figure low in the sky is
+// cut off by the horizon, as in a planetarium. Figure stars above the horizon
+// are always shown, even beyond the 200 or when the haze near
+// the horizon would hide them, so a figure never has a gap.
 module Stellar {
 
+    const FULL_NIGHT_ALT_DEG = -18.0;    // end of astronomical twilight; keep equal to -SunArt.OUTER_DEG
+
     // Naked-eye limiting magnitude against the sky, by the sun's altitude.
-    // Between these points it changes evenly. The last is full night, the end
-    // of astronomical twilight: keep equal to -SunArt.OUTER_DEG.
+    // Between these points it changes evenly.
     const LIMIT_ALT_DEG = [-3.0, -6.0, -12.0, -18.0];
     const LIMIT_MAG     = [-1.5,  1.0,   4.5,   6.0];
 
@@ -97,41 +97,36 @@ module Stellar {
     const LINE_GAP_PX = [3, 4, 4, 5];
 
     // Each line is one integer: bits 0-8 and 9-17 are the star table indices
-    // of its ends, bits 18-24 the figure it belongs to.
+    // of its ends (bits 18-24 number the figure in the table; the watch does
+    // not need them).
 
     // Shown stars, one integer each:
     //   bits 0-9 x, bits 10-19 y (pixels), bits 20-21 size (Drawing.STAR_*),
-    //   bits 22-24 colour bin (Drawing.STAR_BIN_*), bits 25-30 when it shows
-    //   (a show code: see showCode): its apparent magnitude, or for a figure
-    //   star too faint to show on its own, its figure's.
-    // Figure star positions (line modes), one integer per star table entry,
-    // 0 when not placed this minute:
+    //   bits 22-24 colour bin (Drawing.STAR_BIN_*), bits 25-30 when it shows:
+    //   its apparent magnitude as a SHOW_STEP code (showCode), or
+    //   SHOW_WITH_LINES for a figure star shown only with the lines.
+    // Figure star positions (line modes, at full night), one integer per
+    // star table entry, 0 when not placed this minute:
     //   bits 0-10 x + 1024, bits 11-21 y + 1024 (below-horizon stars can lie
     //   past the screen), bit 22 above the horizon, bit 23 in the shown stars,
-    //   bit 24 placed, bit 26 given its figures' show code (projectLines); or
-    //   POS_BELOW alone for a star below the horizon that no line has needed
-    //   yet.
-    // Lines, two integers each: x0 | y0 << 11 | its figure's show code << 22,
-    // then x1 | y1 << 11.
+    //   bit 24 placed; or POS_BELOW alone for a star below the horizon that
+    //   no line has needed yet.
+    // Lines, two integers each: x0 | y0 << 11, then x1 | y1 << 11.
     const POS_OFFSET = 1024;
     const POS_UP     = 0x400000;
     const POS_SHOWN  = 0x800000;
     const POS_PLACED = 0x1000000;
     const POS_BELOW  = 0x2000000;  // below the horizon, not yet placed (alone)
-    const POS_CODED  = 0x4000000;  // up, not shown on its own: given its figures' show code
-    const SHOW_STEP   = 0.125;
-    const SHOW_LAST   = 63;     // the highest show code (6 bits)
-    const FIGURE_STAR = 0x80;   // _figureStar: in a figure (bits 0-5: its show code)
+    const SHOW_STEP       = 0.125;
+    const SHOW_WITH_LINES = 63;
 
     var _catalog        = null;
     var _catalogMode    = -1;
     var _lineTable      = null;
     var _lineMode       = -1;
-    var _figureStar     = null;    // per star table entry: FIGURE_STAR if in a figure's
-                                   // lines, with its show code in the sky being built
+    var _figureStar     = null;    // per star table entry: 1 if in a figure's lines
     var _lastFigureStar = -1;      // highest such entry
     var _figurePos      = null;    // reused each minute; see POS_*
-    var _figureCode     = null;    // per figure: when it shows, in the sky being built
     var _projectedStars = [];
     var _projectedLines = [];
     var _starColorBins  = null;    // AMOLED star colours, or null for MIP
@@ -139,9 +134,8 @@ module Stellar {
     var _lineColor      = 0;
     var _lineAntiAlias  = false;
     var _projectionKey  = null;
-    var _showCode       = -1;      // stars and figures with a show code up to this show
-                                   // (setSunAltitude)
-    var _linesFromCode  = 0;       // the lowest show code of the lines on screen
+    var _showCode       = -1;      // stars with a code up to this show (setSunAltitude)
+    var _showLines      = false;   // full night: the lines and their figure stars show
 
     function keysEqual(a, b) {
         if (a.size() != b.size()) { return false; }
@@ -179,44 +173,39 @@ module Stellar {
                               ? Rez.JsonData.ZodiacLines
                               : Rez.JsonData.StarLines) as Lang.Array;
             _lastFigureStar = -1;
-            var lastFigure  = -1;
             for (var k = 0; k < _lineTable.size(); k += 1) {
                 var a = _lineTable[k] & 0x1FF;
                 var b = (_lineTable[k] >> 9) & 0x1FF;
-                var f = (_lineTable[k] >> 18) & 0x7F;
                 if (a > _lastFigureStar) { _lastFigureStar = a; }
                 if (b > _lastFigureStar) { _lastFigureStar = b; }
-                if (f > lastFigure) { lastFigure = f; }
             }
             _figureStar = new [_lastFigureStar + 1]b;
             for (var k = 0; k < _lineTable.size(); k += 1) {
-                _figureStar[_lineTable[k] & 0x1FF] = FIGURE_STAR;
-                _figureStar[(_lineTable[k] >> 9) & 0x1FF] = FIGURE_STAR;
+                _figureStar[_lineTable[k] & 0x1FF] = 1;
+                _figureStar[(_lineTable[k] >> 9) & 0x1FF] = 1;
             }
-            _figurePos  = new [_lastFigureStar + 1];
-            _figureCode = new [lastFigure + 1]b;
+            _figurePos = new [_lastFigureStar + 1];
             _lineMode  = mode;
         }
         return _lineTable;
     }
 
     // Whether figure lines are on screen (planets then keep a dark margin).
-    function hasLines() { return _projectedLines.size() > 0 && _linesFromCode <= _showCode; }
+    function hasLines() { return _showLines && _projectedLines.size() > 0; }
 
     // The sun's altitude now, which decides which of the built sky's stars
-    // and figures show: those bright enough for the sky at this moment. Call
-    // once a minute.
+    // show: those bright enough for the sky at this moment, and the lines and
+    // their figure stars at full night. Call once a minute.
     function setSunAltitude(sunAltDeg) {
-        var limit = limitingMagnitude(sunAltDeg);
-        _showCode = (limit <= LIMIT_MAG[0]) ? -1 : showCode(limit);
+        var limit  = limitingMagnitude(sunAltDeg);
+        _showCode  = (limit <= LIMIT_MAG[0]) ? -1 : showCode(limit);
+        _showLines = sunAltDeg <= FULL_NIGHT_ALT_DEG;
     }
 
-    // When something shows, as a code that fits 6 bits: a magnitude in
-    // SHOW_STEP steps from MAG_ZERO. It shows once the show code of the
-    // sky's limiting magnitude (setSunAltitude) reaches it.
+    // A magnitude as a SHOW_STEP code, 0 for MAG_ZERO.
     function showCode(mag) {
         var c = MathUtil.roundNearest((mag - MAG_ZERO) / SHOW_STEP);
-        return (c < 0) ? 0 : ((c > SHOW_LAST) ? SHOW_LAST : c);
+        return (c < 0) ? 0 : ((c >= SHOW_WITH_LINES) ? SHOW_WITH_LINES - 1 : c);
     }
 
     // Drop what only the line modes need.
@@ -224,7 +213,6 @@ module Stellar {
         _lineTable  = null;
         _figureStar = null;
         _figurePos  = null;
-        _figureCode = null;
         _lineMode   = -1;
     }
 
@@ -258,10 +246,11 @@ module Stellar {
     // twilight deepens or fades. So each sky is built for the sun at its
     // darkest over its minute and the WINDOW_MIN after (the view passes that
     // altitude): it holds every star and line that can come out while it is
-    // shown, each tagged with when it shows (a show code), and the drawing
-    // shows only those the sky is dark enough for now (setSunAltitude).
-    // Stars and figures then come out on their own minute. Keep at least
-    // MAX_LEAD_MIN + 1, the longest a sky waits for the next.
+    // shown, each tagged with when it shows (its apparent magnitude), and
+    // the drawing shows only those the sky is dark enough for now
+    // (setSunAltitude). Stars then come out, and the lines at full night, on
+    // their own minute. Keep at least MAX_LEAD_MIN + 1, the longest a sky
+    // waits for the next.
     const WINDOW_MIN = 16;
 
     // The sky on screen is saved when the face stops (the system restarts it
@@ -545,10 +534,10 @@ module Stellar {
             _jobSinLat = Math.sin(MathUtil.deg2rad(latDeg));
             _jobCosLat = Math.cos(MathUtil.deg2rad(latDeg));
             _jobLimit  = limitingMagnitude(a[5]);
-            _jobLines  = (starMode != MODE_BRIGHTEST)
+            _jobLines  = (starMode != MODE_BRIGHTEST) && (a[5] <= FULL_NIGHT_ALT_DEG)
                          && System.getSystemStats().totalMemory >= LOW_MEMORY_BYTES;
             catalog(starMode);
-            if (_jobLines) { lineTable(starMode); } else { releaseLines(); }
+            if (_jobLines) { lineTable(starMode); } else if (starMode == MODE_BRIGHTEST) { releaseLines(); }
             _jobIndex = 0;
             _jobAbove = 0;
             _jobStars = [];
@@ -592,11 +581,6 @@ module Stellar {
     function show(stars, lines, mipMode, key) {
         _projectedStars = stars;
         _projectedLines = lines;
-        _linesFromCode  = SHOW_LAST;
-        for (var i = 0; i < lines.size(); i += 2) {
-            var c = (lines[i] >> 22) & 0x3F;
-            if (c < _linesFromCode) { _linesFromCode = c; }
-        }
         _starColorBins  = mipMode ? null : AmoledArt.starColors();
         _starCornerBins = mipMode ? null : AmoledArt.starCorners();
         _lineColor      = mipMode ? MiPArt.CONSTELLATION_LINE : AmoledArt.CONSTELLATION_LINE;
@@ -606,10 +590,9 @@ module Stellar {
 
     // Catalogue entries from..to-1 of the sky being built. Returns true when
     // the catalogue is done. Figure stars that are not shown are still
-    // recorded (in _figurePos, and their show code in _figureStar) so the
-    // lines can use them: up but beyond the starCount or too faint to show
-    // in this sky (placed), or below the horizon (only marked; placed later
-    // if a line needs them).
+    // recorded (in _figurePos) so the lines can use them: up but beyond the
+    // starCount or too faint near the horizon (placed), or below the horizon
+    // (only marked; placed later if a line needs them).
     function placeStars(from, to) {
         var cat       = _catalog;
         var n         = cat.size();
@@ -664,7 +647,6 @@ module Stellar {
                 var p = packPos(xy[0], xy[1]) | POS_UP;
                 if (visible) { p |= POS_SHOWN; }
                 figPos[i] = p;
-                _figureStar[i] = FIGURE_STAR | showCode(apparent);
             }
         }
         _jobIndex = to;
@@ -719,35 +701,9 @@ module Stellar {
     }
 
     // Every figure line with at least one star above the horizon, cut at the
-    // edge of the sky, tagged with when its figure shows. Figure stars it
-    // reaches that are up but not shown on their own join the shown stars,
-    // to show with their figure; stars below the horizon it reaches are
-    // placed now.
+    // edge of the sky. Figure stars it reaches that are up but not yet shown
+    // join the shown stars; stars below the horizon it reaches are placed now.
     function projectLines(lines, cat, stars, figPos, cx, cy, skyR) {
-        // When each figure shows: once its faintest star above the horizon
-        // does, and at full night at the latest.
-        var figCode = _figureCode;
-        var night   = showCode(LIMIT_MAG[LIMIT_MAG.size() - 1]);
-        for (var f = 0; f < figCode.size(); f += 1) { figCode[f] = 0; }
-        for (var k = 0; k < lines.size(); k += 1) {
-            var f  = (lines[k] >> 18) & 0x7F;
-            var ia = lines[k] & 0x1FF;
-            var ib = (lines[k] >> 9) & 0x1FF;
-            var c  = figCode[f];
-            if (isUp(figPos[ia]) && (_figureStar[ia] & 0x3F) > c) { c = _figureStar[ia] & 0x3F; }
-            if (isUp(figPos[ib]) && (_figureStar[ib] & 0x3F) > c) { c = _figureStar[ib] & 0x3F; }
-            figCode[f] = (c > night) ? night : c;
-        }
-
-        // A figure star not shown on its own shows with the first of its
-        // figures to show: its show code becomes theirs (the lowest). Its
-        // own is no longer needed.
-        for (var k = 0; k < lines.size(); k += 1) {
-            var c = figCode[(lines[k] >> 18) & 0x7F];
-            hiddenStarCode(lines[k] & 0x1FF, c, figPos);
-            hiddenStarCode((lines[k] >> 9) & 0x1FF, c, figPos);
-        }
-
         var out = [];
         for (var k = 0; k < lines.size(); k += 1) {
             var ia = lines[k] & 0x1FF;
@@ -755,8 +711,8 @@ module Stellar {
             var pa = figPos[ia];
             var pb = figPos[ib];
             if (pa == null || pb == null || pa == 0 || pb == 0) { continue; }
-            var aUp = isUp(pa);
-            var bUp = isUp(pb);
+            var aUp = (pa & POS_UP) != 0;
+            var bUp = (pb & POS_UP) != 0;
             if (!aUp && !bUp) { continue; }
             if (aUp && (pa & POS_SHOWN) == 0) { pa = reveal(ia, pa, cat, stars, figPos); }
             if (bUp && (pb & POS_SHOWN) == 0) { pb = reveal(ib, pb, cat, stars, figPos); }
@@ -764,36 +720,17 @@ module Stellar {
             if (pb == POS_BELOW) { pb = placeBelow(ib); }
             var gapA = aUp ? LINE_GAP_PX[starSizeForMag(MAG_ZERO + ((cat[ia] >> 3) & 0x7F) * MAG_STEP)] : 0;
             var gapB = bUp ? LINE_GAP_PX[starSizeForMag(MAG_ZERO + ((cat[ib] >> 3) & 0x7F) * MAG_STEP)] : 0;
-            var n = out.size();
             addLine(out, pa, gapA, pb, gapB, cx, cy, skyR);
-            if (out.size() > n) { out[n] |= figCode[(lines[k] >> 18) & 0x7F] << 22; }
         }
         return out;
     }
 
-    // Whether a figure star's position (_figurePos) is above the horizon.
-    function isUp(p) { return p != null && (p & POS_UP) != 0; }
-
-    // Lower the show code of figure star t, up but not shown on its own, to
-    // code if that is lower. The first time (POS_CODED unset), its own code
-    // is replaced.
-    function hiddenStarCode(t, code, figPos) {
-        var p = figPos[t];
-        if (!isUp(p) || (p & POS_SHOWN) != 0) { return; }
-        if ((p & POS_CODED) == 0 || code < (_figureStar[t] & 0x3F)) {
-            _figureStar[t] = FIGURE_STAR | code;
-        }
-        figPos[t] = p | POS_CODED;
-    }
-
-    // Show a figure star that is up with its figure: add it to the shown
-    // stars, with its figure's show code (hiddenStarCode).
+    // Show a figure star that is up with the lines: add it to the shown stars.
     function reveal(t, p, cat, stars, figPos) {
         var v = cat[t] as Lang.Number;
         if (stars.size() >= MAX_STARS) { return p; }
         stars.add(packStar((p & 0x7FF) - POS_OFFSET, ((p >> 11) & 0x7FF) - POS_OFFSET,
-                           starSizeForMag(MAG_ZERO + ((v >> 3) & 0x7F) * MAG_STEP), v & 0x7,
-                           _figureStar[t] & 0x3F));
+                           starSizeForMag(MAG_ZERO + ((v >> 3) & 0x7F) * MAG_STEP), v & 0x7, SHOW_WITH_LINES));
         p |= POS_SHOWN;
         figPos[t] = p;
         return p;
@@ -839,17 +776,16 @@ module Stellar {
 
     function drawProjectedStars(dc) {
         // During a region repaint only the lines and stars inside the region
-        // are drawn. Of the stars and figures built, only those the sky is
-        // dark enough for now are drawn (setSunAltitude).
+        // are drawn. Of the stars built, only those the sky is dark enough
+        // for now are drawn (setSunAltitude).
         var b = Drawing.regionBounds(3);
 
-        if (_projectedLines.size() > 0 && _linesFromCode <= _showCode) {
+        if (_showLines && _projectedLines.size() > 0) {
             var aa = _lineAntiAlias && (dc has :setAntiAlias);
             if (aa) { dc.setAntiAlias(true); }
             dc.setColor(_lineColor, Drawing.BLACK);
             for (var i = 0; i < _projectedLines.size(); i += 2) {
                 var p0 = _projectedLines[i];
-                if (((p0 >> 22) & 0x3F) > _showCode) { continue; }
                 var p1 = _projectedLines[i + 1];
                 var x0 = p0 & 0x7FF;
                 var y0 = (p0 >> 11) & 0x7FF;
@@ -867,7 +803,7 @@ module Stellar {
         for (var i = 0; i < _projectedStars.size(); i += 1) {
             var s      = _projectedStars[i];
             var showAt = (s >> 25) & 0x3F;
-            if (showAt > _showCode) { continue; }
+            if (showAt > _showCode && (showAt != SHOW_WITH_LINES || !_showLines)) { continue; }
             var x = s & 0x3FF;
             var y = (s >> 10) & 0x3FF;
             if (b != null && (x < b[0] || x > b[2] || y < b[1] || y > b[3])) {

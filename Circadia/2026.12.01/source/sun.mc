@@ -85,7 +85,7 @@ module SunArt {
     // tied to CORE_DEG (end of nautical twilight) and OUTER_DEG (full night).
     const WHITE_DISC_DEG = 10.0;    // keep equal to half of config's largest moon diameter
     const CORE_DEG       = 12.0;    // end of nautical twilight; white disc plus its coloured rim
-    const OUTER_DEG      = 18.0;    // end of astronomical twilight; keep equal to -Stellar.LIMIT_ALT_DEG's last
+    const OUTER_DEG      = 18.0;    // end of astronomical twilight; keep equal to -Stellar.FULL_NIGHT_ALT_DEG
 
     // ── The sun spreads along the horizon ───────────────────────────────────
     const SPREAD_START_ALT_DEG = 3.0;     // late golden hour: the sun starts to flatten
