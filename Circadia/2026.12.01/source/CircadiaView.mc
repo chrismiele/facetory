@@ -25,11 +25,10 @@ class CircadiaView extends WatchUi.WatchFace {
 
     var _isSleeping = false;
 
-    // From this second of each minute, next minute's star sky is built ahead
-    // (about 9 steps, a second each). Late in the minute, so only a glance
-    // that runs on towards the minute change starts one: most glances last
-    // about 10 seconds, and a build they started but did not finish would go
-    // on at a step a minute in low power and push back the sky built there.
+    // From this second of each minute, next minute's star sky is built ahead,
+    // ready on the minute (about 9 steps, a second each, with time to spare).
+    // Only when no sky is being built or waiting (Stellar.canPrepare): just
+    // after waking from low power, that cycle's sky usually still is.
     const PREBUILD_SEC = 40;
     var _aheadMin = -1;
 
