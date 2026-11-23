@@ -43,10 +43,9 @@ module config {
     // AMOLED, where always-on mode updates once a minute and live fields
     // such as heart rate would sit frozen; the whole face on MIP, where the
     // per-second partial update keeps them live.
-    const AOD_DEFAULT       = 0;
-    const AOD_SKY_ONLY      = 1;
-    const AOD_CLOCK_ONLY    = 2;
-    const AOD_SKY_AND_CLOCK = 3;
+    const AOD_DEFAULT    = 0;
+    const AOD_SKY_ONLY   = 1;
+    const AOD_CLOCK_ONLY = 2;
     const LOW_POWER_SKY     = 1;   // lowPowerParts bits
     const LOW_POWER_CLOCK   = 2;
     const LOW_POWER_FIELDS  = 4;
@@ -162,8 +161,6 @@ module config {
             _lowPowerParts = LOW_POWER_SKY;
         } else if (_aodView == AOD_CLOCK_ONLY) {
             _lowPowerParts = LOW_POWER_CLOCK;
-        } else if (_aodView == AOD_SKY_AND_CLOCK) {
-            _lowPowerParts = LOW_POWER_SKY | LOW_POWER_CLOCK;
         } else {
             _lowPowerParts = _burnIn ? LOW_POWER_SKY : (LOW_POWER_SKY | LOW_POWER_CLOCK | LOW_POWER_FIELDS);
         }

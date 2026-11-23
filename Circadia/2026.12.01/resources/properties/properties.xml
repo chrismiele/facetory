@@ -28,7 +28,7 @@
         <property id="lonDeg"      type="float">-123.12</property>
 
         <!-- Always-on display: 0 = default (AMOLED sky only, MIP everything),
-             1 = sky only, 2 = clock only, 3 = sky and clock -->
+             1 = sky only, 2 = clock only -->
         <property id="aodView"      type="number">0</property>
         <!-- The setting before 2026.12.01 (0 = clock only, 1 = sky only), read
              once to carry a Clock only choice over to aodView (config.refresh) -->

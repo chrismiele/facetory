@@ -43,7 +43,6 @@
                 <listEntry value="0">@Strings.aodDefault</listEntry>
                 <listEntry value="1">@Strings.aodSkyOnly</listEntry>
                 <listEntry value="2">@Strings.aodClockOnly</listEntry>
-                <listEntry value="3">@Strings.aodSkyAndClock</listEntry>
             </settingConfig>
         </setting>
 

@@ -11,6 +11,6 @@ MIP: a new sun. Its colours now flow as it goes down: each new colour grows in a
 AMOLED: the moon's dark side is a little brighter.
 Settings are reordered by kind: how the face looks first (Which stars, the moon's dark side, seconds, sun and moon size, minute colour saturation, always-on), then the data fields, then their formats and units, and location last. Your saved choices are kept.
 Fixed: on some watches (such as the Forerunner 165) a coloured bar could cross the screen near the end of civil twilight.
-"Always-on display" has two new choices: Default (the sky alone on AMOLED watches, the whole face on MIP watches, where the fields stay live) and Sky and clock. The choice now applies to MIP watches too, in low power. A Clock only choice is kept.
+"Always-on display" has a new choice, Default: the sky alone on AMOLED watches, the whole face on MIP watches, where the fields stay live. The choice now applies to MIP watches too, in low power. A Clock only choice is kept.
 The "Display type" setting is gone: Circadia now picks its art from the watch itself, full colour on AMOLED screens and the simplified art on MIP screens.
 Now available on the fēnix 9, 9 Pro and 9 Pro Solar and the Enduro 4, and on more MIP watches: fēnix 7, 7S, 7X and 7 Pro series (with quatix 7, tactix 7 and Enduro 2), Forerunner 255 series and 955, and the Forerunner 245 Music alongside the 245.

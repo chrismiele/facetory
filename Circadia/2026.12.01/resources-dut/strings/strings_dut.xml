@@ -73,7 +73,6 @@
         <string id="aodDefault">Standaard</string>
         <string id="aodClockOnly">Alleen klok</string>
         <string id="aodSkyOnly">Alleen lucht</string>
-        <string id="aodSkyAndClock">Lucht en klok</string>
 
         <!-- Time format choices -->
         <string id="timeFormat24h">24 uur</string>

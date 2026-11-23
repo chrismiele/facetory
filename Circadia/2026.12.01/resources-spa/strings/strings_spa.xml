@@ -73,7 +73,6 @@
         <string id="aodDefault">Predeterminado</string>
         <string id="aodClockOnly">Solo reloj</string>
         <string id="aodSkyOnly">Solo cielo</string>
-        <string id="aodSkyAndClock">Cielo y reloj</string>
 
         <!-- Time format choices -->
         <string id="timeFormat24h">24 horas</string>
