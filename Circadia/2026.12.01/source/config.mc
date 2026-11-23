@@ -46,9 +46,9 @@ module config {
     const AOD_DEFAULT    = 0;
     const AOD_SKY_ONLY   = 1;
     const AOD_CLOCK_ONLY = 2;
-    const LOW_POWER_SKY     = 1;   // lowPowerParts bits
-    const LOW_POWER_CLOCK   = 2;
-    const LOW_POWER_FIELDS  = 4;
+    const LOW_POWER_SKY    = 1;   // _lowPowerParts bits
+    const LOW_POWER_CLOCK  = 2;
+    const LOW_POWER_FIELDS = 4;
 
     const TIME_FORMAT_24H = 0;
     const TIME_FORMAT_12H = 1;
