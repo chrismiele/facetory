@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<resources>
+    <strings>
+
+        <!-- App name -->
+        <string id="AppName">Circadia</string>
+
+        <!-- Setting titles -->
+        <string id="topFieldTitle">Campo de datos superior</string>
+        <string id="leftFieldTitle">Campo de datos inferior izquierdo</string>
+        <string id="rightFieldTitle">Campo de datos inferior derecho</string>
+        <string id="tempUnitsTitle">Unidades de temperatura</string>
+        <string id="distanceUnitsTitle">Unidades de distancia</string>
+        <string id="mipModeTitle">Tipo de pantalla</string>
+        <string id="showSecondsTitle">Mostrar segundos</string>
+        <string id="moonDarkSideTitle">Mostrar el lado oscuro de la luna</string>
+        <string id="starCountTitle">Número de estrellas</string>
+        <string id="moonSizeTitle">Tamaño de la luna</string>
+        <string id="useGpsTitle">Ubicación</string>
+        <string id="latDegTitle">Latitud de inicio (grados decimales, positivo = N)</string>
+        <string id="lonDegTitle">Longitud de inicio (grados decimales, positivo = E)</string>
+        <string id="aodBehaviourTitle">Pantalla siempre activa</string>
+        <string id="timeFormatTitle">Formato de hora</string>
+        <string id="dateFormatTitle">Formato de fecha</string>
+        <string id="minuteSaturationTitle">Saturación de color de los minutos</string>
+
+        <!-- Field choices -->
+        <string id="fieldNone">Ninguno</string>
+        <string id="fieldDate">Fecha</string>
+        <string id="fieldHeartRate">Frecuencia cardíaca</string>
+        <string id="fieldSteps">Pasos</string>
+        <string id="fieldTemperature">Temperatura</string>
+        <string id="fieldBodyBattery">Body Battery</string>
+        <string id="fieldBattery">Batería del dispositivo</string>
+        <string id="fieldNextSunEvent">Próximo evento solar</string>
+        <string id="fieldStress">Estrés</string>
+        <string id="fieldCalories">Calorías</string>
+        <string id="fieldFloors">Pisos subidos</string>
+        <string id="fieldDistance">Distancia</string>
+        <string id="fieldRecovery">Tiempo de recuperación</string>
+        <string id="fieldRunningDistance7d">Distancia de carrera 7 días</string>
+        <string id="fieldRunningTime7d">Tiempo de carrera 7 días</string>
+        <string id="fieldRunningDistanceWtd">Distancia de carrera semanal</string>
+        <string id="fieldRunningTimeWtd">Tiempo de carrera semanal</string>
+        <string id="fieldVo2Max">VO2 máx.</string>
+
+        <!-- Unit choices -->
+        <!-- Temperature unit choices -->
+        <string id="tempCelsius">Celsius (°C)</string>
+        <string id="tempFahrenheit">Fahrenheit (°F)</string>
+        <string id="tempKelvin">Kelvin (K)</string>
+
+        <!-- Distance unit choices -->
+        <string id="distanceKm">Kilómetros</string>
+        <string id="distanceMi">Millas</string>
+
+        <!-- Display choices -->
+        <string id="displayAmoled">Predeterminado (color completo)</string>
+        <string id="displayMip">Simplificado (compatible con MIP)</string>
+
+        <!-- Star choices -->
+        <string id="starsNone">Ninguna</string>
+        <string id="starsSome">Algunas</string>
+        <string id="starsLots">Muchas</string>
+
+        <!-- Moon size choices -->
+        <string id="moonSizeSmall">Pequeña</string>
+        <string id="moonSizeMedium">Mediana</string>
+        <string id="moonSizeLarge">Grande</string>
+
+        <!-- GPS choices -->
+        <string id="gpsUseLocation">Usar ubicación del dispositivo</string>
+        <string id="gpsUseHome">Usar coordenadas de inicio</string>
+
+        <!-- AOD choices -->
+        <string id="aodClockOnly">Solo reloj</string>
+        <string id="aodSkyOnly">Solo cielo</string>
+
+        <!-- Time format choices -->
+        <string id="timeFormat24h">24 horas</string>
+        <string id="timeFormat12h">12 horas</string>
+
+        <!-- Date format choices -->
+        <string id="dateFormatDayNumber">vie. 13</string>
+        <string id="dateFormatMonthDay">ene. 13</string>
+        <string id="dateFormatDayMonth">13 ene.</string>
+
+        <!-- Saturation choices -->
+        <string id="saturation0">0 % (blanco puro)</string>
+        <string id="saturation1">20 %</string>
+        <string id="saturation2">40 %</string>
+        <string id="saturation3">60 %</string>
+        <string id="saturation4">80 %</string>
+        <string id="saturation5">100 % (tono completo)</string>
+
+        <!-- Week start day choices -->
+        <string id="weekStartDayTitle">La semana empieza el</string>
+        <string id="daySunday">Domingo</string>
+        <string id="dayMonday">Lunes</string>
+        <string id="dayTuesday">Martes</string>
+        <string id="dayWednesday">Miércoles</string>
+        <string id="dayThursday">Jueves</string>
+        <string id="dayFriday">Viernes</string>
+        <string id="daySaturday">Sábado</string>
+    </strings>
+</resources>

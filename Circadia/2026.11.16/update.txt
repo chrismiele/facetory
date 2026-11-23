@@ -1,0 +1,9 @@
+New sun: a white-hot disc with a corona, sized to vanish exactly at full night. Sun and minute colours now change once per twilight stage.
+New optional settings (both off by default): "Show the moon's dark side" and "Horizon glow at twilight".
+The new moon is now the same size as every other phase.
+MIP watches keep the full face (sky, time and data fields) in low power.
+On Connect IQ 4 watches the moon is always drawn the same way, with the dark side black or dim grey; nothing is drawn outside the moon any more.
+On watches with a GPU, the moon shows its true shape for the exact phase (the dividing line moves a pixel at a time, crescents and gibbous moons are mirror images) and turns to face the sun in 5° steps. Older watches keep the original 12 phases.
+AMOLED: brighter, smoother sun halo (12 rings); the horizon glow is a soft crescent like the halo, fading inward and tapering to a point at each end.
+MIP: a more compact sun, always three layers (ball and two thin rings); the horizon glow is two tapering crescents in the halo's two colours, and neighbouring bands always differ clearly.
+With the dark side off, the new moon is not drawn at all.
