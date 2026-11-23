@@ -66,7 +66,8 @@ module config {
     var _distanceUnits    = DIST_KM;
     var _showSeconds      = false;
     // Stars shown at full night: always 200 ("Lots"), or 100 on watches with
-    // under 100 KB for a watch face (such as the Forerunner 245, 96 KB).
+    // less memory for a watch face than Stellar.LOW_MEMORY_BYTES (such as the
+    // Forerunner 245, about 92 KB).
     var _starCount        = 200;
     var _starMode         = 0;       // 0 = brightest, 1 = constellations, 2 = zodiac
     var _useGps           = 1;       // 1 = device GPS, 0 = home coordinates
@@ -128,7 +129,7 @@ module config {
         _tempUnits        = readNumber("tempUnits",        _tempUnits);
         _distanceUnits    = readNumber("distanceUnits",    _distanceUnits);
         _showSeconds      = readBool(  "showSeconds",      _showSeconds);
-        _starCount        = (System.getSystemStats().totalMemory < 102400) ? 100 : 200;
+        _starCount        = (System.getSystemStats().totalMemory < Stellar.LOW_MEMORY_BYTES) ? 100 : 200;
         _starMode         = readNumber("starMode",         _starMode);
         _useGps           = readNumber("useGps",           _useGps);
         _latDeg           = readFloat( "latDeg",           _latDeg);

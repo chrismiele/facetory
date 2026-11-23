@@ -44,7 +44,7 @@ using Toybox.WatchUi;
 // separately (Planets).
 //
 // Figure lines (Constellations: the well-known figures; Zodiac: the twelve
-// zodiac figures). Faint lines join the figures' stars, drawn under the
+// zodiac figures; not on low-memory watches, see LOW_MEMORY_BYTES). Faint lines join the figures' stars, drawn under the
 // stars and stopping just short of them. Each figure comes out whole, on its
 // own minute: once every one of its stars above the horizon is bright enough
 // to see, and at full night (sun at -18 deg or lower) at the latest. It goes
@@ -85,6 +85,12 @@ module Stellar {
     const MODE_BRIGHTEST      = 0;
     const MODE_CONSTELLATIONS = 1;
     const MODE_ZODIAC         = 2;
+
+    // Watches with less memory than this for a watch face (the Forerunner
+    // 245 and 245 Music, about 92 KB) draw no figure lines: the line tables
+    // and the lines on screen and being built do not fit beside the rest of
+    // the face. They keep the chosen mode's stars, and show 100 (config).
+    const LOW_MEMORY_BYTES = 102400;
 
     // Lines stop this many pixels short of a star's centre, by star size
     // (Drawing.STAR_*), and are left out if nothing would remain.
@@ -539,7 +545,8 @@ module Stellar {
             _jobSinLat = Math.sin(MathUtil.deg2rad(latDeg));
             _jobCosLat = Math.cos(MathUtil.deg2rad(latDeg));
             _jobLimit  = limitingMagnitude(a[5]);
-            _jobLines  = (starMode != MODE_BRIGHTEST);
+            _jobLines  = (starMode != MODE_BRIGHTEST)
+                         && System.getSystemStats().totalMemory >= LOW_MEMORY_BYTES;
             catalog(starMode);
             if (_jobLines) { lineTable(starMode); } else { releaseLines(); }
             _jobIndex = 0;
