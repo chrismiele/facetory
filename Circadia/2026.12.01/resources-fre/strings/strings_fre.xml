@@ -68,8 +68,10 @@
         <string id="gpsUseHome">Coordonnées du domicile</string>
 
         <!-- AOD choices -->
+        <string id="aodDefault">Par défaut</string>
         <string id="aodClockOnly">Horloge uniquement</string>
         <string id="aodSkyOnly">Ciel uniquement</string>
+        <string id="aodSkyAndClock">Ciel et horloge</string>
 
         <!-- Time format choices -->
         <string id="timeFormat24h">24 heures</string>

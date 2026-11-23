@@ -70,8 +70,10 @@
         <string id="gpsUseHome">Heimatkoordinaten verwenden</string>
 
         <!-- AOD choices -->
+        <string id="aodDefault">Standard</string>
         <string id="aodClockOnly">Nur Uhr</string>
         <string id="aodSkyOnly">Nur Himmel</string>
+        <string id="aodSkyAndClock">Himmel und Uhr</string>
 
         <!-- Time format choices -->
         <string id="timeFormat24h">24 Stunden</string>

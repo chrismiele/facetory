@@ -38,10 +38,12 @@
             </settingConfig>
         </setting>
 
-        <setting propertyKey="@Properties.aodBehaviour" title="@Strings.aodBehaviourTitle">
+        <setting propertyKey="@Properties.aodView" title="@Strings.aodBehaviourTitle">
             <settingConfig type="list">
+                <listEntry value="0">@Strings.aodDefault</listEntry>
                 <listEntry value="1">@Strings.aodSkyOnly</listEntry>
-                <listEntry value="0">@Strings.aodClockOnly</listEntry>
+                <listEntry value="2">@Strings.aodClockOnly</listEntry>
+                <listEntry value="3">@Strings.aodSkyAndClock</listEntry>
             </settingConfig>
         </setting>
 

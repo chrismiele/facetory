@@ -39,8 +39,17 @@ module config {
     const MOON_SIZE_MEDIUM = 1;
     const MOON_SIZE_LARGE  = 2;
 
-    const AOD_TIME_ONLY = 0;
-    const AOD_SKY_ONLY  = 1;
+    // What low power shows ("Always-on display"). Default: the sky alone on
+    // AMOLED, where always-on mode updates once a minute and live fields
+    // such as heart rate would sit frozen; the whole face on MIP, where the
+    // per-second partial update keeps them live.
+    const AOD_DEFAULT       = 0;
+    const AOD_SKY_ONLY      = 1;
+    const AOD_CLOCK_ONLY    = 2;
+    const AOD_SKY_AND_CLOCK = 3;
+    const LOW_POWER_SKY     = 1;   // lowPowerParts bits
+    const LOW_POWER_CLOCK   = 2;
+    const LOW_POWER_FIELDS  = 4;
 
     const TIME_FORMAT_24H = 0;
     const TIME_FORMAT_12H = 1;
@@ -64,7 +73,8 @@ module config {
     var _useGps           = 1;       // 1 = device GPS, 0 = home coordinates
     var _latDeg           = 49.29;
     var _lonDeg           = -123.12;
-    var _aodBehaviour     = AOD_SKY_ONLY;
+    var _aodView          = AOD_DEFAULT;
+    var _lowPowerParts    = LOW_POWER_SKY;   // what low power shows (LOW_POWER_* bits)
     var _timeFormat       = TIME_FORMAT_24H;
     var _dateFormat       = DATE_FORMAT_DAY_NUMBER;
     var _minuteSaturation = 3;       // 0-5 step index, mapped to 0.0-1.0 in step of 0.2
@@ -74,9 +84,8 @@ module config {
     var _moonDarkSide     = false;   // optional extra, off by default
 
     // True on displays that enforce burn-in protection (AMOLED). Read from the
-    // device, not from a setting: it decides whether low power means "always-on
-    // mode with restrictions" (AMOLED) or "normal face, updated less often" (MIP),
-    // and which art the face uses (mipMode()).
+    // device, not from a setting: it decides what low power shows by default
+    // (AOD_DEFAULT) and which art the face uses (mipMode()).
     var _burnIn           = false;
 
     // Helpers — getValue throws if a key is missing from properties.xml,
@@ -125,7 +134,7 @@ module config {
         _useGps           = readNumber("useGps",           _useGps);
         _latDeg           = readFloat( "latDeg",           _latDeg);
         _lonDeg           = readFloat( "lonDeg",           _lonDeg);
-        _aodBehaviour     = readNumber("aodBehaviour",     _aodBehaviour);
+        _aodView          = readNumber("aodView",          _aodView);
         _timeFormat       = readNumber("timeFormat",       _timeFormat);
         _dateFormat       = readNumber("dateFormat",       _dateFormat);
         _minuteSaturation = readNumber("minuteSaturation", _minuteSaturation);
@@ -135,6 +144,29 @@ module config {
 
         var ds = System.getDeviceSettings();
         _burnIn = (ds has :requiresBurnInProtection) && ds.requiresBurnInProtection;
+
+        // Until 2026.12.01 the choice was "aodBehaviour", for AMOLED only:
+        // 0 = clock only, 1 = sky only (the default, now Default). Carry a
+        // Clock only choice over, once.
+        if (_burnIn && _aodView == AOD_DEFAULT && readNumber("aodBehaviour", AOD_SKY_ONLY) == 0) {
+            _aodView = AOD_CLOCK_ONLY;
+            try {
+                Application.Properties.setValue("aodView", AOD_CLOCK_ONLY);
+                Application.Properties.setValue("aodBehaviour", AOD_SKY_ONLY);
+            } catch (e) {
+                // Not saved: carried over again at the next start.
+            }
+        }
+
+        if (_aodView == AOD_SKY_ONLY) {
+            _lowPowerParts = LOW_POWER_SKY;
+        } else if (_aodView == AOD_CLOCK_ONLY) {
+            _lowPowerParts = LOW_POWER_CLOCK;
+        } else if (_aodView == AOD_SKY_AND_CLOCK) {
+            _lowPowerParts = LOW_POWER_SKY | LOW_POWER_CLOCK;
+        } else {
+            _lowPowerParts = _burnIn ? LOW_POWER_SKY : (LOW_POWER_SKY | LOW_POWER_CLOCK | LOW_POWER_FIELDS);
+        }
     }
 
     // ── Accessors (zero-cost reads of cached values) ─────────────────────────
@@ -156,7 +188,6 @@ module config {
     function latDeg()           { return _latDeg;           }
     function lonDeg()           { return _lonDeg;           }
     function minuteSaturation() { return _minuteSaturation / 5.0; }
-    function aodBehaviour()     { return _aodBehaviour;     }
     function timeFormat()       { return _timeFormat;       }
     function dateFormat()       { return _dateFormat;       }
     function weekStartDay()     { return _weekStartDay;     }
@@ -175,28 +206,19 @@ module config {
     function showStars()        { return _starCount > 0;    }
     function is12hMode()        { return _timeFormat == TIME_FORMAT_12H; }
 
-    // True only when the always-on restrictions apply: the watch is asleep AND
-    // the display needs burn-in protection (AMOLED). A MIP watch in low power
-    // is not restricted, so it keeps the full face: sky, time and fields.
-    function aodActive(isSleeping) {
-        return isSleeping && _burnIn;
-    }
-
     // Whether to draw the digital clock right now.
     function showFace(isSleeping) {
-        if (!aodActive(isSleeping))         { return true; }
-        return _aodBehaviour == AOD_TIME_ONLY;
+        return !isSleeping || (_lowPowerParts & LOW_POWER_CLOCK) != 0;
     }
 
     // Whether to draw sun/moon/stars right now.
     function showSky(isSleeping) {
-        if (!aodActive(isSleeping))         { return true; }
-        return _aodBehaviour == AOD_SKY_ONLY;
+        return !isSleeping || (_lowPowerParts & LOW_POWER_SKY) != 0;
     }
 
-    // Data fields and seconds are hidden only in AMOLED always-on mode.
+    // Whether to draw the data fields and seconds right now.
     function showFields(isSleeping) {
-        return !aodActive(isSleeping);
+        return !isSleeping || (_lowPowerParts & LOW_POWER_FIELDS) != 0;
     }
 
 }
