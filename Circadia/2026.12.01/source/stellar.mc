@@ -233,8 +233,8 @@ module Stellar {
     // The watch stops an app that runs too many instructions before returning
     // from one update (the watchdog), and the limit is lower on some watches.
     // So the sky is never built in one go: each update does one bounded step
-    // (load the tables; place STEP_ENTRIES catalogue entries; time the
-    // figures; draw up the lines), and the finished sky replaces the old one only when it is
+    // (load the tables; place STEP_ENTRIES catalogue entries; draw up the
+    // lines), and the finished sky replaces the old one only when it is
     // complete. Awake (an update a second) a new sky takes a few seconds;
     // in low power (an update a minute) a few minutes, which at about half a
     // pixel of star movement a minute does not show. A job in progress is
@@ -283,11 +283,10 @@ module Stellar {
     // (about 260 at the most crowded); past it no more figure stars are added.
     const MAX_STARS = 280;
 
-    const JOB_IDLE    = 0;
-    const JOB_LOAD    = 1;
-    const JOB_STARS   = 2;
-    const JOB_FIGURES = 3;   // when each figure shows (figureCodes)
-    const JOB_LINES   = 4;
+    const JOB_IDLE  = 0;
+    const JOB_LOAD  = 1;
+    const JOB_STARS = 2;
+    const JOB_LINES = 3;
 
     var _jobPhase   = JOB_IDLE;
     var _jobKey     = null;
@@ -338,13 +337,12 @@ module Stellar {
     // How many minutes ahead to start a sky in low power, so it is done by
     // then: the steps the last sky took (an update a minute), or the minutes
     // it took if more (updates were missed, or the simulator runs time fast),
-    // plus one to spare; before any, enough for the largest table (load,
-    // stars, figures, lines, one to spare).
+    // plus one to spare; before any, enough for the largest table.
     const MAX_LEAD_MIN = 15;
     function leadMinutes() {
         if (_lastSteps > 0) { return ((_lastSpan > _lastSteps) ? _lastSpan : _lastSteps) + 1; }
         var n = (_catalog == null) ? 530 : _catalog.size();
-        return (n + STEP_ENTRIES - 1) / STEP_ENTRIES + 4;
+        return (n + STEP_ENTRIES - 1) / STEP_ENTRIES + 3;
     }
 
     // layout = [cx, cy, skyRadiusPx]; datetime = [year, month, day, hour, min]
@@ -560,15 +558,9 @@ module Stellar {
 
         if (_jobPhase == JOB_STARS) {
             if (placeStars(_jobIndex, _jobIndex + STEP_ENTRIES)) {
-                _jobPhase = _jobLines ? JOB_FIGURES : JOB_IDLE;
+                _jobPhase = _jobLines ? JOB_LINES : JOB_IDLE;
                 if (!_jobLines) { publish([]); }
             }
-            return;
-        }
-
-        if (_jobPhase == JOB_FIGURES) {
-            figureCodes(_lineTable, _figurePos);
-            _jobPhase = JOB_LINES;
             return;
         }
 
@@ -726,10 +718,14 @@ module Stellar {
         return (x & 0x3FF) | ((y & 0x3FF) << 10) | (size << 20) | (colorBin << 22) | (showAt << 25);
     }
 
-    // When each figure shows (_figureCode): once its faintest star above the
-    // horizon does, and at full night at the latest. A step of its own, as
-    // projecting the lines after it is the heaviest.
-    function figureCodes(lines, figPos) {
+    // Every figure line with at least one star above the horizon, cut at the
+    // edge of the sky, tagged with when its figure shows. Figure stars it
+    // reaches that are up but not shown on their own join the shown stars,
+    // to show with their figure; stars below the horizon it reaches are
+    // placed now.
+    function projectLines(lines, cat, stars, figPos, cx, cy, skyR) {
+        // When each figure shows: once its faintest star above the horizon
+        // does, and at full night at the latest.
         var figCode = _figureCode;
         var night   = showCode(LIMIT_MAG[LIMIT_MAG.size() - 1]);
         for (var f = 0; f < figCode.size(); f += 1) { figCode[f] = 0; }
@@ -751,15 +747,7 @@ module Stellar {
             hiddenStarCode(lines[k] & 0x1FF, c, figPos);
             hiddenStarCode((lines[k] >> 9) & 0x1FF, c, figPos);
         }
-    }
 
-    // Every figure line with at least one star above the horizon, cut at the
-    // edge of the sky, tagged with when its figure shows (figureCodes).
-    // Figure stars it reaches that are up but not shown on their own join
-    // the shown stars, to show with their figure; stars below the horizon it
-    // reaches are placed now.
-    function projectLines(lines, cat, stars, figPos, cx, cy, skyR) {
-        var figCode = _figureCode;
         var out = [];
         for (var k = 0; k < lines.size(); k += 1) {
             var ia = lines[k] & 0x1FF;
